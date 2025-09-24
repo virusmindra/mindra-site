@@ -1,22 +1,7 @@
 {
-  "home": {
-    "badge": "MINDRA — A WARM AI-FRIEND & COACH",
-    "title": "Support, motivation & habit tracking — in one bot",
-    "subtitle": "Mindra helps you talk about what matters, stay focused on goals, and take care of yourself. Works in 11 languages.",
-    "cta": {
-      "telegram": "Open in Telegram",
-      "pricing": "Pricing"
-    },
-    "features": {
-      "title": "What Mindra can do",
-      "items": {
-        "support":   { "title": "Supportive dialogue", "desc": "Gentle, caring replies — no judgement or pressure." },
-        "coach":     { "title": "Motivation & coaching", "desc": "Action plans, micro-steps and regular check-ins." },
-        "goals":     { "title": "Goals & habits", "desc": "Add goals, habit tracker and reminders." },
-        "reports":   { "title": "Reports & stats", "desc": "Weekly reports, points and titles for progress." },
-        "voice":     { "title": "Voice & ambience", "desc": "Voice responses and ambient sounds for sleep." },
-        "challenges":{ "title": "Premium challenges", "desc": "Weekly challenges with auto completion." }
-      }
-    }
-  }
+  "hero.title": "Support, motivation & habit tracker — in one bot",
+  "hero.subtitle": "Mindra helps you open up, stay focused on goals and care for yourself. Works in 11 languages.",
+  "cta.launch": "Open in Telegram",
+  "cta.pricing": "Pricing",
+  "features.title": "What Mindra can do"
 }
