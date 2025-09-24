@@ -2,46 +2,43 @@
 
 import {useRouter, usePathname, useParams} from 'next/navigation';
 import {useTransition} from 'react';
-import {locales, localeLabels} from '@/locales';
+
+const locales = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
+const labels: Record<string,string> = {
+  ru:'Русский', en:'English', uk:'Українська', pl:'Polski', es:'Español',
+  fr:'Français', de:'Deutsch', kk:'Қазақша', hy:'Հայերեն', ka:'ქართული', md:'Română'
+};
 
 export default function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useParams() as {locale: string};
+  const params = useParams() as {locale?: string};
   const [isPending, startTransition] = useTransition();
 
-  const current = (params?.locale ?? 'ru') as keyof typeof localeLabels;
+  const current = (params?.locale ?? 'ru').toString();
 
   function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const next = e.target.value;
-
-    // Меняем первый сегмент пути на новый locale и делаем навигацию.
-    // Пример: /ru/pricing -> /en/pricing
+    // меняем первый сегмент пути (/ru/..., /en/...)
     const segments = pathname.split('/');
-    segments[1] = next;
+    segments[1] = next; // первый сегмент после начального "/"
     const nextPath = segments.join('/');
-
-    startTransition(() => {
-      // next-intl middleware поставит cookie NEXT_LOCALE автоматически
-      router.push(nextPath);
-    });
+    startTransition(() => router.push(nextPath));
   }
 
   return (
-    <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
-      <span className="sr-only">Language</span>
-      <select
-        onChange={onChange}
-        defaultValue={current}
-        disabled={isPending}
-        className="bg-zinc-900/50 border border-white/10 rounded-md px-3 py-1.5 outline-none hover:bg-zinc-800/60"
-      >
-        {locales.map((l) => (
-          <option key={l} value={l}>
-            {localeLabels[l]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <select
+      className="bg-transparent border border-white/20 rounded px-2 py-1 text-sm"
+      value={current}
+      onChange={onChange}
+      disabled={isPending}
+      aria-label="Choose language"
+    >
+      {locales.map(l => (
+        <option key={l} value={l}>
+          {labels[l] ?? l}
+        </option>
+      ))}
+    </select>
   );
 }
