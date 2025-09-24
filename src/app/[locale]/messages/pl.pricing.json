@@ -1,0 +1,21 @@
+{
+  "pricing.title": "Cennik",
+  "pricing.subtitle": "Trzy plany — wybierz wygodny. Subskrypcją zarządzasz w Telegramie.",
+  "plan.free": "Za darmo",
+  "plan.free.desc": "Podstawowe funkcje, limity użycia.",
+  "plan.plus": "Mindra+",
+  "plan.plus.from": "od $6.99/mies.",
+  "plan.plus.desc": "Wszystkie funkcje premium, hojne limity.",
+  "plan.pro": "Mindra Pro",
+  "plan.pro.from": "od $14.99/mies.",
+  "plan.pro.desc": "Bez limitów. Pełna moc Mindra.",
+  "cta.telegram": "Subskrybuj w Telegramie",
+  "features.header": "Co wchodzi w skład",
+  "features.items": [
+    "Wspierająca, życzliwa rozmowa",
+    "Motywacja i coaching (plan, fokus, mikro-kroki)",
+    "Cele i nawyki z przypomnieniami",
+    "Tygodniowe raporty i statystyki",
+    "Głosy i dźwięki (również do snu)"
+  ]
+}
