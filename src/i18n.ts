@@ -1,13 +1,21 @@
 import {getRequestConfig} from 'next-intl/server';
 
 export default getRequestConfig(async ({locale}) => {
-  const base = (await import(`@/app/[locale]/messages/${locale}.json`)).default;
+  const current = locale ?? 'ru';
 
-  // Пытаемся подмешать переводы для страницы тарифов
+  const base = (await import(`@/app/[locale]/messages/${current}.json`)).default;
+
   let pricing: Record<string, unknown> = {};
   try {
-    pricing = (await import(`@/app/[locale]/messages/${locale}.pricing.json`)).default;
-  } catch (_) {}
+    pricing = (await import(`@/app/[locale]/messages/${current}.pricing.json`)).default;
+  } catch {}
 
-  return {messages: {...base, ...pricing}};
+  return {
+    // 👇 это важно для твоей сборки — явно возвращаем locale
+    locale: current,
+    messages: {
+      ...base,
+      ...pricing
+    }
+  };
 });
