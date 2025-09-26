@@ -1,5 +1,5 @@
 import {NextIntlClientProvider} from "next-intl";
-import {getMessages, getTranslations, unstable_setRequestLocale} from "next-intl/server";
+import {getMessages, getTranslations} from "next-intl/server";
 import Link from "next/link";
 import "@/app/globals.css";
 import {DONATE_URL} from "@/lib/links";
@@ -15,11 +15,9 @@ export default async function RootLayout(
 ) {
   const {locale} = params;
   // Устанавливаем локаль роута
-  unstable_setRequestLocale(locale);
-
-  // Сообщения и переводчик для SSR
-  const messages = await getMessages();
-  const t = await getTranslations();
+// Сообщения и переводчик для SSR
+  const messages = await getMessages({locale});
+  const t = await getTranslations({locale});
 
   return (
     <html lang={locale}>
