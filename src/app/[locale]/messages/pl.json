@@ -1,14 +1,10 @@
 {
-  "hero.title": "Поддержка, мотивация и трекер привычек — в одном боте",
-  "hero.subtitle": "Mindra помогает говорить о важном, держать фокус на целях и заботиться о себе. Работает на 11 языках.",
-  "cta.launch": "Запустить в Telegram",
-  "cta.pricing": "Тарифы",
-  "features.title": "Что умеет Mindra",
-  "features.items": [
-    "Поддерживающий диалог — тепло, бережно, без осуждения",
-    "Мотивация и коучинг — план, фокус, микро-шаги",
-    "Цели и привычки с напоминаниями",
-    "Еженедельные отчёты и статистика",
-    "Голоса и звуки (в т.ч. для сна)"
-  ]
+  "brand.tagline": "MINDRA — ciepły przyjaciel i coach AI",
+  "nav.pricing": "Cennik",
+  "nav.donate": "Wesprzyj",
+  "hero.title": "Wsparcie, motywacja i śledzenie nawyków — w jednym bocie",
+  "hero.subtitle": "Mindra pomaga mówić o tym, co ważne, utrzymywać fokus na celach i dbać o siebie. Działa w 11 językach.",
+  "cta.launch": "Uruchom w Telegramie",
+  "cta.pricing": "Zobacz cennik",
+  "features.title": "Co potrafi Mindra"
 }

@@ -1,14 +1,10 @@
 {
-  "hero.title": "Support, motivation & habit tracking — in one bot",
-  "hero.subtitle": "Mindra helps you speak about what matters, keep focus on goals and take care of yourself. Works in 11 languages.",
-  "cta.launch": "Launch in Telegram",
-  "cta.pricing": "Pricing",
-  "features.title": "What Mindra can do",
-  "features.items": [
-    "Supportive, caring conversation — no judgment",
-    "Motivation & coaching — plan, focus, micro-steps",
-    "Goals & habits with reminders",
-    "Weekly reports & statistics",
-    "Voices & sounds (incl. for sleep)"
-  ]
+  "brand.tagline": "MINDRA — a warm AI friend & coach",
+  "nav.pricing": "Pricing",
+  "nav.donate": "Donate",
+  "hero.title": "Support, motivation and habit tracking — in one bot",
+  "hero.subtitle": "Mindra helps you talk about what matters, stay focused on goals, and take care of yourself. Works in 11 languages.",
+  "cta.launch": "Open in Telegram",
+  "cta.pricing": "See pricing",
+  "features.title": "What Mindra can do"
 }
