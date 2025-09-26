@@ -1,58 +1,57 @@
+import React from "react";
 import {NextIntlClientProvider} from "next-intl";
 import {getMessages, getTranslations} from "next-intl/server";
 import Link from "next/link";
 import "@/app/globals.css";
-import {DONATE_URL} from "@/lib/links";
+import {DONATE_URL, TELEGRAM_URL, PRICING_URL} from "@/lib/links";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-export const metadata = {
-  title: "Mindra",
-  description: "Supportive AI-friend. Multilingual."
-};
-
-export default async function RootLayout(
-  {children, params}: {children: React.ReactNode; params: {locale: string}}
-) {
-  const {locale} = params;
-  // Устанавливаем локаль роута
-// Сообщения и переводчик для SSR
-  const messages = await getMessages({locale});
-  const t = await getTranslations({locale});
+export default async function RootLayout({
+  children,
+  params
+}: {
+  children: React.ReactNode;
+  params: {locale: string};
+}) {
+  const messages = await getMessages({locale: params.locale});
+  const t = await getTranslations({locale: params.locale});
 
   return (
-    <html lang={locale}>
+    <html lang={params.locale}>
       <body className="min-h-dvh text-zinc-100 bg-zinc-950">
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <header className="border-b border-white/10">
-            <div className="max-w-5xl mx-auto flex items-center justify-between py-4 px-4">
-              <Link href={`/${locale}`} className="font-semibold tracking-wide">Mindra</Link>
-              <div className="flex items-center justify-center gap-3">
-                <Link className="text-sm opacity-90 hover:opacity-100" href={`/${locale}/pricing`}>
-                  {t("nav.pricing")}
-                </Link>
-                <a
-                  className="rounded-xl border border-white/20 px-3 py-1.5 text-sm hover:bg-white hover:text-zinc-900 transition"
-                  href={DONATE_URL}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  {t("nav.donate")}
-                </a>
-                <LanguageSwitcher />
-              </div>
-            </div>
-          </header>
+        <header className="container mx-auto px-5 py-4 flex items-center justify-between border-b border-white/10">
+          <Link href={`/${params.locale}`} className="font-medium">
+            Mindra
+          </Link>
 
-          <main className="max-w-5xl mx-auto px-4 py-10">
-            {children}
-          </main>
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              href={`/${params.locale}/pricing`}
+              className="text-sm opacity-90 hover:opacity-100"
+            >
+              {t("nav.pricing")}
+            </Link>
+            <a
+              href={DONATE_URL}
+              target="_blank"
+              rel="noopener"
+              className="rounded-xl border border-white/20 px-3 py-1.5 text-sm hover:bg-white hover:text-zinc-900 transition"
+            >
+              {t("nav.donate")}
+            </a>
 
-          <footer className="border-t border-white/10 py-8 mt-8">
-            <div className="max-w-5xl mx-auto px-4 text-sm opacity-70">
-              © {new Date().getFullYear()} Mindra
-            </div>
-          </footer>
+            <LanguageSwitcher />
+          </div>
+        </header>
+
+        <NextIntlClientProvider messages={messages} locale={params.locale}>
+          <main className="container mx-auto px-5">{children}</main>
         </NextIntlClientProvider>
+
+        <footer className="container mx-auto px-5 py-10 opacity-70">
+          <p className="text-sm">{t("brand.tagline")}</p>
+          <p className="text-xs mt-2">© 2025 Mindra</p>
+        </footer>
       </body>
     </html>
   );
