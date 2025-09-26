@@ -4,19 +4,24 @@ export default getRequestConfig(async ({locale}) => {
   const current = (locale as string) || 'ru';
 
   // Базовые сообщения
-  const base =
-    (await import(`@/app/[locale]/messages/${current}.json`)).default;
+  const base = (await import(`@/app/[locale]/messages/${current}.json`)).default;
 
-  // Доп. неймспейсы (не обязательны) — подмешиваем, если есть
+  // Опциональные блоки (не падаем, если файла нет)
   let pricing: Record<string, unknown> = {};
   try {
     pricing = (await import(`@/app/[locale]/messages/${current}.pricing.json`)).default;
   } catch {}
 
-  let thanks: Record<string, unknown> = {};
+  let thanksMsgs: Record<string, unknown> = {};
   try {
-    thanks = (await import(`@/app/[locale]/messages/${current}.thanks.json`)).default;
+    thanksMsgs = (await import(`@/app/[locale]/messages/${current}.thanks.json`)).default;
   } catch {}
 
-  return {messages: {...base, ...pricing, ...thanks}};
+  return {
+    messages: {
+      ...base,
+      ...pricing,
+      ...thanksMsgs
+    }
+  };
 });
