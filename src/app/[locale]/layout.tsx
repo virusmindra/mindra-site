@@ -1,4 +1,4 @@
-import "./globals.css";
+import "@/app/globals.css";
 import {NextIntlClientProvider} from "next-intl";
 import type {Metadata} from "next";
 import getRequestConfig from "@/i18n";
