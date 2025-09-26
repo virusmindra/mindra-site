@@ -3,10 +3,8 @@ import {getRequestConfig} from 'next-intl/server';
 export default getRequestConfig(async ({locale}) => {
   const current = (locale as string) || 'ru';
 
-  // Базовые сообщения
   const base = (await import(`@/app/[locale]/messages/${current}.json`)).default;
 
-  // Опциональные блоки (не падаем, если файла нет)
   let pricing: Record<string, unknown> = {};
   try {
     pricing = (await import(`@/app/[locale]/messages/${current}.pricing.json`)).default;
@@ -18,6 +16,7 @@ export default getRequestConfig(async ({locale}) => {
   } catch {}
 
   return {
+    locale: current,
     messages: {
       ...base,
       ...pricing,
