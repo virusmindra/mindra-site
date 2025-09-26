@@ -5,7 +5,7 @@ import "@/app/globals.css";
 import {DONATE_URL} from "@/lib/links";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-export const dynamic = "force-static";
+
 
 export default async function RootLayout({
   children,
