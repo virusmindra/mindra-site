@@ -1,33 +1,35 @@
-import {getRequestConfig} from 'next-intl/server';
+import {getRequestConfig, type GetRequestConfigParams} from 'next-intl/server';
 
 type Dict = Record<string, unknown>;
-const merge = (...objs: Dict[]) => Object.assign({}, ...objs);
 
-// Пытаемся грузить доп. пакеты сообщений по имени (header/pricing/donate/thanks),
-// если файла нет — возвращаем пустой объект
-async function tryLoad(current: string, suffix: string): Promise<Dict> {
+async function loadJson(modulePath: string): Promise<Dict> {
   try {
-    const mod = await import(`@/app/[locale]/messages/${current}.${suffix}.json`);
-    return mod.default as Dict;
+    // ВАЖНО: динамический import должен возвращать plain object (default)
+    const mod = await import(/* @vite-ignore */ modulePath);
+    return (mod?.default ?? {}) as Dict;
   } catch {
     return {};
   }
 }
 
-export default getRequestConfig(async ({locale}) => {
+function mergeObjects(...parts: Dict[]): Dict {
+  return parts.reduce((acc, part) => Object.assign(acc, part || {}), {} as Dict);
+}
+
+export default getRequestConfig(async ({locale}: GetRequestConfigParams) => {
   const current = (locale as string) || 'ru';
 
-  // База (ru.json / en.json / ...)
-  const base = (await import(`@/app/[locale]/messages/${current}.json`)).default as Dict;
+  // База: ru.json / en.json / ...
+  const base    = await loadJson(`@/app/[locale]/messages/${current}.json`);
 
-  // Дополнительные "пакеты"
-  const header  = await tryLoad(current, 'header');
-  const pricing = await tryLoad(current, 'pricing');
-  const donate  = await tryLoad(current, 'donate');
-  const thanks  = await tryLoad(current, 'thanks');
+  // Дополнительные “пакеты” (необязательны — грузим по возможности)
+  const header  = await loadJson(`@/app/[locale]/messages/${current}.header.json`);
+  const pricing = await loadJson(`@/app/[locale]/messages/${current}.pricing.json`);
+  const donate  = await loadJson(`@/app/[locale]/messages/${current}.donate.json`);
+  const thanks  = await loadJson(`@/app/[locale]/messages/${current}.thanks.json`);
 
   return {
     locale: current,
-    messages: merge(base, header, pricing, donate, thanks)
+    messages: mergeObjects(base, header, pricing, donate, thanks)
   };
 });
