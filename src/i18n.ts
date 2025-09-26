@@ -6,6 +6,8 @@ export default getRequestConfig(async ({locale}) => {
   const base = (await import(`@/app/[locale]/messages/${current}.json`)).default;
   let thanks = {} as Record<string, unknown>;
   try { thanks = (await import(`@/app/[locale]/messages/.thanks.json`)).default; } catch {}
+  let thanks = {} as Record<string, unknown>;
+  try { thanks = (await import(`@/app/[locale]/messages/.thanks.json`)).default; } catch {}
 
   let pricing: Record<string, unknown> = {};
   try {
