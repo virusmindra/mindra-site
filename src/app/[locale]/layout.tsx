@@ -18,6 +18,7 @@ export default async function RootLayout({
 
   // 1) Берём все сообщения, которые собрал src/i18n.ts (base + header + pricing + donate + thanks)
   const messages = await getMessages({locale});
+  const flat = JSON.parse(JSON.stringify(messages));
   // 2) Берём t для шапки (можно без namespace)
   const t = await getTranslations({locale});
 
@@ -45,7 +46,7 @@ export default async function RootLayout({
         </header>
 
         {/* ВАЖНО: сюда кладём ВСЕ messages */}
-        <NextIntlClientProvider messages={messages} locale={locale}>
+        <NextIntlClientProvider messages={flat} locale={locale}>
           <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
         </NextIntlClientProvider>
 

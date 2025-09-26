@@ -1,35 +1,48 @@
-import {getRequestConfig, type GetRequestConfigParams} from 'next-intl/server';
+import {getRequestConfig} from 'next-intl/server';
 
 type Dict = Record<string, unknown>;
 
-async function loadJson(modulePath: string): Promise<Dict> {
+const baseLoaders: Record<string, () => Promise<{default: Dict}>> = {
+  ru: () => import('@/app/[locale]/messages/ru.json'),
+  en: () => import('@/app/[locale]/messages/en.json'),
+  uk: () => import('@/app/[locale]/messages/uk.json'),
+  pl: () => import('@/app/[locale]/messages/pl.json'),
+  es: () => import('@/app/[locale]/messages/es.json'),
+  fr: () => import('@/app/[locale]/messages/fr.json'),
+  de: () => import('@/app/[locale]/messages/de.json'),
+  kk: () => import('@/app/[locale]/messages/kk.json'),
+  hy: () => import('@/app/[locale]/messages/hy.json'),
+  ka: () => import('@/app/[locale]/messages/ka.json'),
+  md: () => import('@/app/[locale]/messages/md.json')
+};
+
+async function tryLoad(current: string, suffix: string): Promise<Dict> {
   try {
-    // ВАЖНО: динамический import должен возвращать plain object (default)
-    const mod = await import(/* @vite-ignore */ modulePath);
-    return (mod?.default ?? {}) as Dict;
+    const mod = await import(`@/app/[locale]/messages/${current}.${suffix}.json`);
+    return mod.default as Dict;
   } catch {
     return {};
   }
 }
 
-function mergeObjects(...parts: Dict[]): Dict {
-  return parts.reduce((acc, part) => Object.assign(acc, part || {}), {} as Dict);
+function merge(...objs: Dict[]): Dict {
+  return objs.reduce((acc, obj) => Object.assign(acc, obj), {} as Dict);
 }
 
-export default getRequestConfig(async ({locale}: GetRequestConfigParams) => {
+export default getRequestConfig(async ({locale}) => {
   const current = (locale as string) || 'ru';
+  const load = baseLoaders[current] ?? baseLoaders['ru'];
+  const base = (await load()).default as Dict;
 
-  // База: ru.json / en.json / ...
-  const base    = await loadJson(`@/app/[locale]/messages/${current}.json`);
+  const header  = await tryLoad(current, 'header');
+  const pricing = await tryLoad(current, 'pricing');
+  const donate  = await tryLoad(current, 'donate');
+  const thanks  = await tryLoad(current, 'thanks');
 
-  // Дополнительные “пакеты” (необязательны — грузим по возможности)
-  const header  = await loadJson(`@/app/[locale]/messages/${current}.header.json`);
-  const pricing = await loadJson(`@/app/[locale]/messages/${current}.pricing.json`);
-  const donate  = await loadJson(`@/app/[locale]/messages/${current}.donate.json`);
-  const thanks  = await loadJson(`@/app/[locale]/messages/${current}.thanks.json`);
-
+  // ВАЖНО: возвращаем только plain-object
+  const messages = merge(base, header, pricing, donate, thanks);
   return {
     locale: current,
-    messages: mergeObjects(base, header, pricing, donate, thanks)
+    messages
   };
 });
