@@ -1,4 +1,5 @@
 import SafeIntlProvider from '@/components/SafeIntlProvider';
+import "@/app/globals.css";
 import {getMessages, getTranslations} from 'next-intl/server'; // оставим, см. ниже
 // ...
 
