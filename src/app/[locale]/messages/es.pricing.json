@@ -1,12 +1,9 @@
 {
   "pricing.title": "Precios",
   "pricing.subtitle": "Tres niveles: elige el tuyo. La suscripción se gestiona en Telegram.",
-  "plan.free": "Gratis",
   "plan.free.desc": "Funciones básicas con límites razonables.",
-  "plan.plus": "Mindra+",
   "plan.plus.from": "desde $6.99/mes",
   "plan.plus.desc": "Todas las funciones premium con límites generosos.",
-  "plan.pro": "Mindra Pro",
   "plan.pro.from": "desde $14.99/mes",
   "plan.pro.desc": "Sin límites. Toda la potencia de Mindra.",
   "cta.telegram": "Suscribirse en Telegram",
@@ -17,5 +14,8 @@
     "Objetivos y hábitos con recordatorios",
     "Informes y estadísticas semanales",
     "Voces y sonidos (incluido para dormir)"
-  ]
+  ],
+  "plan.free.name": "Gratis",
+  "plan.plus.name": "Mindra+",
+  "plan.pro.name": "Mindra Pro"
 }

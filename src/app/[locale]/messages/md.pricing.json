@@ -1,12 +1,9 @@
 {
   "pricing.title": "Tarife",
   "pricing.subtitle": "Trei planuri — alege ce ți se potrivește. Abonamentul este gestionat în Telegram.",
-  "plan.free": "Gratuit",
   "plan.free.desc": "Funcții de bază, limite rezonabile.",
-  "plan.plus": "Mindra+",
   "plan.plus.from": "de la $6.99/lună",
   "plan.plus.desc": "Toate funcțiile premium, limite generoase.",
-  "plan.pro": "Mindra Pro",
   "plan.pro.from": "de la $14.99/lună",
   "plan.pro.desc": "Fără limite. Puterea completă a Mindra.",
   "cta.telegram": "Abonează-te în Telegram",
@@ -17,5 +14,8 @@
     "Obiective și obiceiuri cu mementouri",
     "Rapoarte și statistici săptămânale",
     "Voci și sunete (inclusiv pentru somn)"
-  ]
+  ],
+  "plan.free.name": "Gratuit",
+  "plan.plus.name": "Mindra+",
+  "plan.pro.name": "Mindra Pro"
 }

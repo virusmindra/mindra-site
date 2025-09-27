@@ -1,12 +1,9 @@
 {
   "pricing.title": "Pricing",
   "pricing.subtitle": "Three tiers — pick what fits. Subscriptions are managed via Telegram.",
-  "plan.free": "Free",
   "plan.free.desc": "Core features with fair limits.",
-  "plan.plus": "Mindra+",
   "plan.plus.from": "from $6.99/mo",
   "plan.plus.desc": "All premium features with generous limits.",
-  "plan.pro": "Mindra Pro",
   "plan.pro.from": "from $14.99/mo",
   "plan.pro.desc": "No limits. Full Mindra power.",
   "cta.telegram": "Subscribe in Telegram",
@@ -17,5 +14,8 @@
     "Goals & habits with reminders",
     "Weekly reports & statistics",
     "Voices & sounds (incl. sleep)"
-  ]
+  ],
+  "plan.free.name": "Free",
+  "plan.plus.name": "Mindra+",
+  "plan.pro.name": "Mindra Pro"
 }

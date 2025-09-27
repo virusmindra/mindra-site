@@ -1,12 +1,9 @@
 {
   "pricing.title": "ტარიფები",
   "pricing.subtitle": "სამი პაკეტი — აირჩიე რაც გარგებს. გამოწერა იმართება Telegram-ში.",
-  "plan.free": "უფასო",
   "plan.free.desc": "საბაზისო ფუნქციები, გარკვეული ლიმიტებით.",
-  "plan.plus": "Mindra+",
   "plan.plus.from": "დან $6.99/თვე",
   "plan.plus.desc": "ყველა პრემიუმ ფუნქცია, დიდი ლიმიტებით.",
-  "plan.pro": "Mindra Pro",
   "plan.pro.from": "დან $14.99/თვე",
   "plan.pro.desc": "ლიმიტების გარეშე. Mindra სრული ძალით.",
   "cta.telegram": "გამოწერა Telegram-ში",
@@ -17,5 +14,8 @@
     "მიზნები და ჩვევები — შეხსენებებით",
     "ყოველკვირეული ანგარიშები და სტატისტიკა",
     "ხმები და ხმოვანი ეფექტები (ძილისთვისაც)"
-  ]
+  ],
+  "plan.free.name": "უფასო",
+  "plan.plus.name": "Mindra+",
+  "plan.pro.name": "Mindra Pro"
 }

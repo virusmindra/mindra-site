@@ -28,7 +28,7 @@ export default async function PricingPage({params}: {params: {locale: string}}) 
       <div className="grid md:grid-cols-3 gap-4 mt-8">
         {/* Free */}
         <div className="rounded-2xl border border-white/10 p-6">
-          <h3 className="text-xl font-semibold">{t("plan.free")}</h3>
+          <h3 className="text-xl font-semibold">{t("plan.free.name")}</h3>
           <p className="opacity-80 mt-2">{t("plan.free.desc")}</p>
           <a
             className="inline-block mt-6 rounded-xl px-4 py-2 border border-white/20"
@@ -42,7 +42,7 @@ export default async function PricingPage({params}: {params: {locale: string}}) 
 
         {/* Plus */}
         <div className="rounded-2xl border border-white/10 p-6">
-          <h3 className="text-xl font-semibold">{t("plan.plus")}</h3>
+          <h3 className="text-xl font-semibold">{t("plan.plus.name")}</h3>
           <p className="opacity-90 mt-1">{t("plan.plus.from")}</p>
           <p className="opacity-80 mt-2">{t("plan.plus.desc")}</p>
           <a
@@ -57,7 +57,7 @@ export default async function PricingPage({params}: {params: {locale: string}}) 
 
         {/* Pro */}
         <div className="rounded-2xl border border-white/10 p-6">
-          <h3 className="text-xl font-semibold">{t("plan.pro")}</h3>
+          <h3 className="text-xl font-semibold">{t("plan.pro.name")}</h3>
           <p className="opacity-90 mt-1">{t("plan.pro.from")}</p>
           <p className="opacity-80 mt-2">{t("plan.pro.desc")}</p>
           <a

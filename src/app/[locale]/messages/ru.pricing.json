@@ -1,12 +1,9 @@
 {
   "pricing.title": "Тарифы",
   "pricing.subtitle": "Три уровня — выбирай удобный. Подписка оформляется через Telegram.",
-  "plan.free": "Бесплатно",
   "plan.free.desc": "Базовые функции, ограничения по лимитам.",
-  "plan.plus": "Mindra+",
   "plan.plus.from": "от $6.99/мес",
   "plan.plus.desc": "Все премиум-функции, разумные лимиты.",
-  "plan.pro": "Mindra Pro",
   "plan.pro.from": "от $14.99/мес",
   "plan.pro.desc": "Без лимитов. Полная мощь Mindra.",
   "cta.telegram": "Оформить в Telegram",
@@ -17,5 +14,8 @@
     "Цели и привычки с напоминаниями",
     "Еженедельные отчёты и статистика",
     "Голоса и звуки (в т.ч. для сна)"
-  ]
+  ],
+  "plan.free.name": "Бесплатно",
+  "plan.plus.name": "Mindra+",
+  "plan.pro.name": "Mindra Pro"
 }
