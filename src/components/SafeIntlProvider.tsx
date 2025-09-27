@@ -2,14 +2,23 @@
 
 import {NextIntlClientProvider} from 'next-intl';
 
-type Props = React.ComponentProps<typeof NextIntlClientProvider>;
-
-export default function SafeIntlProvider(props: Props) {
+export default function SafeIntlProvider({
+  children,
+  locale,
+  messages
+}: {
+  children: React.ReactNode;
+  locale: string;
+  messages: any;
+}) {
   return (
     <NextIntlClientProvider
-      {...props}
-      onError={() => {}}                       // глушим MISSING_MESSAGE на клиенте
-      getMessageFallback={({key}) => key}      // показываем ключ, если нет перевода
-    />
+      locale={locale}
+      messages={messages}
+      onError={() => {}}
+      getMessageFallback={({key}) => key}
+    >
+      {children}
+    </NextIntlClientProvider>
   );
 }
