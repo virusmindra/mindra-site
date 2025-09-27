@@ -1,36 +1,49 @@
 'use client';
 
-import {usePathname, useRouter} from 'next/navigation';
 import {useLocale} from 'next-intl';
+import {usePathname, useRouter} from 'next/navigation';
+import * as React from 'react';
 
-const LOCALES = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
+const LABELS: Record<string, string> = {
+  ru: 'Русский',
+  en: 'English',
+  uk: 'Українська',
+  pl: 'Polski',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  kk: 'Қазақша',
+  hy: 'Հայերեն',
+  ka: 'ქართული',
+  md: 'Română'
+};
+
+const ORDER = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
 
 export default function LanguageSwitcher() {
+  const locale = useLocale();
+  const pathname = usePathname();
   const router = useRouter();
-  const pathname = usePathname() || '/ru';
-  const current = useLocale();
 
-  // pathname вида /{locale}/...  — аккуратно подменяем первую часть
-  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = e.target.value;
+  // текущий путь вида /{locale}/... → меняем только 1-й сегмент
+  const changeLocale = (next: string) => {
+    if (!pathname) return;
     const parts = pathname.split('/');
-    if (parts.length > 1) {
-      parts[1] = next;
-      router.replace(parts.join('/'));
-    } else {
-      router.replace(`/${next}`);
-    }
+    parts[1] = next; // /ru/... → /en/...
+    router.push(parts.join('/'));
   };
 
   return (
     <select
-      value={current}
-      onChange={onChange}
-      className="rounded-lg border border-white/20 bg-transparent px-2 py-1 text-sm"
-      aria-label="Change language"
+      value={locale}
+      onChange={(e) => changeLocale(e.target.value)}
+      className="rounded-xl border border-white/20 bg-transparent px-3 py-1.5 text-sm"
+      aria-label="Select language"
     >
-      {LOCALES.map(l => (
-        <option key={l} value={l}>{l.toUpperCase()}</option>
+      {ORDER.map((loc) => (
+        <option key={loc} value={loc} className="bg-zinc-900">
+          {LABELS[loc] ?? loc.toUpperCase()}
+        </option>
       ))}
     </select>
   );
