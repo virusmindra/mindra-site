@@ -74,3 +74,4 @@ export default getRequestConfig(async ({locale}: GetRequestConfigParams) => {
 
   return { locale: current, messages };
 });
+

@@ -1,20 +1,15 @@
 {
   "pricing.title": "Тарифи",
   "pricing.subtitle": "Три рівні — оберіть зручний. Підписка оформлюється через Telegram.",
-
   "plan.free": "Безкоштовно",
   "plan.free.desc": "Базові функції з чесними лімітами.",
-
   "plan.plus": "Mindra+",
   "plan.plus.from": "від $6.99/міс",
   "plan.plus.desc": "Усі преміум-можливості з щедрими лімітами.",
-
   "plan.pro": "Mindra Pro",
   "plan.pro.from": "від $14.99/міс",
   "plan.pro.desc": "Без лімітів. Повна потужність Mindra.",
-
   "cta.telegram": "Оформити в Telegram",
-
   "features.header": "Що входить",
   "features.items": [
     "Підтримувальна, турботлива розмова",
