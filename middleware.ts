@@ -7,6 +7,5 @@ export default createMiddleware({
 });
 
 export const config = {
-  // накрываем корень и все локализованные префиксы
   matcher: ['/', '/(ru|en|uk|pl|es|fr|de|kk|hy|ka|md)/:path*']
 };

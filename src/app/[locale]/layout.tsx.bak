@@ -57,9 +57,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
-/** Предрендер для всех локалей */
-export function generateStaticParams() {
-  const locales = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
-  return locales.map((locale) => ({locale}));
-}
