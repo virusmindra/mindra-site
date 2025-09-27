@@ -1,12 +1,14 @@
-import { getTranslations } from "next-intl/server";
+import {getT} from '@/lib/getT';
 
-export default async function ThanksPage({ params }: { params: { locale: string } }) {
-  const t = await getTranslations({ locale: params.locale });
+export default async function ThanksPage({params:{locale}}:{
+  params: {locale: string}
+}) {
+  const t = await getT({locale, namespace: 'thanks'});
 
   return (
-    <section className="py-10">
-      <h1 className="text-4xl font-semibold">{t("thanks.title")}</h1>
-      <p className="mt-3 opacity-80">{t("thanks.subtitle")}</p>
-    </section>
+    <div>
+      <h1>{t('title')}</h1>
+      <p>{t('subtitle')}</p> {/* если перевода нет — выведется 'thanks.subtitle' */}
+    </div>
   );
 }
