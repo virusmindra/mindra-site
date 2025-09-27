@@ -1,1 +1,6 @@
-{ "thanks.title":"Thank you for your support!", "thanks.text":"Your contribution helps us improve Mindra, add languages and new features.", "thanks.back":"Back to Home", "thanks.tg":"Open Telegram Bot" }
+{
+  "thanks.title": "Thank you for your support!",
+  "thanks.text": "Your contribution helps us improve Mindra, add languages and new features.",
+  "thanks.back": "Back to Home",
+  "thanks.tg": "Open Telegram Bot"
+}
