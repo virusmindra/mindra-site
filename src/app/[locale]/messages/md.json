@@ -6,5 +6,18 @@
   "hero.subtitle": "Mindra te ajută să vorbești despre ce contează, să rămâi concentrat pe obiective și să ai grijă de tine. Funcționează în 11 limbi.",
   "cta.launch": "Deschide în Telegram",
   "cta.pricing": "Vezi prețurile",
-  "features.title": "Ce poate face Mindra"
+  "features.title": "Ce poate face Mindra",
+  "features.cards.chat.title": "Dialog de susținere",
+  "features.cards.chat.text": "Răspunsuri calde și blânde — fără judecată sau presiune.",
+  "features.cards.coach.title": "Motivație și coaching",
+  "features.cards.coach.text": "Plan de acțiune, micro-pași și check-in-uri regulate.",
+  "features.cards.goals.title": "Obiective și obiceiuri",
+  "features.cards.goals.text": "Adaugă obiective, un tracker de obiceiuri și mementouri.",
+  "features.cards.reports.title": "Rapoarte și statistici",
+  "features.cards.reports.text": "Rapoarte săptămânale, puncte și ranguri pentru progres.",
+  "features.cards.voice.title": "Citire cu voce",
+  "features.cards.voice.text": "Voci (incl. ElevenLabs) și sunete ambientale pentru somn.",
+  "features.cards.premium.title": "Provocări premium",
+  "features.cards.premium.text": "Provocări săptămânale, fixare și defixare automată după finalizare."
 }
+

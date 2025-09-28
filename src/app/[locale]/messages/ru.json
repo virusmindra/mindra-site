@@ -6,5 +6,17 @@
   "hero.subtitle": "Mindra помогает говорить о важном, держать фокус на целях и заботиться о себе. Работает на 11 языках.",
   "cta.launch": "Запустить в Telegram",
   "cta.pricing": "Тарифы",
-  "features.title": "Что умеет Mindra"
+  "features.title": "Что умеет Mindra",
+  "features.cards.chat.title": "Поддерживающий диалог",
+  "features.cards.chat.text": "Тёплые, бережные ответы — без осуждения и давления.",
+  "features.cards.coach.title": "Мотивация и коучинг",
+  "features.cards.coach.text": "План действий, микро-шаги и регулярные чек-ины.",
+  "features.cards.goals.title": "Цели и привычки",
+  "features.cards.goals.text": "Добавляй цели, трекер привычек и напоминания.",
+  "features.cards.reports.title": "Отчёты и статистика",
+  "features.cards.reports.text": "Недельные отчёты, очки и звания за прогресс.",
+  "features.cards.voice.title": "Озвучка сообщений",
+  "features.cards.voice.text": "Голоса (в т.ч. ElevenLabs) и фоновые звуки для сна.",
+  "features.cards.premium.title": "Премиум-челленджи",
+  "features.cards.premium.text": "Еженедельные вызовы, пин и авто-снятие после выполнения."
 }

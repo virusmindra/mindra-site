@@ -6,5 +6,18 @@
   "hero.subtitle": "Mindra helps you talk about what matters, stay focused on goals, and take care of yourself. Works in 11 languages.",
   "cta.launch": "Open in Telegram",
   "cta.pricing": "See pricing",
-  "features.title": "What Mindra can do"
+  "features.title": "What Mindra can do",
+  "features.cards.chat.title": "Supportive dialogue",
+  "features.cards.chat.text": "Warm, gentle replies — without judgment or pressure.",
+  "features.cards.coach.title": "Motivation & coaching",
+  "features.cards.coach.text": "Action plan, micro-steps, and regular check-ins.",
+  "features.cards.goals.title": "Goals & habits",
+  "features.cards.goals.text": "Add goals, a habit tracker, and reminders.",
+  "features.cards.reports.title": "Reports & stats",
+  "features.cards.reports.text": "Weekly reports, points, and ranks for progress.",
+  "features.cards.voice.title": "Voice messages",
+  "features.cards.voice.text": "Voices (incl. ElevenLabs) and ambient sounds for sleep.",
+  "features.cards.premium.title": "Premium challenges",
+  "features.cards.premium.text": "Weekly challenges, pin, and auto-unpin after completion."
 }
+

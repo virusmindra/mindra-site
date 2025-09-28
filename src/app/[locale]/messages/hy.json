@@ -6,5 +6,17 @@
   "hero.subtitle": "Mindra-ն օգնում է խոսել կարեւորի մասին, պահել ֆոկուսը նպատակների վրա եւ հոգ տանել քեզնից։ Աշխատում է 11 լեզվով։",
   "cta.launch": "Բացել Telegram-ում",
   "cta.pricing": "Դիտել գները",
-  "features.title": "Ի՞նչ կարող է Mindra-ն"
+  "features.title": "Ինչ է կարող Mindra-ն",
+  "features.cards.chat.title": "Աջակցող երկխոսություն",
+  "features.cards.chat.text": "Ջերմ, նուրբ պատասխաններ՝ առանց դատողության և ճնշման։",
+  "features.cards.coach.title": "Մոտիվացիա և քոուչինգ",
+  "features.cards.coach.text": "Գործողությունների պլան, միկրոքայլեր և կանոնավոր check-in-ներ։",
+  "features.cards.goals.title": "Նպատակներ և սովորություններ",
+  "features.cards.goals.text": "Ավելացրու նպատակներ, սովորությունների թրեքեր և հիշեցումներ։",
+  "features.cards.reports.title": "Հաշվետվություններ և վիճակագրություն",
+  "features.cards.reports.text": "Շաբաթական հաշվետվություններ, միավորներ և կոչումներ առաջընթացի համար։",
+  "features.cards.voice.title": "Հաղորդագրությունների ձայնավորում",
+  "features.cards.voice.text": "Ձայներ (այդ թվում ElevenLabs) և քնի համար ֆոնային ձայներ։",
+  "features.cards.premium.title": "Փրեմիում-չելենջներ",
+  "features.cards.premium.text": "Շաբաթական չելենջներ, փին և ավարտից հետո ավտոմատ հանվել։"
 }

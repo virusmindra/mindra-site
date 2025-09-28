@@ -6,5 +6,17 @@
   "hero.subtitle": "Mindra маңызды нәрселер туралы айтуға, мақсаттарға назарды сақтауға және өзіңізге қамқор болуға көмектеседі. 11 тілде жұмыс істейді.",
   "cta.launch": "Telegram-да іске қосу",
   "cta.pricing": "Бағаларды көру",
-  "features.title": "Mindra не істей алады"
+  "features.title": "Mindra мүмкіндіктері",
+  "features.cards.chat.title": "Қолдау көрсететін диалог",
+  "features.cards.chat.text": "Жылы, қамқор жауаптар — айыптаусыз және қысымсыз.",
+  "features.cards.coach.title": "Мотивация және коучинг",
+  "features.cards.coach.text": "Әрекет жоспары, микро-қадамдар және тұрақты чек-индер.",
+  "features.cards.goals.title": "Мақсаттар мен әдеттер",
+  "features.cards.goals.text": "Мақсаттар, әдеттер трекері және еске салғыштар.",
+  "features.cards.reports.title": "Есептер мен статистика",
+  "features.cards.reports.text": "Апталық есептер, прогресс үшін ұпайлар мен дәрежелер.",
+  "features.cards.voice.title": "Хабарламаларды дауысқа салу",
+  "features.cards.voice.text": "Дауыстар (ElevenLabs қоса) және ұйқыға арналған фондық дыбыстар.",
+  "features.cards.premium.title": "Премиум-челлендждер",
+  "features.cards.premium.text": "Апталық челлендждер, бекіту және аяқтағаннан кейін автоматты түрде алып тастау."
 }

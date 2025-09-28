@@ -6,5 +6,17 @@
   "hero.subtitle": "Mindra pomaga mówić o tym, co ważne, utrzymywać fokus na celach i dbać o siebie. Działa w 11 językach.",
   "cta.launch": "Uruchom w Telegramie",
   "cta.pricing": "Zobacz cennik",
-  "features.title": "Co potrafi Mindra"
+  "features.title": "Co potrafi Mindra",
+  "features.cards.chat.title": "Wspierający dialog",
+  "features.cards.chat.text": "Ciepłe, delikatne odpowiedzi — bez oceniania i presji.",
+  "features.cards.coach.title": "Motywacja i coaching",
+  "features.cards.coach.text": "Plan działania, mikro-kroki i regularne check-iny.",
+  "features.cards.goals.title": "Cele i nawyki",
+  "features.cards.goals.text": "Dodawaj cele, tracker nawyków i przypomnienia.",
+  "features.cards.reports.title": "Raporty i statystyki",
+  "features.cards.reports.text": "Cotygodniowe raporty, punkty i rangi za postępy.",
+  "features.cards.voice.title": "Lektorskie wiadomości",
+  "features.cards.voice.text": "Głosy (w tym ElevenLabs) oraz dźwięki tła do snu.",
+  "features.cards.premium.title": "Wyzwania premium",
+  "features.cards.premium.text": "Cotygodniowe wyzwania, pin i automatyczne odpięcie po ukończeniu."
 }
