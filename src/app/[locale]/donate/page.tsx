@@ -1,4 +1,3 @@
-// src/app/[locale]/donate/page.tsx
 import {redirect} from 'next/navigation';
 import {DONATE_URL} from '@/lib/links';
 
