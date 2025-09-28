@@ -18,5 +18,13 @@
   "features.cards.voice.title": "Lectura en voz",
   "features.cards.voice.text": "Voces (incl. ElevenLabs) y sonidos ambientales para dormir.",
   "features.cards.premium.title": "Retos premium",
-  "features.cards.premium.text": "Retos semanales, fijación y auto-desfijado al completar."
+  "features.cards.premium.text": "Retos semanales, fijación y auto-desfijado al completar.",
+  "support.title": "Por qué tu apoyo importa",
+  "support.intro": "Mindra se construye para apoyar con cuidado a las personas, sus metas y hábitos. Tu contribución acelera el desarrollo, la localización y nuevas funciones.",
+  "support.goal.title": "Meta de financiación — Mindra App",
+  "support.goal.text": "Estamos creando la app móvil de Mindra. Funciones clave de inicio:",
+  "support.features.1": "Videollamadas cara a cara con Mindra — elige el aspecto del bot.",
+  "support.features.2": "Todas las funciones del bot de Telegram en un solo lugar: chat, metas, hábitos, informes.",
+  "support.features.3": "11 idiomas, interfaz limpia y base para modo sin conexión en el futuro.",
+  "support.cta": "Apoyar el desarrollo"
 }

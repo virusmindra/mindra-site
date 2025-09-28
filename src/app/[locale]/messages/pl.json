@@ -18,5 +18,13 @@
   "features.cards.voice.title": "Lektorskie wiadomości",
   "features.cards.voice.text": "Głosy (w tym ElevenLabs) oraz dźwięki tła do snu.",
   "features.cards.premium.title": "Wyzwania premium",
-  "features.cards.premium.text": "Cotygodniowe wyzwania, pin i automatyczne odpięcie po ukończeniu."
+  "features.cards.premium.text": "Cotygodniowe wyzwania, pin i automatyczne odpięcie po ukończeniu.",
+  "support.title": "Dlaczego Twoje wsparcie ma znaczenie",
+  "support.intro": "Mindra powstaje, by wspierać ludzi, cele i nawyki z troską. Każdy wkład przyspiesza rozwój, lokalizację i nowe funkcje.",
+  "support.goal.title": "Cel zbiórki — aplikacja Mindra",
+  "support.goal.text": "Budujemy mobilną aplikację Mindra. Kluczowe funkcje na start:",
+  "support.features.1": "Rozmowy wideo twarzą w twarz z Mindrą — wybierz wygląd bota.",
+  "support.features.2": "Wszystkie funkcje bota Telegram w jednym miejscu: czat, cele, nawyki, raporty.",
+  "support.features.3": "11 języków, czysty interfejs i podstawa pod tryb offline w przyszłości.",
+  "support.cta": "Wesprzyj rozwój"
 }

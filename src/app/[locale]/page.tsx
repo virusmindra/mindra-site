@@ -8,8 +8,8 @@ import {TELEGRAM_URL} from "@/lib/links";
 
 export default function HomePage() {
   const t = useTranslations();
-  const params = useParams() as {locale?: string};
-  const locale = params?.locale ?? 'ru';
+  const params = useParams() as { locale?: string };
+  const locale = params?.locale ?? "ru";
 
   return (
     <section className="py-10">
@@ -54,7 +54,7 @@ export default function HomePage() {
           { k: "goals" },
           { k: "reports" },
           { k: "voice" },
-          { k: "premium" },
+          { k: "premium" }
         ].map(({ k }) => (
           <li key={k} className="rounded-2xl border border-white/10 p-6">
             <h3 className="text-xl font-semibold">
@@ -66,6 +66,28 @@ export default function HomePage() {
           </li>
         ))}
       </ul>
+
+      {/* --- Support / Funding --- */}
+      <h2 className="mt-14 text-2xl font-semibold">{t("support.title")}</h2>
+      <p className="mt-3 opacity-90 max-w-3xl">{t("support.intro")}</p>
+
+      <h3 className="mt-6 text-xl font-semibold">{t("support.goal.title")}</h3>
+      <p className="mt-2 opacity-90 max-w-3xl">{t("support.goal.text")}</p>
+
+      <ul className="mt-3 space-y-2 list-disc pl-6 opacity-90">
+        <li>{t("support.features.1")}</li>
+        <li>{t("support.features.2")}</li>
+        <li>{t("support.features.3")}</li>
+      </ul>
+
+      <div className="mt-6">
+        <Link
+          href={`/${locale}/donate`}
+          className="inline-block rounded-xl px-4 py-2 bg-white text-zinc-900"
+        >
+          {t("support.cta")}
+        </Link>
+      </div>
     </section>
   );
 }

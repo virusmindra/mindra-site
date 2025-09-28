@@ -18,6 +18,14 @@
   "features.cards.voice.title": "Citire cu voce",
   "features.cards.voice.text": "Voci (incl. ElevenLabs) și sunete ambientale pentru somn.",
   "features.cards.premium.title": "Provocări premium",
-  "features.cards.premium.text": "Provocări săptămânale, fixare și defixare automată după finalizare."
+  "features.cards.premium.text": "Provocări săptămânale, fixare și defixare automată după finalizare.",
+  "support.title": "De ce contează sprijinul tău",
+  "support.intro": "Mindra este creată pentru a susține cu blândețe oamenii, obiectivele și obiceiurile. Orice contribuție accelerează dezvoltarea, localizarea și funcțiile noi.",
+  "support.goal.title": "Scopul strângerii de fonduri — Mindra App",
+  "support.goal.text": "Construim aplicația mobilă Mindra. Funcții cheie la lansare:",
+  "support.features.1": "Apeluri video față în față cu Mindra — poți alege felul în care arată botul.",
+  "support.features.2": "Toate funcțiile botului de Telegram într-un singur loc: chat, obiective, obiceiuri, rapoarte.",
+  "support.features.3": "11 limbi, interfață clară și bază pentru un viitor mod offline.",
+  "support.cta": "Susține dezvoltarea"
 }
 
