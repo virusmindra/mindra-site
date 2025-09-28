@@ -1,0 +1,38 @@
+{
+  "title": "Why we need your support",
+  "intro": "Mindra is built to gently support people, help with goals and habits. Any contribution speeds up development, localization and new features.",
+
+  "goal": {
+    "title": "Funding goal — Mindra App",
+    "text": "We’re building the Mindra mobile app. Headline features at launch: FaceTime-style calls with Mindra (pick the avatar/face), all Telegram-bot features in one place, and 11 languages.",
+    "features": {
+      "1": "Face-to-face calls with Mindra — pick the look and talk “face to face”.",
+      "2": "All Telegram-bot features in one place: dialogue, goals, habits, reports.",
+      "3": "11 languages, a friendly UI, and a future foundation for offline mode."
+    }
+  },
+
+  "progress": {
+    "title": "Progress",
+    "subtitle": "For example: raised $12,000 of $150,000 • 127 people already supported."
+  },
+
+  "plans": {
+    "free":  { "name": "Free", "desc": "Same as the bot, without Mindra FaceTime." },
+    "lite":  { "name": "Mindra Lite", "desc": "Limited: up to 8–10 minutes FaceTime/day." },
+    "plus":  { "name": "Mindra+ / Standard", "desc": "Up to 20–30 minutes FaceTime/day." },
+    "pro":   { "name": "Mindra Pro / VIP", "desc": "No limits." }
+  },
+
+  "founders": {
+    "title": "Founder discounts",
+    "tier300": "From $300 — lifetime 35% off (by email or Telegram ID).",
+    "tier500": "From $500 — lifetime 40% off (by email or Telegram ID).",
+    "note": "We’ll apply the discounts to any paid plans once the app launches."
+  },
+
+  "cta": {
+    "stripe": "Support development",
+    "back": "Back to home"
+  }
+}

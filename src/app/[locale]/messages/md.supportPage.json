@@ -1,0 +1,38 @@
+{
+  "title": "De ce avem nevoie de sprijinul tău",
+  "intro": "Mindra este creată pentru a sprijini cu blândețe oamenii și a ajuta la obiective și obiceiuri. Orice contribuție grăbește dezvoltarea, localizarea și funcțiile noi.",
+
+  "goal": {
+    "title": "Ținta finanțării — aplicația Mindra",
+    "text": "Construim aplicația mobilă Mindra. Funcții cheie la lansare: apeluri video față-în-față cu Mindra (alege avatarul/chipul), toate funcțiile botului Telegram într-un singur loc și 11 limbi.",
+    "features": {
+      "1": "Apeluri video cu Mindra — alege look-ul și vorbește „față în față”.",
+      "2": "Toate funcțiile botului într-un singur loc: dialog, obiective, obiceiuri, rapoarte.",
+      "3": "11 limbi, interfață prietenoasă și bază pentru mod offline în viitor."
+    }
+  },
+
+  "progress": {
+    "title": "Progres",
+    "subtitle": "Exemplu: strânși 12.000 $ din 150.000 $ • 127 persoane au susținut deja."
+  },
+
+  "plans": {
+    "free":  { "name": "Gratuit", "desc": "La fel ca în bot, fără FaceTime cu Mindra." },
+    "lite":  { "name": "Mindra Lite", "desc": "Limitat: până la 8–10 min FaceTime/zi." },
+    "plus":  { "name": "Mindra+ / Standard", "desc": "Până la 20–30 min FaceTime/zi." },
+    "pro":   { "name": "Mindra Pro / VIP", "desc": "Fără limite." }
+  },
+
+  "founders": {
+    "title": "Reduceri pentru fondatori",
+    "tier300": "De la 300 $ — reducere pe viață 35% (după email sau Telegram ID).",
+    "tier500": "De la 500 $ — reducere pe viață 40% (după email sau Telegram ID).",
+    "note": "Vom aplica reducerile la orice plan plătit după lansarea aplicației."
+  },
+
+  "cta": {
+    "stripe": "Susține dezvoltarea",
+    "back": "Înapoi la început"
+  }
+}

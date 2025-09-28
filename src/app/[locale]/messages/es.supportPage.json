@@ -1,0 +1,38 @@
+{
+  "title": "Por qué necesitamos tu apoyo",
+  "intro": "Mindra se construye para apoyar con cuidado a las personas y ayudar con metas y hábitos. Cualquier contribución acelera el desarrollo, la localización y nuevas funciones.",
+
+  "goal": {
+    "title": "Meta de financiación — Mindra App",
+    "text": "Estamos creando la app móvil de Mindra. Funciones clave de salida: videollamadas cara a cara con Mindra (elige el avatar/rostro), todas las funciones del bot de Telegram en un solo lugar y 11 idiomas.",
+    "features": {
+      "1": "Videollamadas con Mindra — elige el look y habla «cara a cara».",
+      "2": "Todas las funciones del bot en un solo lugar: diálogo, metas, hábitos, informes.",
+      "3": "11 idiomas, interfaz amigable y base para modo sin conexión en el futuro."
+    }
+  },
+
+  "progress": {
+    "title": "Progreso",
+    "subtitle": "Por ejemplo: recaudados $12,000 de $150,000 • 127 personas ya han apoyado."
+  },
+
+  "plans": {
+    "free":  { "name": "Gratis", "desc": "Lo mismo que el bot, sin FaceTime con Mindra." },
+    "lite":  { "name": "Mindra Lite", "desc": "Limitado: hasta 8–10 min de FaceTime al día." },
+    "plus":  { "name": "Mindra+ / Standard", "desc": "Hasta 20–30 min de FaceTime al día." },
+    "pro":   { "name": "Mindra Pro / VIP", "desc": "Sin límites." }
+  },
+
+  "founders": {
+    "title": "Descuentos para fundadores",
+    "tier300": "Desde $300 — 35% de por vida (por email o Telegram ID).",
+    "tier500": "Desde $500 — 40% de por vida (por email o Telegram ID).",
+    "note": "Aplicaremos los descuentos a cualquier plan de pago cuando lancemos la app."
+  },
+
+  "cta": {
+    "stripe": "Apoyar el desarrollo",
+    "back": "Volver al inicio"
+  }
+}
