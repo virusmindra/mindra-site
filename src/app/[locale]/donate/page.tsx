@@ -1,18 +1,10 @@
-import {getT} from '@/lib/getT';
+// src/app/[locale]/donate/page.tsx
+import {redirect} from 'next/navigation';
 import {DONATE_URL} from '@/lib/links';
 
-export default async function DonatePage({params}: {params: {locale: string}}) {
-  const t = await getT({locale: params.locale, namespace: 'donate'});
+// чтобы не закешировалось статикой и редирект всегда срабатывал
+export const dynamic = 'force-dynamic';
 
-  return (
-    <section className="py-10">
-      <h1 className="text-4xl font-semibold">{t('donate.title')}</h1>
-      <p className="mt-3 opacity-80">{t('donate.subtitle')}</p>
-
-      <a className="inline-block mt-6 rounded-xl px-4 py-2 bg-white text-zinc-900"
-         href={DONATE_URL} target="_blank" rel="noopener">
-        {t('donate.cta')}
-      </a>
-    </section>
-  );
+export default function DonateRedirect() {
+  redirect(DONATE_URL);
 }
