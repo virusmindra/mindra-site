@@ -82,7 +82,7 @@ export default function HomePage() {
 
       <div className="mt-6">
         <Link
-          href={`/${locale}/donate`}
+          href={`/${locale}/support`}
           className="inline-block rounded-xl px-4 py-2 bg-white text-zinc-900"
         >
           {t("support.cta")}
