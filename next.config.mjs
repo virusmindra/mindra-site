@@ -1,11 +1,16 @@
-import createNextIntlPlugin from 'next-intl/plugin';
-
-// указываем, где лежит функция getRequestConfig (наш i18n)
-const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
+// next.config.mjs
+import path from 'path';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  webpack: (config) => {
+    // Мапим импорт 'next-intl/config' на твой локальный next-intl.config.ts
+    config.resolve.alias['next-intl/config'] = path.resolve(
+      process.cwd(),
+      './next-intl.config.ts'
+    );
+    return config;
+  }
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;
