@@ -1,31 +1,15 @@
-import {getRequestConfig, type GetRequestConfigParams} from "next-intl/server";
-
-type Dict = Record<string, unknown>;
+// src/i18n.ts
+/** Вспомогалки */
+type Dict = Record<string, any>;
 
 function isPlainObject(v: unknown): v is Dict {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** Глубокий мердж простых объектов */
-function deepMerge(...parts: Dict[]): Dict {
-  const out: Dict = {};
-  for (const p of parts) {
-    if (!isPlainObject(p)) continue;
-    for (const [k, v] of Object.entries(p)) {
-      if (isPlainObject(v) && isPlainObject(out[k])) {
-        out[k] = deepMerge(out[k] as Dict, v);
-      } else {
-        out[k] = v;
-      }
-    }
-  }
-  return out;
-}
-
-/** Разворачивает плоские ключи с точками в вложенные объекты */
+/** Разворачивает плоские ключи с точками: { "a.b": 1 } -> { a: { b: 1 } } */
 function expandDottedKeys(input: Dict): Dict {
   const result: Dict = {};
-  for (const [flatKey, value] of Object.entries(input)) {
+  for (const [flatKey, value] of Object.entries(input || {})) {
     if (!flatKey.includes(".")) {
       result[flatKey] = isPlainObject(value) ? expandDottedKeys(value) : value;
       continue;
@@ -45,33 +29,26 @@ function expandDottedKeys(input: Dict): Dict {
   return result;
 }
 
-/** Аккуратная подгрузка доп. пакета, напр. `${locale}.pricing.json` */
-async function tryLoad(locale: string, pack: string): Promise<Dict> {
-  try {
-    const mod = await import(`./app/[locale]/messages/${locale}.${pack}.json`);
-    return (mod as any)?.default ?? {};
-  } catch {
-    return {};
-  }
+/** Главная функция загрузки сообщений */
+export async function getMessages({ locale }: { locale: string }) {
+  const base        = (await import(`@/app/[locale]/messages/${locale}.base.json`)).default;
+  const header      = (await import(`@/app/[locale]/messages/${locale}.header.json`)).default;
+  const pricing     = (await import(`@/app/[locale]/messages/${locale}.pricing.json`)).default;
+  const donate      = (await import(`@/app/[locale]/messages/${locale}.donate.json`)).default;
+  const thanks      = (await import(`@/app/[locale]/messages/${locale}.thanks.json`)).default;
+  const supportRaw  = (await import(`@/app/[locale]/messages/${locale}.supportPage.json`).catch(() => ({ default: {} }))).default;
+
+  // ВАЖНО: supportPage храним плоско с точками — разворачиваем его,
+  // чтобы t({namespace:'supportPage'}) находил ключи вида 'goal.title'
+  const supportPage = expandDottedKeys(supportRaw);
+
+  return {
+    ...base,
+    ...header,
+    ...pricing,
+    ...donate,
+    ...thanks,
+    supportPage
+  };
 }
-
-export default getRequestConfig(async ({locale}: GetRequestConfigParams) => {
-  const current = (locale as string) || "ru";
-
-  // База (ru.json / en.json / ...)
-  const baseMod = await import(`./app/[locale]/messages/${current}.json`);
-  const base = (baseMod as any)?.default ?? {};
-
-  // Доп. пакеты
-  const header  = await tryLoad(current, "header");
-  const pricing = await tryLoad(current, "pricing");
-  const donate  = await tryLoad(current, "donate");
-  const thanks  = await tryLoad(current, "thanks");
-
-  // Мерджим и разворачиваем плоские ключи с точками
-  const merged   = deepMerge({}, base, header, pricing, donate, thanks);
-  const messages = expandDottedKeys(merged);
-
-  return { locale: current, messages };
-});
 
