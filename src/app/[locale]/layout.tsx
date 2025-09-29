@@ -1,36 +1,34 @@
-// app/[locale]/layout.tsx
+// server component
 import "@/app/globals.css";
 import Link from "next/link";
-import {DONATE_URL} from "@/lib/links";
+import { DONATE_URL } from "@/lib/links";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import SafeIntlProvider from "@/components/SafeIntlProvider";
 
-// ВАЖНО: берем наш кастомный мерджер, а не next-intl/server
-import {getMessages} from "@/i18n";
-// Делаем t на сервере из тех же messages
-import {createTranslator} from "next-intl";
+// ВАЖНО: берем свой кастомный мерджер сообщений
+import { getMessages } from "@/i18n"; // путь именно к src/i18n.ts (у тебя это: src/i18n.ts)
+// Ниже — серверный переводчик из самих сообщений
+import { createTranslator } from "next-intl";
+
+import SafeIntlProvider from "@/components/SafeIntlProvider";
 
 export default async function RootLayout({
   children,
-  params: {locale}
+  params: { locale }
 }: {
   children: React.ReactNode;
-  params: {locale: string};
+  params: { locale: string };
 }) {
-  // Загружаем полный мердж с фолбэками (твой src/i18n.ts)
-  const messages = await getMessages({locale});
+  // 1) Грузим ПОЛНЫЙ merge твоей функцией
+  const messages = await getMessages({ locale });
 
-  // t должен смотреть в ТОТ ЖЕ объект messages
-  const t = createTranslator({locale, messages});
+  // 2) Создаем t из этих же messages (НЕ из next-intl/server)
+  const t = await createTranslator({ locale, messages });
 
-  // Если провайдеру нужно "плоское" — оставь сериализацию,
-  // но это не обязательно, если объект сериализуемый.
-  const flat = JSON.parse(JSON.stringify(messages));
-
+  // 3) Кладем ровно эти messages в провайдер
   return (
     <html lang={locale}>
       <body className="min-h-dvh text-zinc-100 bg-zinc-950">
-        <SafeIntlProvider locale={locale} messages={flat}>
+        <SafeIntlProvider locale={locale} messages={messages}>
           <header className="border-b border-white/10">
             <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
               <Link href={`/${locale}`} className="font-semibold">Mindra</Link>
@@ -64,5 +62,5 @@ export default async function RootLayout({
 
 export function generateStaticParams() {
   const locales = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
-  return locales.map((locale) => ({locale}));
+  return locales.map((locale) => ({ locale }));
 }
