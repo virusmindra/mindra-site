@@ -1,10 +1,14 @@
-// server component
+// app/[locale]/layout.tsx
 import "@/app/globals.css";
 import Link from "next/link";
 import {DONATE_URL} from "@/lib/links";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import {getMessages, getTranslations} from "next-intl/server";
 import SafeIntlProvider from "@/components/SafeIntlProvider";
+
+// ВАЖНО: берем наш кастомный мерджер, а не next-intl/server
+import {getMessages} from "@/i18n";
+// Делаем t на сервере из тех же messages
+import {createTranslator} from "next-intl";
 
 export default async function RootLayout({
   children,
@@ -13,14 +17,19 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: {locale: string};
 }) {
+  // Загружаем полный мердж с фолбэками (твой src/i18n.ts)
   const messages = await getMessages({locale});
+
+  // t должен смотреть в ТОТ ЖЕ объект messages
+  const t = createTranslator({locale, messages});
+
+  // Если провайдеру нужно "плоское" — оставь сериализацию,
+  // но это не обязательно, если объект сериализуемый.
   const flat = JSON.parse(JSON.stringify(messages));
-  const t = await getTranslations({locale});
 
   return (
     <html lang={locale}>
       <body className="min-h-dvh text-zinc-100 bg-zinc-950">
-        {/* ВАЖНО: провайдер оборачивает и header, и main, и footer */}
         <SafeIntlProvider locale={locale} messages={flat}>
           <header className="border-b border-white/10">
             <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
