@@ -4,10 +4,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import FoundersToggle from '@/components/FoundersToggle';
 
-type Prices = {
-  monthly?: number; q3?: number; q6?: number; annual?: number; lifetime?: number;
-};
-
+type Prices = { monthly?: number; q3?: number; q6?: number; annual?: number; lifetime?: number; };
 type Tier = {
   code: 'free'|'lite'|'std'|'pro';
   nameKey: string;
@@ -30,10 +27,10 @@ function withDiscount(p:number|undefined, pct:number){ if(!p) return undefined; 
 const usd=(n:number)=>`$${n.toFixed(n%1?2:0)}`;
 
 export default function PricingClient({locale, defaultFounder}:{locale:string, defaultFounder:number}) {
-  const t = useTranslations('donate');
+  // ВАЖНО: без namespace, ключи полные — "donate.…"
+  const t = useTranslations();
   const [founderPct, setFounderPct] = useState<number>(defaultFounder); // 0 | 35 | 40
 
-  // сохраняем в url ?founder=.. (удобно для шаринга)
   useEffect(() => {
     const u = new URL(window.location.href);
     if (founderPct) u.searchParams.set('founder', String(founderPct));
@@ -45,15 +42,15 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
 
   return (
     <>
-      <h2 className="mt-10 text-2xl font-semibold">{t('plans.title')}</h2>
-      <p className="mt-2 opacity-90">{t('plans.subtitle')}</p>
+      <h2 className="mt-10 text-2xl font-semibold">{t('donate.plans.title')}</h2>
+      <p className="mt-2 opacity-90">{t('donate.plans.subtitle')}</p>
 
       <FoundersToggle
         defaultPercent={founderPct}
         onChange={setFounderPct}
-        label={t('founders.toggle')}
-        badge35={t('founders.badge35')}
-        badge40={t('founders.badge40')}
+        label={t('donate.founders.toggle')}
+        badge35={t('donate.founders.badge35')}
+        badge40={t('donate.founders.badge40')}
       />
 
       <div className="grid md:grid-cols-3 gap-4 mt-6">
@@ -73,7 +70,7 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
                   <tbody className="[&_tr+tr]:border-t [&_tr+tr]:border-white/10">
                     {p.monthly && (
                       <tr>
-                        <td className="py-2">{t('plans.monthly')}</td>
+                        <td className="py-2">{t('donate.plans.monthly')}</td>
                         <td className="py-2 text-right">
                           <Price base={p.monthly} discounted={d(p.monthly)} />
                         </td>
@@ -81,7 +78,7 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
                     )}
                     {p.q3 && (
                       <tr>
-                        <td className="py-2">{t('plans.q3')}</td>
+                        <td className="py-2">{t('donate.plans.q3')}</td>
                         <td className="py-2 text-right">
                           <Price base={p.q3} discounted={d(p.q3)} />
                         </td>
@@ -89,7 +86,7 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
                     )}
                     {p.q6 && (
                       <tr>
-                        <td className="py-2">{t('plans.q6')}</td>
+                        <td className="py-2">{t('donate.plans.q6')}</td>
                         <td className="py-2 text-right">
                           <Price base={p.q6} discounted={d(p.q6)} />
                         </td>
@@ -97,7 +94,7 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
                     )}
                     {p.annual && (
                       <tr>
-                        <td className="py-2">{t('plans.annual')}</td>
+                        <td className="py-2">{t('donate.plans.annual')}</td>
                         <td className="py-2 text-right">
                           <Price base={p.annual} discounted={d(p.annual)} />
                         </td>
@@ -105,7 +102,7 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
                     )}
                     {p.lifetime && (
                       <tr>
-                        <td className="py-2">{t('plans.lifetime')}</td>
+                        <td className="py-2">{t('donate.plans.lifetime')}</td>
                         <td className="py-2 text-right">
                           <Price base={p.lifetime} discounted={d(p.lifetime)} />
                         </td>
@@ -114,16 +111,16 @@ export default function PricingClient({locale, defaultFounder}:{locale:string, d
                   </tbody>
                 </table>
               ) : (
-                <p className="opacity-80 mt-3">{t('plans.freeNote')}</p>
+                <p className="opacity-80 mt-3">{t('donate.plans.freeNote')}</p>
               )}
 
               <div className="mt-4">
                 <a
                   className="inline-block rounded-xl px-4 py-2 border border-white/20 hover:bg-white hover:text-zinc-900 transition"
                   href="#"
-                  onClick={(e)=>{e.preventDefault(); alert(t('plans.soon'));}}
+                  onClick={(e)=>{e.preventDefault(); alert(t('donate.plans.soon'));}}
                 >
-                  {t('plans.select')}
+                  {t('donate.plans.select')}
                 </a>
               </div>
             </div>
