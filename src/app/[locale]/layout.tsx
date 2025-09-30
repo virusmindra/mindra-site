@@ -1,14 +1,11 @@
-// server component
+// src/app/[locale]/layout.tsx
 import "@/app/globals.css";
 import Link from "next/link";
 import { DONATE_URL } from "@/lib/links";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-// ВАЖНО: берем свой кастомный мерджер сообщений
-import { getMessages } from "@/i18n"; // путь именно к src/i18n.ts (у тебя это: src/i18n.ts)
-// Ниже — серверный переводчик из самих сообщений
+import { getMessages } from "@/i18n";
 import { createTranslator } from "next-intl";
-
 import SafeIntlProvider from "@/components/SafeIntlProvider";
 
 export default async function RootLayout({
@@ -18,17 +15,14 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  // 1) Грузим ПОЛНЫЙ merge твоей функцией
   const messages = await getMessages({ locale });
+  const flat = JSON.parse(JSON.stringify(messages)); // <- гарантировано сериализуемо
+  const t = await createTranslator({ locale, messages: flat });
 
-  // 2) Создаем t из этих же messages (НЕ из next-intl/server)
-  const t = await createTranslator({ locale, messages });
-
-  // 3) Кладем ровно эти messages в провайдер
   return (
     <html lang={locale}>
       <body className="min-h-dvh text-zinc-100 bg-zinc-950">
-        <SafeIntlProvider locale={locale} messages={messages}>
+        <SafeIntlProvider locale={locale} messages={flat}>
           <header className="border-b border-white/10">
             <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
               <Link href={`/${locale}`} className="font-semibold">Mindra</Link>
