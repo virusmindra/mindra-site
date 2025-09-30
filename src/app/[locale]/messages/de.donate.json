@@ -2,5 +2,45 @@
   "donate.title": "Projekt unterstützen",
   "donate.subtitle": "Mindra wird entwickelt, um Menschen zu unterstützen und zu motivieren. Jeder Beitrag hilft uns, neue Funktionen und Sprachen hinzuzufügen.",
   "donate.cta": "Projekt unterstützen",
-  "donate.note": "Danke für deine Freundlichkeit! 💜"
+  "donate.note": "Danke für deine Freundlichkeit! 💜",
+  "donate": {
+    "plans": {
+      "title": "Pläne",
+      "subtitle": "Preise in USD. Gründer-Rabatte werden automatisch angewendet.",
+      "monthly": "1 Monat",
+      "q3": "3 Monate",
+      "q6": "6 Monate",
+      "annual": "12 Monate",
+      "lifetime": "Lebenslang",
+      "select": "Auswählen",
+      "freeNote": "Kostenloser Plan ohne FaceTime mit dem Bot.",
+      "soon": "Abonnements kommen bald. Unterstütze das Projekt vorerst mit einer Spende ❤️"
+    },
+    "tier": {
+      "free": {
+        "name": "Kostenlos",
+        "desc": "Bot-Funktionen ohne Videoanrufe."
+      },
+      "lite": {
+        "name": "Mindra Lite",
+        "minutes": "Limit: ~8–10 Min FaceTime pro Tag"
+      },
+      "std": {
+        "name": "Mindra+ (Standard)",
+        "minutes": "Limit: ~20–30 Min FaceTime pro Tag"
+      },
+      "pro": {
+        "name": "Mindra Pro / VIP",
+        "minutes": "Unbegrenztes FaceTime"
+      }
+    },
+    "founders": {
+      "toggle": "Ich bin Founder — Rabattpreise anzeigen",
+      "badge35": "Founders: -35 % für immer (ab 300 $)",
+      "badge40": "Founders: -40 % für immer (ab 500 $)"
+    },
+    "meta": {
+      "note": "Rabatte sind an deine E-Mail/Telegram-ID gebunden und gelten auch in der App."
+    }
+  }
 }

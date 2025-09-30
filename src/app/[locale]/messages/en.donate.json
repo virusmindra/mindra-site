@@ -2,17 +2,14 @@
   "donate.title": "Support the Project",
   "donate.subtitle": "Mindra is built to support and motivate people. Any contribution helps us ship new features and languages.",
   "donate.cta": "Support the project",
-
   "donate.progress.raised": "Raised: {raised}",
   "donate.progress.goal": "Goal: {goal}",
   "donate.progress.backers": "Backers: {n}",
-
   "donate.goal.title": "Why we raise funds",
   "donate.goal.text": "Funds go to app development, servers and the team. Target: $150,000. The more we raise, the faster we ship and add new features.",
   "donate.goal.points.1": "FaceTime with Mindra — choose the avatar and talk face-to-face.",
   "donate.goal.points.2": "All bot features in one place: dialog, goals, habits, reports.",
   "donate.goal.points.3": "11 languages, friendly UI, offline mode in the future.",
-
   "donate.plans.title": "Plans",
   "donate.plans.subtitle": "Prices in USD. Founder discounts apply automatically.",
   "donate.plans.monthly": "1 month",
@@ -23,7 +20,6 @@
   "donate.plans.select": "Select",
   "donate.plans.freeNote": "Free plan without FaceTime with the bot.",
   "donate.plans.soon": "Subscriptions checkout — coming soon. You can support the project now ❤️",
-
   "donate.tier.free.name": "Free",
   "donate.tier.free.desc": "Bot features without video calls.",
   "donate.tier.lite.name": "Mindra Lite",
@@ -32,10 +28,48 @@
   "donate.tier.std.minutes": "Limit: ~20–30 minutes FaceTime per day",
   "donate.tier.pro.name": "Mindra Pro / VIP",
   "donate.tier.pro.minutes": "Unlimited FaceTime",
-
   "donate.founders.toggle": "I’m a founder — show discounted prices",
   "donate.founders.badge35": "Founders: -35% forever (from $300)",
   "donate.founders.badge40": "Founders: -40% forever (from $500)",
-
-  "donate.meta.note": "Discounts are bound to your email/Telegram ID and will work in the app too."
+  "donate.meta.note": "Discounts are bound to your email/Telegram ID and will work in the app too.",
+  "donate": {
+    "plans": {
+      "title": "Plans",
+      "subtitle": "Prices in USD. Founder discounts apply automatically.",
+      "monthly": "1 month",
+      "q3": "3 months",
+      "q6": "6 months",
+      "annual": "12 months",
+      "lifetime": "Lifetime",
+      "select": "Select",
+      "freeNote": "Free plan without FaceTime with the bot.",
+      "soon": "Subscriptions coming soon. For now you can support the project with a donation ❤️"
+    },
+    "tier": {
+      "free": {
+        "name": "Free",
+        "desc": "Bot features without video calls."
+      },
+      "lite": {
+        "name": "Mindra Lite",
+        "minutes": "Limit: ~8–10 minutes FaceTime per day"
+      },
+      "std": {
+        "name": "Mindra+ (Standard)",
+        "minutes": "Limit: ~20–30 minutes FaceTime per day"
+      },
+      "pro": {
+        "name": "Mindra Pro / VIP",
+        "minutes": "Unlimited FaceTime"
+      }
+    },
+    "founders": {
+      "toggle": "I'm a founder — show discounted prices",
+      "badge35": "Founders: -35% forever (from $300)",
+      "badge40": "Founders: -40% forever (from $500)"
+    },
+    "meta": {
+      "note": "Discounts are tied to your email/Telegram ID and will also work in the app."
+    }
+  }
 }

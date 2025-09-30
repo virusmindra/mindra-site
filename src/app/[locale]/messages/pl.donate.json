@@ -2,5 +2,45 @@
   "donate.title": "Wesprzyj projekt",
   "donate.subtitle": "Mindra rozwija się, aby wspierać i motywować ludzi. Każda wpłata pomaga nam dodawać nowe funkcje i języki.",
   "donate.cta": "Wesprzyj projekt",
-  "donate.note": "Dziękujemy za Twoją życzliwość! 💜"
+  "donate.note": "Dziękujemy za Twoją życzliwość! 💜",
+  "donate": {
+    "plans": {
+      "title": "Plany",
+      "subtitle": "Ceny w USD. Zniżki dla founderów naliczane automatycznie.",
+      "monthly": "1 miesiąc",
+      "q3": "3 miesiące",
+      "q6": "6 miesięcy",
+      "annual": "12 miesięcy",
+      "lifetime": "Dożywotnio",
+      "select": "Wybierz",
+      "freeNote": "Darmowy plan bez FaceTime z botem.",
+      "soon": "Subskrypcje wkrótce. Na razie możesz wesprzeć projekt darowizną ❤️"
+    },
+    "tier": {
+      "free": {
+        "name": "Darmowy",
+        "desc": "Funkcje bota bez wideorozmów."
+      },
+      "lite": {
+        "name": "Mindra Lite",
+        "minutes": "Limit: ~8–10 min FaceTime dziennie"
+      },
+      "std": {
+        "name": "Mindra+ (Standard)",
+        "minutes": "Limit: ~20–30 min FaceTime dziennie"
+      },
+      "pro": {
+        "name": "Mindra Pro / VIP",
+        "minutes": "Nielimitowany FaceTime"
+      }
+    },
+    "founders": {
+      "toggle": "Jestem founderem — pokaż ceny ze zniżką",
+      "badge35": "Founders: -35% na zawsze (od $300)",
+      "badge40": "Founders: -40% na zawsze (od $500)"
+    },
+    "meta": {
+      "note": "Zniżki są powiązane z Twoim e-mailem/ID Telegram i będą działać także w aplikacji."
+    }
+  }
 }

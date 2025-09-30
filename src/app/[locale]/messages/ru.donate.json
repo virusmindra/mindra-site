@@ -2,17 +2,14 @@
   "donate.title": "Помочь проекту",
   "donate.subtitle": "Mindra развивается для поддержки и мотивации людей. Любой взнос помогает нам добавлять новые функции и языки.",
   "donate.cta": "Поддержать разработку",
-
   "donate.progress.raised": "Собрано: {raised}",
   "donate.progress.goal": "Цель: {goal}",
   "donate.progress.backers": "Уже поддержали: {n} человек",
-
   "donate.goal.title": "Зачем нужны средства",
   "donate.goal.text": "Средства идут на разработку приложения, поддержку серверов и работу команды. Цель — 150 000 $. Чем больше соберём, тем быстрее запустим и добавим новые возможности.",
   "donate.goal.points.1": "Видеозвонки с Mindra — выбери внешний облик и общайся «лицом к лицу».",
   "donate.goal.points.2": "Все функции телеграм-бота в одном месте: диалог, цели, привычки, отчёты.",
   "donate.goal.points.3": "11 языков, удобный интерфейс и офлайн-режим в будущем.",
-
   "donate.plans.title": "Подписки",
   "donate.plans.subtitle": "Цены в долларах США. Скидки фаундерам применяются автоматически.",
   "donate.plans.monthly": "1 месяц",
@@ -23,7 +20,6 @@
   "donate.plans.select": "Выбрать",
   "donate.plans.freeNote": "Бесплатный план без FaceTime с ботом.",
   "donate.plans.soon": "Оформление подписок скоро. Пока можно поддержать проект донатом ❤️",
-
   "donate.tier.free.name": "Бесплатно",
   "donate.tier.free.desc": "Функции бота без видеозвонков.",
   "donate.tier.lite.name": "Mindra Lite",
@@ -32,10 +28,48 @@
   "donate.tier.std.minutes": "Ограничение: ~20–30 минут FaceTime в день",
   "donate.tier.pro.name": "Mindra Pro / VIP",
   "donate.tier.pro.minutes": "Без ограничений FaceTime",
-
   "donate.founders.toggle": "Я поддержал(-а) проект — показать цену со скидкой",
   "donate.founders.badge35": "Founders: -35% навсегда (от $300)",
   "donate.founders.badge40": "Founders: -40% навсегда (от $500)",
-
-  "donate.meta.note": "Скидки закрепляются за твоим email/Telegram ID и будут действовать и в приложении."
+  "donate.meta.note": "Скидки закрепляются за твоим email/Telegram ID и будут действовать и в приложении.",
+  "donate": {
+    "plans": {
+      "title": "Подписки",
+      "subtitle": "Цены в долларах США. Скидки фаундерам применяются автоматически.",
+      "monthly": "1 месяц",
+      "q3": "3 месяца",
+      "q6": "6 месяцев",
+      "annual": "12 месяцев",
+      "lifetime": "Lifetime",
+      "select": "Выбрать",
+      "freeNote": "Бесплатный план без FaceTime с ботом.",
+      "soon": "Оформление подписок скоро. Пока можно поддержать проект донатом ❤️"
+    },
+    "tier": {
+      "free": {
+        "name": "Бесплатно",
+        "desc": "Функции бота без видеозвонков."
+      },
+      "lite": {
+        "name": "Mindra Lite",
+        "minutes": "Ограничение: ~8–10 минут FaceTime в день"
+      },
+      "std": {
+        "name": "Mindra+ (Standart)",
+        "minutes": "Ограничение: ~20–30 минут FaceTime в день"
+      },
+      "pro": {
+        "name": "Mindra Pro / VIP",
+        "minutes": "Без ограничений FaceTime"
+      }
+    },
+    "founders": {
+      "toggle": "Я поддержал(-а) проект — показать цену со скидкой",
+      "badge35": "Founders: -35% навсегда (от $300)",
+      "badge40": "Founders: -40% навсегда (от $500)"
+    },
+    "meta": {
+      "note": "Скидки закрепляются за твоим email/Telegram ID и будут действовать и в приложении."
+    }
+  }
 }
