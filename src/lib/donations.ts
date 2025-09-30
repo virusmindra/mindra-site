@@ -1,32 +1,51 @@
 // src/lib/donations.ts
 import Stripe from 'stripe';
 
-const GOAL = 150_000; // $ — цель
+export type Progress = {
+  raisedCents: number;
+  raised: string;
+  backers: number;
+  goalCents: number;
+  goal: string;
+};
 
-// Безопасно падать в фолбэк, если нет ключа
-const stripeKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeKey
-  ? new Stripe(stripeKey, {apiVersion: '2024-06-20'})
-  : null;
+const DEFAULT_GOAL_CENTS = 150_000 * 100;
+const usd = (cents: number) => `$${(cents / 100).toLocaleString('en-US', {maximumFractionDigits: 2})}`;
 
-export async function getProgress(): Promise<{raised:number; backers:number; goal:number}> {
-  if (!stripe) {
-    // фолбэк, чтобы страница не падала на превью/локалке
-    return {raised: 12_000, backers: 127, goal: GOAL};
-  }
+export async function getProgress(): Promise<Progress> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY is missing (.env.local)');
 
-  // Суммируем все успешные PaymentIntents (mode=payment/checkout)
-  let raised = 0;
+  const stripe = new Stripe(key);
+
+  let raisedCents = 0;
   let backers = 0;
 
-  // auto-pagination
-  for await (const pi of stripe.paymentIntents.list({limit: 100}).autoPagingIterator()) {
-    if (pi.status === 'succeeded' && typeof pi.amount_received === 'number') {
-      raised += pi.amount_received; // центы
-      backers += 1;
+  // --- Ручная пагинация (совместимо с любыми типами Stripe) ---
+  let starting_after: string | undefined = undefined;
+
+  while (true) {
+    const page: Stripe.Response<Stripe.ApiList<Stripe.PaymentIntent>> =
+        await stripe.paymentIntents.list({ limit: 100, starting_after });
+
+    for (const pi of page.data) {
+      if (pi.status === 'succeeded' && typeof pi.amount_received === 'number') {
+       raisedCents += pi.amount_received;
+       backers += 1;
     }
   }
 
-  // Stripe хранит в центах
-  return {raised: Math.round(raised / 100), backers, goal: GOAL};
+  if (!page.has_more) break;
+  starting_after = page.data[page.data.length - 1]?.id;
+    }
+
+  const goalCents = DEFAULT_GOAL_CENTS;
+
+  return {
+    raisedCents,
+    raised: usd(raisedCents),
+    backers,
+    goalCents,
+    goal: usd(goalCents)
+  };
 }
