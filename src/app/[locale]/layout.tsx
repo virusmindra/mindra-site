@@ -1,33 +1,31 @@
-// src/app/[locale]/layout.tsx
+// app/[locale]/layout.tsx
 import "@/app/globals.css";
 import Link from "next/link";
-import { DONATE_URL } from "@/lib/links";
+import {DONATE_URL} from "@/lib/links";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-
-import { getMessages } from "@/i18n";
-import { createTranslator } from "next-intl";
+import {getMessages as loadMessages} from "@/i18n";
+import {createTranslator} from "next-intl";
 import SafeIntlProvider from "@/components/SafeIntlProvider";
 
-export default async function RootLayout({
-  children,
-  params: { locale }
-}: {
+type LayoutProps = {
   children: React.ReactNode;
   params: { locale: string };
-}) {
-  const messages = await getMessages({ locale });
-  const flat = JSON.parse(JSON.stringify(messages)); // <- гарантировано сериализуемо
-  const t = await createTranslator({ locale, messages: flat });
+};
+
+export default async function RootLayout({children, params}: LayoutProps) {
+  const lng = params.locale; // <-- обычная строка
+  const messages = await loadMessages({ locale: lng }); // <-- string ок
+  const t = await createTranslator({ locale: lng, messages });
 
   return (
-    <html lang={locale}>
+    <html lang={lng}>
       <body className="min-h-dvh text-zinc-100 bg-zinc-950">
-        <SafeIntlProvider locale={locale} messages={flat}>
+        <SafeIntlProvider locale={lng} messages={messages}>
           <header className="border-b border-white/10">
             <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
-              <Link href={`/${locale}`} className="font-semibold">Mindra</Link>
+              <Link href={`/${lng}`} className="font-semibold">Mindra</Link>
               <div className="flex items-center justify-center gap-3">
-                <Link className="text-sm opacity-90 hover:opacity-100" href={`/${locale}/pricing`}>
+                <Link className="text-sm opacity-90 hover:opacity-100" href={`/${lng}/pricing`}>
                   {t("nav.pricing")}
                 </Link>
                 <a
@@ -55,6 +53,6 @@ export default async function RootLayout({
 }
 
 export function generateStaticParams() {
-  const locales = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
+  const locales = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
   return locales.map((locale) => ({ locale }));
 }

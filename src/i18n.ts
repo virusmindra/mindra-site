@@ -1,39 +1,148 @@
 // src/i18n.ts
 type Dict = Record<string, any>;
-
-// Статические импорты — webpack точно упакует эти файлы
-import enBase from "@/app/[locale]/messages/en.json";
-import ruBase from "@/app/[locale]/messages/ru.json";
-// при необходимости добавь ещё:
-// import deBase from "@/app/[locale]/messages/de.json"; ...
-
-const baseByLocale: Record<string, Dict> = {
-  en: enBase ?? {},
-  ru: ruBase ?? {},
-  // de: deBase ?? {},
-  // ...
-};
+type Locale = 'ru'|'en'|'uk'|'pl'|'es'|'fr'|'de'|'kk'|'hy'|'ka'|'md';
 
 function deepMerge<A extends Dict, B extends Dict>(a: A, b: B): A & B {
-  const out: Dict = Array.isArray(a) ? [...a] : { ...a };
-  for (const [k, v] of Object.entries(b)) {
-    if (v && typeof v === "object" && !Array.isArray(v)) {
+  const out: Dict = Array.isArray(a) ? [...a] : {...a};
+  for (const [k, v] of Object.entries(b ?? {})) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
       out[k] = deepMerge((out[k] ?? {}) as Dict, v as Dict);
-    } else {
+    } else if (v !== undefined) {
       out[k] = v;
     }
   }
   return out as A & B;
 }
 
+/** --- STATIC IMPORTS (бандлятся гарантированно) --- */
+// Base
+import enBase from '@/app/[locale]/messages/en.json';
+import ruBase from '@/app/[locale]/messages/ru.json';
+import ukBase from '@/app/[locale]/messages/uk.json';
+import plBase from '@/app/[locale]/messages/pl.json';
+import esBase from '@/app/[locale]/messages/es.json';
+import frBase from '@/app/[locale]/messages/fr.json';
+import deBase from '@/app/[locale]/messages/de.json';
+import kkBase from '@/app/[locale]/messages/kk.json';
+import hyBase from '@/app/[locale]/messages/hy.json';
+import kaBase from '@/app/[locale]/messages/ka.json';
+import mdBase from '@/app/[locale]/messages/md.json';
+
+// header
+import enHeader from '@/app/[locale]/messages/en.header.json';
+import ruHeader from '@/app/[locale]/messages/ru.header.json';
+import ukHeader from '@/app/[locale]/messages/uk.header.json';
+import plHeader from '@/app/[locale]/messages/pl.header.json';
+import esHeader from '@/app/[locale]/messages/es.header.json';
+import frHeader from '@/app/[locale]/messages/fr.header.json';
+import deHeader from '@/app/[locale]/messages/de.header.json';
+import kkHeader from '@/app/[locale]/messages/kk.header.json';
+import hyHeader from '@/app/[locale]/messages/hy.header.json';
+import kaHeader from '@/app/[locale]/messages/ka.header.json';
+import mdHeader from '@/app/[locale]/messages/md.header.json';
+
+// pricing
+import enPricing from '@/app/[locale]/messages/en.pricing.json';
+import ruPricing from '@/app/[locale]/messages/ru.pricing.json';
+import ukPricing from '@/app/[locale]/messages/uk.pricing.json';
+import plPricing from '@/app/[locale]/messages/pl.pricing.json';
+import esPricing from '@/app/[locale]/messages/es.pricing.json';
+import frPricing from '@/app/[locale]/messages/fr.pricing.json';
+import dePricing from '@/app/[locale]/messages/de.pricing.json';
+import kkPricing from '@/app/[locale]/messages/kk.pricing.json';
+import hyPricing from '@/app/[locale]/messages/hy.pricing.json';
+import kaPricing from '@/app/[locale]/messages/ka.pricing.json';
+import mdPricing from '@/app/[locale]/messages/md.pricing.json';
+
+// donate
+import enDonate from '@/app/[locale]/messages/en.donate.json';
+import ruDonate from '@/app/[locale]/messages/ru.donate.json';
+import ukDonate from '@/app/[locale]/messages/uk.donate.json';
+import plDonate from '@/app/[locale]/messages/pl.donate.json';
+import esDonate from '@/app/[locale]/messages/es.donate.json';
+import frDonate from '@/app/[locale]/messages/fr.donate.json';
+import deDonate from '@/app/[locale]/messages/de.donate.json';
+import kkDonate from '@/app/[locale]/messages/kk.donate.json';
+import hyDonate from '@/app/[locale]/messages/hy.donate.json';
+import kaDonate from '@/app/[locale]/messages/ka.donate.json';
+import mdDonate from '@/app/[locale]/messages/md.donate.json';
+
+// thanks
+import enThanks from '@/app/[locale]/messages/en.thanks.json';
+import ruThanks from '@/app/[locale]/messages/ru.thanks.json';
+import ukThanks from '@/app/[locale]/messages/uk.thanks.json';
+import plThanks from '@/app/[locale]/messages/pl.thanks.json';
+import esThanks from '@/app/[locale]/messages/es.thanks.json';
+import frThanks from '@/app/[locale]/messages/fr.thanks.json';
+import deThanks from '@/app/[locale]/messages/de.thanks.json';
+import kkThanks from '@/app/[locale]/messages/kk.thanks.json';
+import hyThanks from '@/app/[locale]/messages/hy.thanks.json';
+import kaThanks from '@/app/[locale]/messages/ka.thanks.json';
+import mdThanks from '@/app/[locale]/messages/md.thanks.json';
+
+// supportPage (отдельным namespace)
+import enSupport from '@/app/[locale]/messages/en.supportPage.json';
+import ruSupport from '@/app/[locale]/messages/ru.supportPage.json';
+import ukSupport from '@/app/[locale]/messages/uk.supportPage.json';
+import plSupport from '@/app/[locale]/messages/pl.supportPage.json';
+import esSupport from '@/app/[locale]/messages/es.supportPage.json';
+import frSupport from '@/app/[locale]/messages/fr.supportPage.json';
+import deSupport from '@/app/[locale]/messages/de.supportPage.json';
+import kkSupport from '@/app/[locale]/messages/kk.supportPage.json';
+import hySupport from '@/app/[locale]/messages/hy.supportPage.json';
+import kaSupport from '@/app/[locale]/messages/ka.supportPage.json';
+import mdSupport from '@/app/[locale]/messages/md.supportPage.json';
+
+/** Карты по локали */
+const BASE: Record<Locale, Dict> = {
+  en: enBase, ru: ruBase, uk: ukBase, pl: plBase, es: esBase,
+  fr: frBase, de: deBase, kk: kkBase, hy: hyBase, ka: kaBase, md: mdBase
+};
+const HEADER: Record<Locale, Dict> = {
+  en: enHeader, ru: ruHeader, uk: ukHeader, pl: plHeader, es: esHeader,
+  fr: frHeader, de: deHeader, kk: kkHeader, hy: hyHeader, ka: kaHeader, md: mdHeader
+};
+const PRICING: Record<Locale, Dict> = {
+  en: enPricing, ru: ruPricing, uk: ukPricing, pl: plPricing, es: esPricing,
+  fr: frPricing, de: dePricing, kk: kkPricing, hy: hyPricing, ka: kaPricing, md: mdPricing
+};
+const DONATE: Record<Locale, Dict> = {
+  en: enDonate, ru: ruDonate, uk: ukDonate, pl: plDonate, es: esDonate,
+  fr: frDonate, de: deDonate, kk: kkDonate, hy: hyDonate, ka: kaDonate, md: mdDonate
+};
+const THANKS: Record<Locale, Dict> = {
+  en: enThanks, ru: ruThanks, uk: ukThanks, pl: plThanks, es: esThanks,
+  fr: frThanks, de: deThanks, kk: kkThanks, hy: hyThanks, ka: kaThanks, md: mdThanks
+};
+const SUPPORT: Record<Locale, Dict> = {
+  en: enSupport, ru: ruSupport, uk: ukSupport, pl: plSupport, es: esSupport,
+  fr: frSupport, de: deSupport, kk: kkSupport, hy: hySupport, ka: kaSupport, md: mdSupport
+};
+
 export async function getMessages({ locale }: { locale: string }) {
-  const fallback = "en";
-  const cur = baseByLocale[locale] ?? {};
-  const fb  = baseByLocale[fallback] ?? {};
+  const ALL: Locale[] = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
+  const fb: Locale = 'en';
+  const cur: Locale = (ALL as readonly string[]).includes(locale) ? (locale as Locale) : fb;
 
-  // Простой рабочий merge: fallback -> current
-  const merged = deepMerge(fb, cur);
+  // 1) база + фолбэк
+  let messages = deepMerge(BASE[fb] ?? {}, BASE[cur] ?? {});
 
-  // ВАЖНО: возвращаем сериализуемый plain-object
-  return JSON.parse(JSON.stringify(merged));
+  // 2) пакеты + фолбэк
+  messages = deepMerge(messages, HEADER[fb] ?? {});
+  messages = deepMerge(messages, HEADER[cur] ?? {});
+
+  messages = deepMerge(messages, PRICING[fb] ?? {});
+  messages = deepMerge(messages, PRICING[cur] ?? {});
+
+  messages = deepMerge(messages, DONATE[fb] ?? {});
+  messages = deepMerge(messages, DONATE[cur] ?? {});
+
+  messages = deepMerge(messages, THANKS[fb] ?? {});
+  messages = deepMerge(messages, THANKS[cur] ?? {});
+
+  // 3) supportPage — отдельный namespace
+  messages.supportPage = deepMerge(SUPPORT[fb] ?? {}, SUPPORT[cur] ?? {});
+
+  return messages;
 }
+
