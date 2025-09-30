@@ -1,9 +1,14 @@
 import {getT} from '@/lib/getT';
 import {DONATE_URL} from '@/lib/links';
 import Link from 'next/link';
+import {getProgress} from '@/lib/donations'; // <— добавим ниже
 
 export default async function SupportPage({params}:{params:{locale:string}}) {
   const t = await getT({locale: params.locale, namespace: 'supportPage'});
+
+  // живой прогресс
+  const {raised, backers, goal} = await getProgress();
+  const f = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'});
 
   return (
     <section className="py-10">
@@ -14,15 +19,32 @@ export default async function SupportPage({params}:{params:{locale:string}}) {
       <p className="mt-2 opacity-90 max-w-3xl">{t('goal.text')}</p>
 
       <ul className="mt-3 space-y-2 list-disc pl-6 opacity-90">
-        <li>{t('features.1')}</li>
-        <li>{t('features.2')}</li>
-        <li>{t('features.3')}</li>
+        <li>{t('goal.features.1')}</li>
+        <li>{t('goal.features.2')}</li>
+        <li>{t('goal.features.3')}</li>
       </ul>
 
-      {/* Прогресс (пока статичный текст) */}
+      {/* Прогресс — живые цифры */}
       <div className="mt-8 rounded-2xl border border-white/10 p-6">
         <h3 className="text-xl font-semibold">{t('progress.title')}</h3>
-        <p className="mt-2 opacity-90">{t('progress.subtitle')}</p>
+        <p className="mt-2 opacity-90">
+          {t.rich('progress.subtitle', {
+            // если хочешь — можно полностью вынести шаблон в переводах,
+            // а сюда передавать значения как {raised} {goal} {n}
+            // но для простоты форматнём прямо тут:
+            // Пример текста: "Собрано $12,000 из $150,000 • уже поддержали 127 человек."
+            // Ниже рендерим ту же фразу на сервере
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            strong: (c) => <strong>{c}</strong>
+          })}
+        </p>
+        <p className="mt-1 opacity-90">
+          <span className="mr-2">{`Собрано: ${f.format(raised)}`}</span>
+          <span className="mr-2">•</span>
+          <span className="mr-2">{`Цель: ${f.format(goal)}`}</span>
+          <span className="mr-2">•</span>
+          <span>{`Уже поддержали: ${backers} человек`}</span>
+        </p>
       </div>
 
       {/* Тарифы/подписки — overview */}
