@@ -1,7 +1,6 @@
 {
   "title": "Dlaczego potrzebujemy Twojego wsparcia",
   "intro": "Mindra powstaje, aby z troską wspierać ludzi, pomagać w celach i nawykach. Każdy wkład przyspiesza rozwój, lokalizację i nowe funkcje.",
-
   "goal": {
     "title": "Cel zbiórki — aplikacja Mindra",
     "text": "Tworzymy aplikację mobilną Mindra. Główne funkcje na start: rozmowy wideo twarzą w twarz z Mindrą (wybór wyglądu/awataru), wszystkie funkcje bota Telegram w jednym miejscu i 11 języków.",
@@ -11,26 +10,35 @@
       "3": "11 języków, przyjazny interfejs i podstawa pod tryb offline w przyszłości."
     }
   },
-
   "progress": {
     "title": "Postęp",
-    "subtitle": "Przykład: zebrano 12 000 $ z 150 000 $ • wsparło już 127 osób."
+    "subtitle": "Przykład: zebrano 12 000 $ z 150 000 $ • wsparło już 127 osób.",
+    "line": "Zebrano: {raised} · Cel: {goal} · Wspierających: {n}"
   },
-
   "plans": {
-    "free":  { "name": "Darmowy", "desc": "To samo co w bocie, bez FaceTime z Mindrą." },
-    "lite":  { "name": "Mindra Lite", "desc": "Limit: do 8–10 min FaceTime dziennie." },
-    "plus":  { "name": "Mindra+ / Standard", "desc": "Do 20–30 min FaceTime dziennie." },
-    "pro":   { "name": "Mindra Pro / VIP", "desc": "Bez limitów." }
+    "free": {
+      "name": "Darmowy",
+      "desc": "To samo co w bocie, bez FaceTime z Mindrą."
+    },
+    "lite": {
+      "name": "Mindra Lite",
+      "desc": "Limit: do 8–10 min FaceTime dziennie."
+    },
+    "plus": {
+      "name": "Mindra+ / Standard",
+      "desc": "Do 20–30 min FaceTime dziennie."
+    },
+    "pro": {
+      "name": "Mindra Pro / VIP",
+      "desc": "Bez limitów."
+    }
   },
-
   "founders": {
     "title": "Zniżki dla założycieli",
     "tier300": "Od 300 $ — dożywotnia zniżka 35% (po emailu lub Telegram ID).",
     "tier500": "Od 500 $ — dożywotnia zniżka 40% (po emailu lub Telegram ID).",
     "note": "Zniżki zastosujemy do wszystkich płatnych planów po starcie aplikacji."
   },
-
   "cta": {
     "stripe": "Wesprzyj rozwój",
     "back": "Powrót do strony głównej"

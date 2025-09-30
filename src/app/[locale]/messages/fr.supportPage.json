@@ -1,7 +1,6 @@
 {
   "title": "Pourquoi nous avons besoin de votre soutien",
   "intro": "Mindra est conçu pour soutenir les personnes avec douceur, aider aux objectifs et aux habitudes. Toute contribution accélère le développement, la localisation et les nouvelles fonctionnalités.",
-
   "goal": {
     "title": "Objectif de financement — l’app Mindra",
     "text": "Nous créons l’application mobile Mindra. Fonctions phares au lancement : appels vidéo face-à-face avec Mindra (choisissez l’avatar/visage), toutes les fonctions du bot Telegram au même endroit et 11 langues.",
@@ -11,26 +10,35 @@
       "3": "11 langues, une interface conviviale et une base pour un mode hors-ligne à l’avenir."
     }
   },
-
   "progress": {
     "title": "Avancement",
-    "subtitle": "Exemple : 12 000 $ collectés sur 150 000 $ • 127 personnes ont déjà contribué."
+    "subtitle": "Exemple : 12 000 $ collectés sur 150 000 $ • 127 personnes ont déjà contribué.",
+    "line": "Collecté : {raised} · Objectif : {goal} · Soutiens : {n}"
   },
-
   "plans": {
-    "free":  { "name": "Gratuit", "desc": "Identique au bot, sans FaceTime avec Mindra." },
-    "lite":  { "name": "Mindra Lite", "desc": "Limité : jusqu’à 8–10 min de FaceTime/jour." },
-    "plus":  { "name": "Mindra+ / Standard", "desc": "Jusqu’à 20–30 min de FaceTime/jour." },
-    "pro":   { "name": "Mindra Pro / VIP", "desc": "Sans limites." }
+    "free": {
+      "name": "Gratuit",
+      "desc": "Identique au bot, sans FaceTime avec Mindra."
+    },
+    "lite": {
+      "name": "Mindra Lite",
+      "desc": "Limité : jusqu’à 8–10 min de FaceTime/jour."
+    },
+    "plus": {
+      "name": "Mindra+ / Standard",
+      "desc": "Jusqu’à 20–30 min de FaceTime/jour."
+    },
+    "pro": {
+      "name": "Mindra Pro / VIP",
+      "desc": "Sans limites."
+    }
   },
-
   "founders": {
     "title": "Remises fondateurs",
     "tier300": "À partir de 300 $ — remise à vie de 35 % (via email ou Telegram ID).",
     "tier500": "À partir de 500 $ — remise à vie de 40 % (via email ou Telegram ID).",
     "note": "Les remises seront appliquées aux offres payantes après le lancement de l’app."
   },
-
   "cta": {
     "stripe": "Soutenir le développement",
     "back": "Retour à l’accueil"

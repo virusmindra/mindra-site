@@ -1,12 +1,27 @@
-// src/app/[locale]/support/page.tsx
 import {getT} from '@/lib/getT';
 import {DONATE_URL} from '@/lib/links';
-import {getProgress} from '@/lib/donations';
 import Link from 'next/link';
+import {getProgress} from '@/lib/donations';
+import PricingClient from './pricing-client';
 
-export default async function SupportPage({params}:{params:{locale:string}}) {
+export default async function SupportPage({
+  params,
+  searchParams
+}: {
+  params: {locale: string};
+  searchParams?: { founder?: string };
+}) {
   const t = await getT({locale: params.locale, namespace: 'supportPage'});
-  const p = await getProgress();
+
+  // живые цифры со Stripe
+  const {raised, goal, backers} = await getProgress();
+
+  // дефолт переключателя скидок из URL (?founder=35|40)
+  const founderPct = (() => {
+    const raw = searchParams?.founder;
+    const n = raw ? parseInt(raw, 10) : 0;
+    return (n === 35 || n === 40) ? n : 0;
+  })();
 
   return (
     <section className="py-10">
@@ -22,20 +37,34 @@ export default async function SupportPage({params}:{params:{locale:string}}) {
         <li>{t('goal.features.3')}</li>
       </ul>
 
+      {/* Прогресс (живой, локализованный) */}
       <div className="mt-8 rounded-2xl border border-white/10 p-6">
         <h3 className="text-xl font-semibold">{t('progress.title')}</h3>
         <p className="mt-2 opacity-90">
-          {/* если хочешь интернационализировать фразу — добавь шаблон в donate.json */}
-          Собрано: {p.raised} • Цель: {p.goal} • Уже поддержали: {p.backers}
+          {t('progress.line', {raised, goal, n: backers})}
         </p>
       </div>
 
-      {/* …дальше как у тебя */}
+      {/* Интерактивные подписки + тумблер фаундеров */}
+      <div className="mt-8">
+        <PricingClient locale={params.locale} defaultFounder={founderPct} />
+      </div>
+
+      {/* Кнопки */}
       <div className="mt-8 flex gap-3">
-        <a className="rounded-xl px-4 py-2 bg-white text-zinc-900" href={DONATE_URL} target="_blank" rel="noopener">
+        <a
+          className="rounded-xl px-4 py-2 bg-white text-zinc-900"
+          href={DONATE_URL}
+          target="_blank"
+          rel="noopener"
+        >
           {t('cta.stripe')}
         </a>
-        <Link className="rounded-xl px-4 py-2 border border-white/20" href={`/${params.locale}`}>
+
+        <Link
+          className="rounded-xl px-4 py-2 border border-white/20"
+          href={`/${params.locale}`}
+        >
           {t('cta.back')}
         </Link>
       </div>

@@ -6,3 +6,4 @@ node_modules/
 
 # local secrets
 .env.local
+pnpm-lock.yaml
