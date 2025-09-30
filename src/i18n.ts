@@ -2,6 +2,25 @@
 type Dict = Record<string, any>;
 type Locale = 'ru'|'en'|'uk'|'pl'|'es'|'fr'|'de'|'kk'|'hy'|'ka'|'md';
 
+// превращаем {"a.b.c": "x"} -> {a:{b:{c:"x"}}}
+function unflatten(obj: Dict): Dict {
+  const out: Dict = {};
+  for (const [key, val] of Object.entries(obj ?? {})) {
+    const parts = key.split('.');
+    let cur = out;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i]!;
+      if (i === parts.length - 1) {
+        cur[p] = val;
+      } else {
+        if (typeof cur[p] !== 'object' || cur[p] == null || Array.isArray(cur[p])) cur[p] = {};
+        cur = cur[p];
+      }
+    }
+  }
+  return out;
+}
+
 function deepMerge<A extends Dict, B extends Dict>(a: A, b: B): A & B {
   const out: Dict = Array.isArray(a) ? [...a] : {...a};
   for (const [k, v] of Object.entries(b ?? {})) {
@@ -119,29 +138,30 @@ const SUPPORT: Record<Locale, Dict> = {
   fr: frSupport, de: deSupport, kk: kkSupport, hy: hySupport, ka: kaSupport, md: mdSupport
 };
 
+const U = (d: Dict) => unflatten(d);
+
 export async function getMessages({ locale }: { locale: string }) {
-  const ALL: Locale[] = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
   const fb: Locale = 'en';
-  const cur: Locale = (ALL as readonly string[]).includes(locale) ? (locale as Locale) : fb;
+  const lng = (locale as Locale);
 
   // 1) база + фолбэк
-  let messages = deepMerge(BASE[fb] ?? {}, BASE[cur] ?? {});
+  let messages = deepMerge(U(BASE[fb] ?? {}), U(BASE[lng] ?? {}));
 
   // 2) пакеты + фолбэк
-  messages = deepMerge(messages, HEADER[fb] ?? {});
-  messages = deepMerge(messages, HEADER[cur] ?? {});
+  messages = deepMerge(messages, U(HEADER[fb] ?? {}));
+  messages = deepMerge(messages, U(HEADER[lng] ?? {}));
 
-  messages = deepMerge(messages, PRICING[fb] ?? {});
-  messages = deepMerge(messages, PRICING[cur] ?? {});
+  messages = deepMerge(messages, U(PRICING[fb] ?? {}));
+  messages = deepMerge(messages, U(PRICING[lng] ?? {}));
 
-  messages = deepMerge(messages, DONATE[fb] ?? {});
-  messages = deepMerge(messages, DONATE[cur] ?? {});
+  messages = deepMerge(messages, U(DONATE[fb] ?? {}));
+  messages = deepMerge(messages, U(DONATE[lng] ?? {}));
 
-  messages = deepMerge(messages, THANKS[fb] ?? {});
-  messages = deepMerge(messages, THANKS[cur] ?? {});
+  messages = deepMerge(messages, U(THANKS[fb] ?? {}));
+  messages = deepMerge(messages, U(THANKS[lng] ?? {}));
 
-  // 3) supportPage — отдельный namespace
-  messages.supportPage = deepMerge(SUPPORT[fb] ?? {}, SUPPORT[cur] ?? {});
+  // 3) supportPage — отдельным namespace
+  messages.supportPage = deepMerge(U(SUPPORT[fb] ?? {}), U(SUPPORT[lng] ?? {}));
 
   return messages;
 }
