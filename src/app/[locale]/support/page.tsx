@@ -70,10 +70,9 @@ export default async function SupportPage({
         </Link>
       </div>
 
-      {/* Контакты (добавлено из «старой» версии) */}
+      {/* Контакты (якорь для футера) */}
       <div className="mt-12 rounded-2xl border border-white/10 p-6">
-        <h2 className="text-xl font-semibold">
-          {/* если в переводах есть supportPage.contactsTitle — используем его; иначе простая подпись */}
+        <h2 id="contacts" className="text-xl font-semibold">
           {t?.('contacts.title') ?? 'Contacts'}
         </h2>
         <p className="mt-2 opacity-90">

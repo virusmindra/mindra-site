@@ -7,7 +7,7 @@ export default function Footer() {
   const t = useTranslations("footer");
   const locale = useLocale();
 
-  // Хелпер для локализованных путей: /{locale}/path
+  // Локализованный путь: /{locale}/path
   const l = (path: string) => `/${locale}${path.startsWith("/") ? path : `/${path}`}`;
 
   return (
@@ -28,10 +28,11 @@ export default function Footer() {
             <Link className="hover:text-neutral-800 dark:hover:text-neutral-200 underline-offset-2 hover:underline" href={l("/refunds")}>
               {t("refunds")}
             </Link>
-            <Link className="hover:text-neutral-800 dark:hover:text-neutral-200 underline-offset-2 hover:underline" href={l("/support")}>
+            {/* ВАЖНО: ведём к блоку контактов на странице поддержки */}
+            <Link className="hover:text-neutral-800 dark:hover:text-neutral-200 underline-offset-2 hover:underline" href={l("/support#contacts")}>
               {t("support")}
             </Link>
-            {/* Customer Portal может быть роутом/редиректом; оставляю относительный путь с локалью */}
+            {/* Портал Stripe */}
             <Link className="hover:text-neutral-800 dark:hover:text-neutral-200 underline-offset-2 hover:underline" href={l("/billing/portal")}>
               {t("portal")}
             </Link>
@@ -52,4 +53,3 @@ export default function Footer() {
     </footer>
   );
 }
-
