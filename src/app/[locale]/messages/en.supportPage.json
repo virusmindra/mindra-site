@@ -1,5 +1,5 @@
 {
-  "title": "Why we need your support",
+  "title": "Support",
   "intro": "Mindra is built to gently support people, help with goals and habits. Any contribution speeds up development, localization and new features.",
   "goal": {
     "title": "Funding goal — Mindra App",
@@ -41,6 +41,11 @@
   },
   "cta": {
     "stripe": "Support development",
-    "back": "Back to home"
+    "back": "Back to Home"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "desc": "Reach us via email or Telegram—we respond as soon as possible."
   }
 }
+
