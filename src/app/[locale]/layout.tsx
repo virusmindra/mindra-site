@@ -6,6 +6,8 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {getMessages as loadMessages} from "@/i18n";
 import {createTranslator} from "next-intl";
 import SafeIntlProvider from "@/components/SafeIntlProvider";
+import Footer from "@/components/Footer";
+import CookieBanner from "@/components/CookieBanner";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -13,14 +15,18 @@ type LayoutProps = {
 };
 
 export default async function RootLayout({children, params}: LayoutProps) {
-  const lng = params.locale; // <-- обычная строка
-  const messages = await loadMessages({ locale: lng }); // <-- string ок
+  const lng = params.locale;
+  const messages = await loadMessages({ locale: lng });
   const t = await createTranslator({ locale: lng, messages });
 
   return (
     <html lang={lng}>
-      <body className="min-h-dvh text-zinc-100 bg-zinc-950">
+      <body className="min-h-screen flex flex-col text-zinc-100 bg-zinc-950">
         <SafeIntlProvider locale={lng} messages={messages}>
+          {/* Cookie banner на всех страницах */}
+          <CookieBanner />
+
+          {/* Header */}
           <header className="border-b border-white/10">
             <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
               <Link href={`/${lng}`} className="font-semibold">Mindra</Link>
@@ -41,11 +47,13 @@ export default async function RootLayout({children, params}: LayoutProps) {
             </div>
           </header>
 
-          <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
+          {/* Main */}
+          <main className="flex-1 mx-auto max-w-5xl w-full px-4 py-10">
+            {children}
+          </main>
 
-          <footer className="border-t border-white/10">
-            <div className="mx-auto max-w-5xl px-4 py-8 opacity-70 text-sm">© 2025 Mindra</div>
-          </footer>
+          {/* Footer */}
+          <Footer />
         </SafeIntlProvider>
       </body>
     </html>

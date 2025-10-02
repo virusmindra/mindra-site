@@ -12,11 +12,16 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
+
+    // Алиасы
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/app/*": ["src/app/*"],
       "next-intl/config": ["./next-intl.config.ts"]
     },
+
     "incremental": true,
     "plugins": [{ "name": "next" }]
   },

@@ -26,6 +26,102 @@
   "support.features.1": "Face-to-face video calls with Mindra — choose the bot’s look.",
   "support.features.2": "All Telegram bot features in one place: chat, goals, habits, reports.",
   "support.features.3": "11 languages, a clean UI, and groundwork for future offline mode.",
-  "support.cta": "Support development"
+  "support.cta": "Support development",
+  "footer": {
+    "footerLabel": "Site footer",
+    "copyrightAria": "Copyright",
+    "legalNavAria": "Legal navigation",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "refunds": "Refund Policy",
+    "support": "Support",
+    "portal": "Customer Portal",
+    "disclaimer": "Mindra is not a medical or crisis service. For emergencies, call local emergency services.",
+    "contact": "Contact"
+  },
+  "cookie": {
+    "bannerAria": "Cookie notice",
+    "text": "This site uses cookies for analytics and to improve the service",
+    "more": "Privacy Policy",
+    "accept": "Accept",
+    "acceptAria": "Accept cookies",
+    "details": "Details",
+    "moreAria": "Read more about cookies"
+  },
+  "support": {
+    "title": "Support",
+    "desc": "Reach us via email or Telegram. We reply as soon as possible."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "updated": "Last updated",
+    "contact": "For privacy requests, email:",
+    "sections": [
+      {"h":"Who we are","p":"Mindra is a product of Mindra Group LLC (\"Company\")."},
+      {"h":"Data we collect","ul":[
+        "Email (e.g., checkout, forms).",
+        "Payment metadata from Stripe. Full card data is processed by Stripe only—we do not store it.",
+        "Technical data (cookies, IP, user-agent, analytics events).",
+        "Telegram bot data (e.g., user_id, language, settings, subscription facts). Telegram may process data as an independent platform."
+      ]},
+      {"h":"Purposes","ul":[
+        "Provide Mindra service and premium access.",
+        "Discounts/promo codes (created via Stripe coupons/promotion codes).",
+        "Analytics and product improvement.",
+        "User support and legal compliance; abuse prevention."
+      ]},
+      {"h":"Legal bases","p":"Consent; contract performance; legitimate interests; legal obligations."},
+      {"h":"Retention","p":"For the life of your account/subscription and a reasonable period thereafter (typically up to 24 months) or longer if required by law or disputes."},
+      {"h":"Sharing with third parties","ul":[
+        "Stripe (payments, billing, coupons/promotion codes).",
+        "Analytics providers (e.g., GA).",
+        "Telegram (in relation to bot usage)."
+      ],"p":"We use appropriate data protection arrangements (incl. DPAs where applicable)."},
+      {"h":"Your rights","p":"You may request access, correction, or deletion of your personal data by emailing us."},
+      {"h":"Cookies","p":"We use cookies for analytics/service improvement. Manage cookies in your browser settings."},
+      {"h":"International transfers","p":"Data may be processed outside your country with appropriate safeguards."},
+      {"h":"Changes","p":"We may update this Policy; new versions are published here with an updated date."}
+    ]
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "updated": "Last updated",
+    "contact": "For questions, email:",
+    "sections": [
+      {"h":"Service description","p":"Mindra is a digital motivation and support service (Telegram bot, website, related functions) by Mindra Group LLC."},
+      {"h":"Account & age","p":"You confirm you are at least 16 (or as required in your jurisdiction) and can enter into a contract."},
+      {"h":"Subscriptions & payments","ul":[
+        "Subscriptions may be recurring until cancellation.",
+        "Payments are processed by Stripe. You agree to Stripe terms.",
+        "Manage your subscription in the Stripe Customer Portal (/billing/portal) or via Support."
+      ]},
+      {"h":"Refunds","p":"See Refund Policy. Generally a 7-day window for first-time purchases subject to conditions."},
+      {"h":"Acceptable use","p":"No unlawful activity, abuse, hacking, malware, or rights violations."},
+      {"h":"Intellectual property","p":"Mindra content/software (except user content) belongs to the Company and/or its licensors."},
+      {"h":"Disclaimer","p":"Service is provided “as is” and “as available”, without warranties."},
+      {"h":"Liability","p":"To the extent permitted by law, liability is limited to amounts paid by you in the last 12 months."},
+      {"h":"Termination","p":"We may suspend/terminate access for violations or as required by law."},
+      {"h":"Governing law","p":"Laws of the State of Florida, USA (without conflict-of-laws), unless mandatory local law applies."},
+      {"h":"Changes","p":"We may update these Terms; new versions take effect upon posting."}
+    ]
+  },
+  "refunds": {
+    "title": "Refund Policy",
+    "updated": "Last updated",
+    "contact": "For refunds, email:",
+    "sections": [
+      {"h":"General","p":"We want you to be satisfied with Mindra."},
+      {"h":"7-day period for first purchases","ul":[
+        "You may request a refund within 7 days of the first subscription purchase, absent abuse.",
+        "Renewals generally are non-refundable unless required by law."
+      ]},
+      {"h":"Exclusions","ul":[
+        "Digital content and already-activated features may be non-refundable.",
+        "Abuse, ToS violations, or fraud void refund eligibility."
+      ]},
+      {"h":"How to request","p":"Email us from the purchase email with your reason; we may request details to verify the payment."},
+      {"h":"Timing","p":"Once approved, refunds typically take 5–10 business days to the original payment method (bank timings vary)."}
+    ]
+  }
 }
 
