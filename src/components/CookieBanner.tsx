@@ -10,7 +10,6 @@ export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // показываем баннер только если согласия ещё нет
     if (typeof window !== "undefined" && !localStorage.getItem("cookie-consent")) {
       setVisible(true);
     }
@@ -27,17 +26,17 @@ export default function CookieBanner() {
       aria-live="polite"
       aria-label={t("bannerAria")}
     >
-      <div className="mx-auto max-w-4xl m-3 rounded-xl border bg-white p-4 shadow">
-        <p className="text-sm text-neutral-700">
+      <div className="mx-auto max-w-4xl m-3 rounded-xl border bg-white p-4 shadow text-zinc-900">
+        <p className="text-sm">
           {t("text")}{" "}
-          <Link href={privacyHref} className="underline">
+          <Link href={privacyHref} className="underline font-medium">
             {t("more")}
           </Link>.
         </p>
 
         <div className="mt-3 flex gap-2">
           <button
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-neutral-50"
+            className="rounded-lg border px-3 py-1 text-sm bg-white text-zinc-900 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-zinc-400"
             aria-label={t("acceptAria")}
             onClick={() => {
               localStorage.setItem("cookie-consent", "accepted");
@@ -48,9 +47,9 @@ export default function CookieBanner() {
           </button>
 
           <Link
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-neutral-50"
             href={privacyHref}
             aria-label={t("moreAria")}
+            className="rounded-lg border px-3 py-1 text-sm bg-white text-zinc-900 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-zinc-400"
           >
             {t("details")}
           </Link>
