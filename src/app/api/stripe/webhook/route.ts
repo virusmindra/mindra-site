@@ -1,57 +1,64 @@
-// src/app/api/stripe/webhook/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+// src/app/[locale]/billing/portal/route.ts
+export const runtime = "nodejs";       // Stripe SDK требует Node.js runtime
+export const dynamic = "force-dynamic";
 
-// ВАЖНО: вебхук должен работать на Node, не на Edge
-export const runtime = 'nodejs';
-// Чтобы Next не пытался статически пререндерить
-export const dynamic = 'force-dynamic';
+import {NextRequest} from "next/server";
+import Stripe from "stripe";
+import {getCurrentUser} from "@/lib/auth"; // твой стаб: возвращает {id,email} | null
+import {db} from "@/lib/db";               // твой стаб с user.findUnique (и возможно upsert)
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-// Если хочешь — можно зафиксировать версию, но необязательно:
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-06-20' });
-
-export async function POST(req: NextRequest) {
-  const sig = req.headers.get('stripe-signature');
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!sig || !secret) {
-    return new NextResponse('Missing Stripe signature or webhook secret', { status: 400 });
+export async function GET(req: NextRequest) {
+  // 1) Проверяем секрет
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) {
+    return new Response("Missing STRIPE_SECRET_KEY", { status: 500 });
   }
 
-  // Для Stripe нужен «сырой» body
-  const body = await req.text();
+  // 2) Stripe клиент (без жёсткого apiVersion — меньше шансов на типовые варнинги)
+  const stripe = new Stripe(secret);
 
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, secret);
-  } catch (err: any) {
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
-  }
+  // 3) Локаль из пути /{locale}/billing/portal
+  const [, locale] = req.nextUrl.pathname.split("/");
+  const safeLocale = locale || "en";
 
-  // Обработчики нужных событий
-  try {
-    switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        // TODO: здесь помечаем e-mail как «founder» (35%/40%),
-        // обновляем БД / KV / файл — как решим хранить.
-        // Пример: await markFounder(pi.receipt_email ?? pi.customer);
-        break;
+  // 4) Источник customerId:
+  //    а) query ?c=cus_... (для дев-тестов)
+  //    б) из сессии пользователя + БД (если внедришь авторизацию)
+  let customerId = req.nextUrl.searchParams.get("c");
+
+  if (!customerId) {
+    try {
+      const user = await getCurrentUser(); // {id,email}|null
+      if (user?.id) {
+        const record = await db.user.findUnique({
+          where: { id: user.id },
+          select: { stripeCustomerId: true }
+        });
+        if (record?.stripeCustomerId) {
+          customerId = record.stripeCustomerId;
+        }
       }
-      case 'checkout.session.completed': {
-        const cs = event.data.object as Stripe.Checkout.Session;
-        // Если используем Checkout — аналогично берём email: cs.customer_details?.email
-        break;
-      }
-      default:
-        // no-op
-        break;
+    } catch {
+      // молча игнорируем — ниже вернём понятную подсказку
     }
-  } catch (err: any) {
-    // если внутри обработчика упали — вернём 500, чтобы Stripe ретрайл сделал
-    return new NextResponse(`Handler Error: ${err.message}`, { status: 500 });
   }
 
-  return NextResponse.json({ received: true });
+  if (!customerId) {
+    // дружелюбная подсказка для теста
+    return new Response(
+      "Stripe customer not found. Provide via session/DB or pass ?c=cus_... for dev.",
+      { status: 400 }
+    );
+  }
+
+  // 5) Куда вернёмся из Customer Portal
+  const returnUrl = `${req.nextUrl.origin}/${safeLocale}/account`;
+
+  // 6) Создаём сессию портала и редиректим
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl
+  });
+
+  return Response.redirect(session.url, 302);
 }
