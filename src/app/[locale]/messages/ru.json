@@ -2,10 +2,12 @@
   "brand.tagline": "MINDRA — тёплый AI-друг и коуч",
   "nav.pricing": "Тарифы",
   "nav.donate": "Поддержать",
+
   "hero.title": "Поддержка, мотивация и трекер привычек — в одном боте",
   "hero.subtitle": "Mindra помогает говорить о важном, держать фокус на целях и заботиться о себе. Работает на 11 языках.",
   "cta.launch": "Запустить в Telegram",
   "cta.pricing": "Тарифы",
+
   "features.title": "Что умеет Mindra",
   "features.cards.chat.title": "Поддерживающий диалог",
   "features.cards.chat.text": "Тёплые, бережные ответы — без осуждения и давления.",
@@ -19,6 +21,7 @@
   "features.cards.voice.text": "Голоса (в т.ч. ElevenLabs) и фоновые звуки для сна.",
   "features.cards.premium.title": "Премиум-челленджи",
   "features.cards.premium.text": "Еженедельные вызовы, пин и авто-снятие после выполнения.",
+
   "support.title": "Зачем нужна поддержка",
   "support.intro": "Mindra развивается, чтобы бережно поддерживать людей, помогать с целями и привычками. Любой взнос ускоряет разработку, локализацию и новые возможности.",
   "support.goal.title": "Цель сборов — Mindra App",
