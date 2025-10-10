@@ -26,7 +26,7 @@ function RefundsFallback() {
       <h2>4. Как запросить возврат</h2>
       <p>
         Напишите на{" "}
-        <a href="mailto:mindra.group.llc@gmail.com">mindra.group.llc@gmail.com</a>{" "}
+        <a href="mailto:support@mindra.group">support@mindra.group</a>{" "}
         с email, которым вы оформляли покупку, и опишите причину запроса. Мы можем попросить дополнительную информацию для проверки платежа.
       </p>
 
@@ -36,7 +36,7 @@ function RefundsFallback() {
       <hr />
       <p>
         Вопросы по возвратам:{" "}
-        <a href="mailto:mindra.group.llc@gmail.com">mindra.group.llc@gmail.com</a>.
+        <a href="mailto:support@mindra.group">support@mindra.group</a>.
       </p>
     </div>
   );

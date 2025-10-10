@@ -60,7 +60,7 @@ export default function LegalPage({
       <hr />
       <p>
         {contactLabel}{" "}
-        <a href="mailto:mindra.group.llc@gmail.com">support@mindra.group</a>
+        <a href="mailto:support@mindra.group">support@mindra.group</a>
       </p>
     </div>
   );

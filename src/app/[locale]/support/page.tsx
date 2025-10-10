@@ -83,7 +83,7 @@ export default async function SupportPage({
           <li>
             <span className="opacity-80">Email:</span>{' '}
             <a className="underline" href="mailto:support@mindra.group">
-              mindra.group.llc@gmail.com
+              support@mindra.group
             </a>
           </li>
           <li>

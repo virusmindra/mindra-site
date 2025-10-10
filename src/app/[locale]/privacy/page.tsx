@@ -48,7 +48,7 @@ function PrivacyFallback() {
       <h2>7. Права пользователя</h2>
       <p>
         Вы можете запросить доступ, исправление или удаление ваших персональных данных, а также ограничение обработки — направив запрос на{" "}
-        <a href="mailto:mindra.group.llc@gmail.com">mindra.group.llc@gmail.com</a>. Мы можем попросить подтверждение личности.
+        <a href="mailto:support@mindra.group">support@mindra.group</a>. Мы можем попросить подтверждение личности.
       </p>
 
       <h2>8. Cookies</h2>
@@ -63,7 +63,7 @@ function PrivacyFallback() {
       <hr />
       <p>
         Для любых вопросов о приватности:{" "}
-        <a href="mailto:mindra.group.llc@gmail.com">mindra.group.llc@gmail.com</a>.
+        <a href="mailto:support@mindra.group">support@mindra.group</a>.
       </p>
     </div>
   );
