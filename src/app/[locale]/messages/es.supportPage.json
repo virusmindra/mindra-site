@@ -39,6 +39,10 @@
     "tier500": "Desde $500 — 40% de por vida (por email o Telegram ID).",
     "note": "Aplicaremos los descuentos a cualquier plan de pago cuando lancemos la app."
   },
+  "contacts": {
+    "title": "Contacto",
+    "desc": "Escríbenos por correo electrónico o por Telegram — respondemos lo antes posible."
+  },
   "cta": {
     "stripe": "Apoyar el desarrollo",
     "back": "Volver al inicio"

@@ -39,6 +39,10 @@
     "tier500": "De la 500 $ — reducere pe viață 40% (după email sau Telegram ID).",
     "note": "Vom aplica reducerile la orice plan plătit după lansarea aplicației."
   },
+  "contacts": {
+    "title": "Contact",
+    "desc": "Contactează-ne prin e-mail sau pe Telegram — răspundem cât mai repede."
+  },
   "cta": {
     "stripe": "Susține dezvoltarea",
     "back": "Înapoi la început"

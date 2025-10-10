@@ -39,6 +39,10 @@
     "tier500": "Ab 500 $ — lebenslang 40 % Rabatt (per E-Mail oder Telegram-ID).",
     "note": "Rabatte gelten für alle kostenpflichtigen Pläne nach dem App-Launch."
   },
+  "contacts": {
+    "title": "Kontakt",
+    "desc": "Kontaktieren Sie uns per E-Mail oder über Telegram — wir antworten so schnell wie möglich."
+  },
   "cta": {
     "stripe": "Entwicklung unterstützen",
     "back": "Zur Startseite"

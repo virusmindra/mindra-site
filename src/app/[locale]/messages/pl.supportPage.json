@@ -39,6 +39,10 @@
     "tier500": "Od 500 $ — dożywotnia zniżka 40% (po emailu lub Telegram ID).",
     "note": "Zniżki zastosujemy do wszystkich płatnych planów po starcie aplikacji."
   },
+  "contacts": {
+    "title": "Kontakt",
+    "desc": "Skontaktuj się z nami przez e-mail lub Telegram — odpowiadamy najszybciej, jak to możliwe."
+  },
   "cta": {
     "stripe": "Wesprzyj rozwój",
     "back": "Powrót do strony głównej"

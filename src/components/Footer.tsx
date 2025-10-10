@@ -46,7 +46,7 @@ export default function Footer() {
         <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
           {t("contact")}:{" "}
           <a className="underline hover:text-neutral-800 dark:hover:text-neutral-200" href="mailto:mindra.group.llc@gmail.com">
-            mindra.group.llc@gmail.com
+            support@mindra.group
           </a>
         </div>
       </div>

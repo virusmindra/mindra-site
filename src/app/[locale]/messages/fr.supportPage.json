@@ -39,6 +39,10 @@
     "tier500": "À partir de 500 $ — remise à vie de 40 % (via email ou Telegram ID).",
     "note": "Les remises seront appliquées aux offres payantes après le lancement de l’app."
   },
+  "contacts": {
+    "title": "Contact",
+    "desc": "Contactez-nous par e-mail ou sur Telegram — nous répondons dès que possible."
+  },
   "cta": {
     "stripe": "Soutenir le développement",
     "back": "Retour à l’accueil"
