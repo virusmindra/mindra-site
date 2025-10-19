@@ -1,2 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* твои глобальные мелочи можно оставить ниже */
 :root { color-scheme: light dark; }
+html, body { height: 100%; }
 body { margin: 0; }
