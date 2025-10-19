@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
 export default function Home() {
-  redirect('/chat');
+  // если у тебя дефолтная локаль en — редиректим туда
+  redirect('/en/chat');
 }
