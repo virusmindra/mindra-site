@@ -1,7 +1,18 @@
-// ВРЕМЕННЫЙ стаб. Замени на реальную авторизацию позже.
-export type AuthedUser = { id: string; email?: string } | null;
+// src/lib/auth.ts
+import type { AuthedUser } from './app-auth';
+import { getCurrentUser as getUserFromApp } from './app-auth';
 
 export async function getCurrentUser(): Promise<AuthedUser> {
-  // верни пользователя из своей сессии/кук/токена
-  return null; // по умолчанию — не залогинен
+  return await getUserFromApp();
+}
+
+export async function getUserId() {
+  const u = await getCurrentUser();
+  return u?.id ?? null;
+}
+
+export async function requireUserId() {
+  const id = await getUserId();
+  if (!id) throw new Response('Unauthorized', { status: 401 });
+  return id;
 }

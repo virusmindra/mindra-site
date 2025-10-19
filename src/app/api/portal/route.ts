@@ -11,30 +11,23 @@ export async function GET(req: NextRequest) {
   if (!secret) return new Response('Missing STRIPE_SECRET_KEY', { status: 500 });
 
   const stripe = new Stripe(secret);
+  const returnUrl = `${req.nextUrl.origin}/account`;
 
-  const [, locale] = req.nextUrl.pathname.split('/');
-  const returnUrl = `${req.nextUrl.origin}/${locale || 'en'}/account`;
-
-  // dev: можно ?c=cus_...
   let customerId: string | undefined = req.nextUrl.searchParams.get('c') ?? undefined;
 
   if (!customerId) {
     const user = await getCurrentUser();
     if (!user?.id) return new Response('Unauthorized', { status: 401 });
 
-    const userId: string = user.id;
     const rec = await prisma.subscription.findUnique({
-      where: { userId },
+      where: { userId: user.id },
       select: { stripeCustomer: true },
     });
     if (rec?.stripeCustomer) customerId = rec.stripeCustomer;
   }
 
   if (!customerId) {
-    return new Response(
-      'Stripe customer not found. Provide via session/DB or pass ?c=cus_... for dev.',
-      { status: 400 }
-    );
+    return new Response('Stripe customer not found. Pass ?c=cus_... for dev.', { status: 400 });
   }
 
   const session = await stripe.billingPortal.sessions.create({
