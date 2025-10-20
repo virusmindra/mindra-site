@@ -1,89 +1,88 @@
 // src/app/api/web-chat/route.ts
-export const runtime = 'nodejs';
+export const runtime = 'edge'; // быстрый старт, ближе к пользователю
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+// греем Render ровно один раз на первом запросе
+let warmed = false;
 
-function withTimeout<T>(p: Promise<T>, ms: number) {
+// утилита таймаута для fetch на edge
+async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, ms = 15000) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
-  // @ts-ignore
-  p.signal = ac.signal;
-  // обёртка, чтобы очистить таймер, когда промис завершится
-  return {
-    signal: ac.signal,
-    done: p.finally(() => clearTimeout(t)),
-  };
+  try {
+    return await fetch(input, { ...init, signal: ac.signal });
+  } finally {
+    clearTimeout(t);
+  }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const URL_FULL = process.env.RENDER_BOT_URL;
     if (!URL_FULL) {
-      console.error('RENDER_BOT_URL is missing');
-      return NextResponse.json({ reply: 'Server is not configured.' }, { status: 500 });
+      return new Response(JSON.stringify({ reply: 'Server is not configured.' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
+    // прогрев (неглотает ошибку, выполняется фоном)
+    if (!warmed) {
+      warmed = true;
+      const warmUrl = new URL('/', URL_FULL).toString();
+      fetch(warmUrl, { cache: 'no-store' }).catch(() => {});
+    }
+
+    // читаем тело
     const { input, sessionId } = await req.json();
-    const user = await getCurrentUser();
-    const userId = user?.id ?? 'web-anon';
 
-    // 1) быстрый ПРОГРЕВ (GET /) — не блокирующий
+    // основной запрос к FastAPI на Render
+    let upstream: Response;
     try {
-      const origin = new URL(URL_FULL);
-      const warmUrl = `${origin.origin}/`;
-      const warm = fetch(warmUrl, { cache: 'no-store' });
-      const { signal, done } = withTimeout(warm, 3000);
-      await fetch(warmUrl, { cache: 'no-store', signal });
-      await done;
-    } catch (_) {
-      // игнор — это лишь прогрев
-    }
-
-    // 2) ОСНОВНОЙ запрос на Render c явным таймаутом
-    const post = fetch(URL_FULL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
-      body: JSON.stringify({
-        userId,
-        sessionId: sessionId ?? 'default',
-        input: input ?? '',
-      }),
-    });
-    const { signal, done } = withTimeout(post, 15000); // 15s таймаут
-    let resp: Response;
-    try {
-      resp = await fetch(URL_FULL, {
+      upstream = await fetchWithTimeout(URL_FULL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
-        signal,
+        // cache: 'no-store' — на edge не обязательно, но можно оставить
         body: JSON.stringify({
-          userId,
+          userId: 'web-anon',                 // на edge не дергаем getCurrentUser
           sessionId: sessionId ?? 'default',
           input: input ?? '',
         }),
+      }, 15000); // 15s таймаут
+    } catch (e) {
+      // таймаут/сеть
+      return new Response(JSON.stringify({ reply: 'Upstream timeout' }), {
+        status: 504,
+        headers: { 'Content-Type': 'application/json' },
       });
-    } catch (e: any) {
-      console.error('Fetch to Render failed:', e?.name || e?.message || e);
-      return NextResponse.json({ reply: 'Upstream timeout' }, { status: 504 });
-    } finally {
-      await done;
     }
 
-    const text = await resp.text();
+    const text = await upstream.text();
+    // если Render ответил ошибкой — прокинем «красиво»
+    if (!upstream.ok) {
+      // попробуем отдать тело как есть, но с нашим сообщением
+      let payload: any;
+      try { payload = JSON.parse(text); }
+      catch { payload = { reply: 'Upstream error' }; }
+      return new Response(JSON.stringify(payload), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // успешный ответ
+    // (FastAPI отдает { reply: string }, но на всякий — парсим/нормализуем)
     let data: any;
-    try { data = JSON.parse(text); } catch { data = { reply: text || 'Empty response' }; }
+    try { data = JSON.parse(text); }
+    catch { data = { reply: text || 'Empty response' }; }
 
-    if (!resp.ok) {
-      console.error('Render replied not OK:', resp.status, text.slice(0, 500));
-      return NextResponse.json({ reply: 'Upstream error' }, { status: 502 });
-    }
-
-    return NextResponse.json(data, { status: 200 });
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (e: any) {
-    console.error('web-chat route error:', e?.message || e);
-    return NextResponse.json({ reply: 'Server error' }, { status: 500 });
+    return new Response(JSON.stringify({ reply: 'Server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
