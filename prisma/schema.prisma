@@ -1,0 +1,69 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  displayName String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChatSession {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+}
+
+model Message {
+  id          String      @id @default(uuid())
+  sessionId   String
+  role        String
+  content     String
+  audioUrl    String?
+  createdAt   DateTime    @default(now())
+  ChatSession ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+// === Billing ===
+model Subscription {
+  userId             String   @id
+  stripeCustomer     String?  @unique
+  stripeSubscription String?  @unique
+
+  plan               Plan     @default(FREE)     // FREE | PLUS | PRO
+  term               String?                      // '1M' | '3M' | '6M' | '12M' | 'LIFETIME'
+  status             String?                      // 'active' | 'trialing' | 'incomplete' | 'canceled' ...
+
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Entitlement {
+  userId             String   @id
+  plus               Boolean  @default(false)
+  pro                Boolean  @default(false)
+  tts                Boolean  @default(false)
+  maxFaceTimeMinutes Int      @default(0)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+enum Plan {
+  FREE
+  PLUS
+  PRO
+}

@@ -1,11 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* базовая типографика */
+
+/* твои глобальные мелочи можно оставить ниже */
+:root { color-scheme: light dark; }
 html, body { height: 100%; }
-body { @apply bg-zinc-950 text-zinc-100 antialiased; }
-a { @apply underline underline-offset-4 decoration-zinc-500 hover:decoration-zinc-300; }
-.container { @apply max-w-6xl mx-auto px-4; }
-.btn { @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-medium shadow; }
-.btn-primary { @apply bg-white text-zinc-900 hover:bg-zinc-200; }
-btn-ghost { @apply text-white/80 hover:text-white; }
+body { margin: 0; }
