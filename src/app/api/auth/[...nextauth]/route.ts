@@ -1,13 +1,11 @@
-// src/app/api/auth/[...nextauth]/route.ts
-export const runtime = 'nodejs'; // важно: НЕ edge
-
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/server/db";
 
-// создаём хендлер один раз
-const authHandler = NextAuth({
+export const runtime = "nodejs"; // можно оставить
+
+const authSetup = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "database" },
   providers: [
@@ -17,10 +15,13 @@ const authHandler = NextAuth({
       allowDangerousEmailAccountLinking: true,
     }),
   ],
-  // callbacks/pages при желании
+  callbacks: {
+    async session({ session, user }) {
+      if (session.user) (session.user as any).id = user.id;
+      return session;
+    },
+  },
+  // trustHost: true, // ← убрали: ломает типы и не требуется при корректном NEXTAUTH_URL
 });
 
-// и потом ЯВНО экспортируем нужные части
-export const { auth } = authHandler;
-export const GET = authHandler.handlers.GET;
-export const POST = authHandler.handlers.POST;
+export const { GET, POST } = authSetup.handlers;

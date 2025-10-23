@@ -1,10 +1,10 @@
-// src/server/auth.ts (v5)
+// src/server/auth.ts
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/server/db';
 
-export const { handlers, auth } = NextAuth({
+export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: 'database' },
   providers: [
@@ -20,5 +20,4 @@ export const { handlers, auth } = NextAuth({
       return session;
     },
   },
-  // trustHost: true, // можно не указывать, если задать ENV ниже
 });
