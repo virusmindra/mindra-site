@@ -1,7 +1,6 @@
-// src/components/chat/Sidebar.tsx
 'use client';
 
-import { ChatSession } from './types';
+import type { ChatSession } from './types';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
 export default function Sidebar({
@@ -10,16 +9,12 @@ export default function Sidebar({
   onNew,
   onPick,
   onDelete,
-  // onLoginClick, // больше не нужен, оставлен закомментированным для совместимости
-  // isAuthed = false,
 }: {
   sessions: ChatSession[];
   currentId?: string;
   onNew: () => void;
   onPick: (id: string) => void;
   onDelete: (id: string) => void;
-  // onLoginClick?: () => void;
-  // isAuthed?: boolean;
 }) {
   const { data: session, status } = useSession();
   const authed = !!session?.user;
@@ -27,7 +22,6 @@ export default function Sidebar({
   return (
     <aside className="w-72 shrink-0 border-r border-white/10 h-[calc(100dvh-4.5rem)] sticky top-[4.5rem] overflow-y-auto">
       <div className="p-3">
-        {/* New chat */}
         <button
           onClick={onNew}
           className="w-full rounded-xl bg-white text-zinc-900 px-3 py-2 text-sm font-medium hover:opacity-90"
@@ -35,7 +29,6 @@ export default function Sidebar({
           + New chat
         </button>
 
-        {/* History */}
         <div className="mt-3 text-xs uppercase tracking-wider text-zinc-400">History</div>
         <ul className="mt-2 space-y-1">
           {sessions.length === 0 && (
@@ -63,39 +56,30 @@ export default function Sidebar({
           ))}
         </ul>
 
-        {/* Account */}
         <div className="mt-6 text-xs uppercase tracking-wider text-zinc-400">Account</div>
         <div className="mt-2">
           {authed ? (
-            <div className="space-y-2">
-              <div className="text-[11px] text-zinc-400">
-                Hello, <span className="text-zinc-200">{session.user?.name ?? 'User'}</span>
-              </div>
-              <button
-                onClick={() => signOut()}
-                className="w-full border border-white/15 rounded-xl px-3 py-2 text-sm hover:bg-white/10"
-              >
-                Sign out
-              </button>
-            </div>
+            <button
+              className="w-full border border-white/15 rounded-xl px-3 py-2 text-sm hover:bg-white/10"
+              onClick={() => signOut()}
+            >
+              Sign out
+            </button>
           ) : (
             <button
-              onClick={() => signIn('google')}
               className="w-full border border-white/15 rounded-xl px-3 py-2 text-sm hover:bg-white/10"
+              onClick={() => signIn('google')}
             >
               Sign in
             </button>
           )}
-
-          {status === 'loading' && (
-            <div className="text-[11px] mt-2 text-zinc-400">Checking session…</div>
-          )}
-
-          {!authed && (
-            <p className="text-[11px] mt-2 text-zinc-400">
-              Sign in to sync chats and manage your subscription.
-            </p>
-          )}
+          <p className="text-[11px] mt-2 text-zinc-400">
+            {status === 'loading'
+              ? 'Checking session…'
+              : authed
+              ? `Hello, ${session?.user?.name ?? 'user'}`
+              : 'Sign in to sync chats and manage your subscription.'}
+          </p>
         </div>
       </div>
     </aside>
