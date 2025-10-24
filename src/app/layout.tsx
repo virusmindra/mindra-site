@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        {/* SessionProvider и прочие провайдеры должны оборачивать и header, и children */}
+        {/* Важно: и header, и контент внутри Providers, чтобы useSession не падал */}
         <Providers>
           <header className="flex items-center justify-end px-6 py-3">
             <AuthButton />
