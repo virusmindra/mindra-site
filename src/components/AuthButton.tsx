@@ -3,31 +3,35 @@
 import { signIn, signOut, useSession } from 'next-auth/react';
 
 export default function AuthButton() {
-  const { data, status } = useSession();
+  const { data: session, status } = useSession();
+  const authed = !!session?.user;
 
-  if (status === 'loading') {
-    return (
-      <button className="rounded-xl border border-white/20 px-3 py-2 opacity-60">
-        Checking…
-      </button>
-    );
-  }
+  return (
+    <div className="flex items-center gap-3">
+      {status === 'loading' && (
+        <span className="text-xs opacity-60">Checking session…</span>
+      )}
 
-  const authed = !!data?.user;
-  return authed ? (
-    <button
-      onClick={() => signOut()}
-      className="rounded-xl border border-white/20 px-3 py-2 hover:bg-white/10"
-      title={data?.user?.email ?? ''}
-    >
-      Sign out
-    </button>
-  ) : (
-    <button
-      onClick={() => signIn('google')}
-      className="rounded-xl border border-white/20 px-3 py-2 hover:bg-white/10"
-    >
-      Sign in
-    </button>
+      {authed ? (
+        <>
+          <span className="text-sm opacity-80">
+            {session.user?.name ?? 'User'}
+          </span>
+          <button
+            className="rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10"
+            onClick={() => signOut()}
+          >
+            Sign out
+          </button>
+        </>
+      ) : (
+        <button
+          className="rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10"
+          onClick={() => signIn('google')}
+        >
+          Sign in
+        </button>
+      )}
+    </div>
   );
 }
