@@ -1,6 +1,7 @@
+// src/app/[locale]/chat/page.tsx
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -15,7 +16,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
 
   const current = useMemo(
-    () => sessions.find((s) => s.id === currentId),
+    () => sessions.find(s => s.id === currentId),
     [sessions, currentId]
   );
 
@@ -25,21 +26,14 @@ export default function ChatPage() {
   };
 
   const upsert = (up: ChatSession) => {
-    const next = [up, ...sessions.filter((s) => s.id !== up.id)].sort(
-      (a, b) => b.updatedAt - a.updatedAt
-    );
+    const next = [up, ...sessions.filter(s => s.id !== up.id)]
+      .sort((a, b) => b.updatedAt - a.updatedAt);
     setAndSave(next);
   };
 
   const onNew = () => {
     const id = uuidv4();
-    const s: ChatSession = {
-      id,
-      title: 'New chat',
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+    const s: ChatSession = { id, title: 'New chat', messages: [], createdAt: Date.now(), updatedAt: Date.now() };
     upsert(s);
     setCurrentId(id);
   };
@@ -47,33 +41,24 @@ export default function ChatPage() {
   const onPick = (id: string) => setCurrentId(id);
 
   const onDelete = (id: string) => {
-    const next = sessions.filter((s) => s.id !== id);
+    const next = sessions.filter(s => s.id !== id);
     setAndSave(next);
     if (currentId === id) setCurrentId(next[0]?.id);
   };
 
   const appendUserAndAssistantDraft = (text: string) => {
-    let s = current;
+    let s = sessions.find(ss => ss.id === currentId);
     if (!s) {
       const id = uuidv4();
-      s = {
-        id,
-        title: newSessionTitle(text),
-        messages: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+      s = { id, title: newSessionTitle(text), messages: [], createdAt: Date.now(), updatedAt: Date.now() };
       upsert(s);
       setCurrentId(id);
     }
-
     const userMsg: ChatMessage = { role: 'user', content: text, ts: Date.now() };
-    const maybeNewTitle = s!.messages.length ? s!.title : newSessionTitle(text);
     const assistantDraft: ChatMessage = { role: 'assistant', content: '', ts: Date.now() };
-
     const draft: ChatSession = {
       ...s!,
-      title: maybeNewTitle,
+      title: s!.messages.length ? s!.title : newSessionTitle(text),
       messages: [...s!.messages, userMsg, assistantDraft],
       updatedAt: Date.now(),
     };
@@ -82,31 +67,19 @@ export default function ChatPage() {
   };
 
   const appendToLastAssistant = (sessionId: string, chunk: string) => {
-    setSessions((prev) => {
-      const idx = prev.findIndex((s) => s.id === sessionId);
+    setSessions(prev => {
+      const idx = prev.findIndex(s => s.id === sessionId);
       if (idx === -1) return prev;
       const s = prev[idx];
-      if (!s.messages.length) return prev;
+      const lastAssistantIndexFromEnd = [...s.messages].reverse().findIndex(m => m.role === 'assistant');
+      if (lastAssistantIndexFromEnd === -1) return prev;
+      const i = s.messages.length - 1 - lastAssistantIndexFromEnd;
 
-      const lastIdx = [...s.messages].reverse().findIndex((m) => m.role === 'assistant');
-      if (lastIdx === -1) return prev;
-      const realIdx = s.messages.length - 1 - lastIdx;
-
-      const updatedMsg = {
-        ...s.messages[realIdx],
-        content: s.messages[realIdx].content + chunk,
-      };
-      const updatedMessages = s.messages.slice();
-      updatedMessages[realIdx] = updatedMsg;
-
-      const updatedSession: ChatSession = {
-        ...s,
-        messages: updatedMessages,
-        updatedAt: Date.now(),
-      };
+      const updated = s.messages.slice();
+      updated[i] = { ...updated[i], content: updated[i].content + chunk };
 
       const next = prev.slice();
-      next[idx] = updatedSession;
+      next[idx] = { ...s, messages: updated, updatedAt: Date.now() };
       saveSessions(next);
       return next;
     });
@@ -116,13 +89,9 @@ export default function ChatPage() {
     const sessionId = appendUserAndAssistantDraft(text);
     setSending(true);
     try {
-      await ssePost(
-        '/api/web-chat-stream',
-        { userId: 'web-anon', sessionId, input: text },
-        (chunk) => {
-          appendToLastAssistant(sessionId, chunk);
-        }
-      );
+      await ssePost('/api/web-chat-stream', { userId: 'web-anon', sessionId, input: text }, (chunk) => {
+        appendToLastAssistant(sessionId, chunk);
+      });
     } catch {
       appendToLastAssistant(sessionId, '\n[Ошибка стрима]');
     } finally {
