@@ -1,3 +1,4 @@
+// src/components/chat/Sidebar.tsx
 'use client';
 
 import type { ChatSession } from './types';
