@@ -1,8 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
@@ -10,11 +12,13 @@ import type { ChatMessage, ChatSession } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 import { ssePost } from '@/lib/sse';
 
-// отключаем SSG, чтобы не было ошибок с клиентскими хуками/стримом
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default function ChatPage() {
+  // быстрая «проба жизни» — при первом рендере ты увидишь эту плашку,
+  // если что-то падает раньше — белый экран останется
+  // Удалить после проверки
+  // eslint-disable-next-line react/jsx-no-useless-fragment
+  const Alive = () => <div className="px-6 py-2 text-xs opacity-60">chat mounted</div>;
+
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadSessions());
   const [currentId, setCurrentId] = useState<string | undefined>(() => loadSessions()[0]?.id);
   const [sending, setSending] = useState(false);
@@ -57,7 +61,6 @@ export default function ChatPage() {
     if (currentId === id) setCurrentId(next[0]?.id);
   };
 
-  // добавляем user-сообщение и черновик assistant-сообщения
   const appendUserAndAssistantDraft = (text: string) => {
     let s = sessions.find((ss) => ss.id === currentId);
     if (!s) {
@@ -82,12 +85,10 @@ export default function ChatPage() {
       messages: [...s!.messages, userMsg, assistantDraft],
       updatedAt: Date.now(),
     };
-
     upsert(draft);
     return draft.id;
   };
 
-  // прибавляем чанки к последнему assistant-сообщению
   const appendToLastAssistant = (sessionId: string, chunk: string) => {
     setSessions((prev) => {
       const idx = prev.findIndex((ss) => ss.id === sessionId);
@@ -129,13 +130,8 @@ export default function ChatPage() {
 
   return (
     <div className="flex gap-0">
-      <Sidebar
-        sessions={sessions}
-        currentId={currentId}
-        onNew={onNew}
-        onPick={onPick}
-        onDelete={onDelete}
-      />
+      <Alive />
+      <Sidebar sessions={sessions} currentId={currentId} onNew={onNew} onPick={onPick} onDelete={onDelete} />
       <div className="flex-1 flex flex-col">
         <ChatWindow messages={current?.messages ?? []} />
         <Composer onSend={onSend} disabled={sending} />
