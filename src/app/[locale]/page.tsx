@@ -1,38 +1,70 @@
-export default function Landing() {
+'use client';
+
+import Link from 'next/link';
+import {useLocale, useTranslations} from 'next-intl';
+
+type Card = {
+  titleKey: string;
+  textKey: string;
+};
+
+const CARDS: Card[] = [
+  {titleKey: 'features.cards.chat.title',    textKey: 'features.cards.chat.text'},
+  {titleKey: 'features.cards.coach.title',   textKey: 'features.cards.coach.text'},
+  {titleKey: 'features.cards.goals.title',   textKey: 'features.cards.goals.text'},
+  {titleKey: 'features.cards.reports.title', textKey: 'features.cards.reports.text'},
+  {titleKey: 'features.cards.voice.title',   textKey: 'features.cards.voice.text'},
+  {titleKey: 'features.cards.premium.title', textKey: 'features.cards.premium.text'},
+];
+
+export default function HomePage() {
+  const t = useTranslations();
+  const locale = useLocale();
+
   return (
-    <section className="mx-auto max-w-4xl text-center">
-      <h1 className="text-4xl font-semibold tracking-tight">Mindra — your AI co-pilot</h1>
-      <p className="mt-4 text-zinc-300">
-        Chat with an AI assistant, manage subscriptions, and support the project — all in one place.
-      </p>
+    <section className="mx-auto max-w-5xl text-center space-y-10">
+      <header className="space-y-4">
+        <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">
+          {t('hero.title')}
+        </h1>
+        <p className="opacity-80">{t('hero.subtitle')}</p>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <a
-          href="./chat"
-          className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:opacity-90"
-        >
-          Open Chat
-        </a>
-        <a
-          href="./pricing"
-          className="rounded-xl border border-white/15 px-5 py-3 text-sm hover:bg-white/10"
-        >
-          See Pricing
-        </a>
-        <a
-          href="./donate"
-          className="rounded-xl border border-white/15 px-5 py-3 text-sm hover:bg-white/10"
-        >
-          Support the project
-        </a>
-      </div>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="https://t.me/talktomindra_bot"
+            target="_blank"
+            className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:opacity-90"
+          >
+            {t('cta.launch')}
+          </Link>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-2">
-        <Feature title="Fast responses">Streaming answers with SSE.</Feature>
-        <Feature title="Multi-language UI">Switch languages in the header.</Feature>
-        <Feature title="Auth & Sync">Sign in to sync chats across devices.</Feature>
-        <Feature title="Stripe payments">Subscriptions and one-time tips.</Feature>
-      </div>
+          <Link
+            href={`/${locale}/pricing`}
+            className="rounded-xl border border-white/15 px-5 py-3 text-sm hover:bg-white/10"
+          >
+            {t('cta.pricing')}
+          </Link>
+
+          <Link
+            href={`/${locale}/donate`}
+            className="rounded-xl border border-white/15 px-5 py-3 text-sm hover:bg-white/10"
+          >
+            {t('nav.donate')}
+          </Link>
+        </div>
+      </header>
+
+      {/* Блок “Что умеет Mindra” */}
+      <section className="space-y-6">
+        <h2 className="text-xl md:text-2xl font-semibold">{t('features.title')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {CARDS.map((c) => (
+            <Feature key={c.titleKey} title={t(c.titleKey)}>
+              {t(c.textKey)}
+            </Feature>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }

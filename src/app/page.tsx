@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import {redirect} from 'next/navigation';
+import {defaultLocale} from '../../next-intl.config'; // или '@/../next-intl.config'
 
 export default function Home() {
-  // если у тебя дефолтная локаль en — редиректим туда
-  redirect('/en/chat');
+  redirect(`/${defaultLocale}`);
 }

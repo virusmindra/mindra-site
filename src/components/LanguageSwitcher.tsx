@@ -1,8 +1,8 @@
 'use client';
 
-import {useLocale} from 'next-intl';
-import {usePathname, useRouter} from 'next/navigation';
 import * as React from 'react';
+import {useLocale} from 'next-intl';
+import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 
 const LABELS: Record<string, string> = {
   ru: 'Русский',
@@ -18,19 +18,37 @@ const LABELS: Record<string, string> = {
   md: 'Română'
 };
 
-const ORDER = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'];
+// Порядок языков в выпадающем списке
+const LOCALES = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
 
 export default function LanguageSwitcher() {
-  const locale = useLocale();
-  const pathname = usePathname();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const locale = useLocale();
 
-  // текущий путь вида /{locale}/... → меняем только 1-й сегмент
   const changeLocale = (next: string) => {
-    if (!pathname) return;
-    const parts = pathname.split('/');
-    parts[1] = next; // /ru/... → /en/...
-    router.push(parts.join('/'));
+    if (!pathname || next === locale) return;
+
+    // Разбиваем путь и меняем только первый сегмент после корня
+    const parts = pathname.split('/'); // ['', 'ru', '...']
+    const currentFirst = parts[1];
+
+    if (currentFirst && LOCALES.includes(currentFirst as (typeof LOCALES)[number])) {
+      parts[1] = next; // /ru/... -> /en/...
+    } else {
+      // путь был без локали, вставляем
+      parts.splice(1, 0, next); // '/' -> '/en'
+    }
+
+    let url = parts.join('/') || '/';
+
+    const qs = searchParams?.toString();
+    if (qs) url += `?${qs}`;
+
+    // Сохраняем hash, если был
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    router.push(url + hash);
   };
 
   return (
@@ -40,7 +58,7 @@ export default function LanguageSwitcher() {
       className="rounded-xl border border-white/20 bg-transparent px-3 py-1.5 text-sm"
       aria-label="Select language"
     >
-      {ORDER.map((loc) => (
+      {LOCALES.map((loc) => (
         <option key={loc} value={loc} className="bg-zinc-900">
           {LABELS[loc] ?? loc.toUpperCase()}
         </option>

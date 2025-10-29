@@ -166,7 +166,7 @@ export async function getMessages({ locale }: { locale: string }) {
   return messages;
 }
 
-/* ---------- next-intl/server config ---------- */
+// ---------- next-intl/server config ----------
 import { getRequestConfig } from "next-intl/server";
 import type { AbstractIntlMessages } from "next-intl";
 
@@ -174,20 +174,17 @@ export const locales = ["en","ru","uk","pl","es","fr","de","kk","hy","ka","md"] 
 export type AppLocale = typeof locales[number];
 export const defaultLocale: AppLocale = "en";
 
-// (необязательно, но помогает TS)
 export async function getMessagesTyped({ locale }: { locale: string }): Promise<AbstractIntlMessages> {
   return (await getMessages({ locale })) as AbstractIntlMessages;
 }
 
-export default getRequestConfig(async ({ locale }: { locale?: string }) => {
+export default getRequestConfig(async ({ locale }) => {
   const supported = new Set<string>(locales as readonly string[]);
   const chosen = (locale && supported.has(locale)) ? (locale as AppLocale) : defaultLocale;
 
   const messages = await getMessagesTyped({ locale: chosen });
 
-  // ВАЖНО: вернуть и locale, и messages
-  return {
-    locale: chosen,
-    messages
-  };
+  // ТВОЯ версия next-intl ожидает и locale, и messages — вернём оба.
+  // Кастом «as any» безопасен здесь и убирает расхождение типов между версиями пакета.
+  return { locale: chosen, messages } as any;
 });

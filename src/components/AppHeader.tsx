@@ -1,42 +1,56 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
+import {useLocale, useTranslations} from 'next-intl';
+import {usePathname} from 'next/navigation';
+import LanguageSwitcher from './LanguageSwitcher';
+import * as React from 'react';
 
-export default function AppHeader() {
-  const params = useParams() as { locale?: string };
-  const locale = params?.locale ?? 'en';
+type NavLinkProps = {
+  href: string;
+  children: React.ReactNode;
+};
+
+function NavLink({ href, children }: NavLinkProps) {
   const pathname = usePathname();
-
-  const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-    const active = pathname?.startsWith(href);
-    return (
-      <Link
-        href={href}
-        className={`px-3 py-1.5 rounded-xl text-sm transition
-          ${active ? 'bg-white text-zinc-900' : 'border border-white/15 hover:bg-white/10'}
-        `}
-      >
-        {children}
-      </Link>
-    );
-  };
+  const active =
+    pathname === href ||
+    (pathname?.startsWith(href) && href !== '/'); // активен и для вложенных путей
 
   return (
-    <header className="border-b border-white/10 sticky top-0 z-30 backdrop-blur">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-        <Link href={`/${locale}`} className="font-semibold tracking-wide">Mindra</Link>
+    <Link
+      href={href}
+      className={[
+        'px-3 py-1.5 rounded-xl text-sm transition',
+        active ? 'bg-white text-zinc-900' : 'border border-white/15 hover:bg-white/10'
+      ].join(' ')}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export default function AppHeader() {
+  const t = useTranslations(); // берет ключи из твоих messages (ru.json и т.д.)
+  const locale = useLocale();
+
+  return (
+    <header className="sticky top-0 z-40 backdrop-blur border-b border-white/10">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
+        {/* Логотип → на главную выбранной локали */}
+        <Link href={`/${locale}`} className="font-semibold tracking-wide">
+          MINDRA
+        </Link>
 
         <nav className="flex items-center gap-2">
           <NavLink href={`/${locale}`}>Home</NavLink>
-          <NavLink href={`/${locale}/pricing`}>Pricing</NavLink>
+          <NavLink href={`/${locale}/pricing`}>{t('nav.pricing')}</NavLink>
           <NavLink href={`/${locale}/chat`}>Chat</NavLink>
-          <a
-            className="px-3 py-1.5 rounded-xl text-sm border border-white/15 hover:bg-white/10"
-            href="https://buy.stripe.com" target="_blank" rel="noopener"
-          >
-            Donate
-          </a>
+          {/* Донат ведем на страницу доната сайта (там уже Stripe-кнопки) */}
+          <NavLink href={`/${locale}/donate`}>{t('nav.donate')}</NavLink>
+
+          {/* Переключатель языка справа */}
+          <LanguageSwitcher />
         </nav>
       </div>
     </header>
