@@ -3,13 +3,12 @@ import createMiddleware from 'next-intl/middleware';
 import {locales, defaultLocale} from './i18n';
 
 export default createMiddleware({
-  locales,
+  locales: Array.from(locales),
   defaultLocale,
   localeDetection: true
 });
 
-// Применяем middleware ко всем страницам сайта,
-// исключая /api, /_next и запросы статических файлов.
+// Матчим корень и любые пути с префиксом локали
 export const config = {
-  matcher: ['/((?!api|_next|.*\\..*).*)']
+  matcher: ['/', '/(en|ru|uk|pl|es|fr|de|kk|hy|ka|md)/:path*']
 };

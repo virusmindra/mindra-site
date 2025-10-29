@@ -7,12 +7,10 @@ import CookieBanner from '@/components/CookieBanner';
 import AppHeader from '@/components/AppHeader';
 import Footer from '@/components/Footer';
 
-export const runtime = 'nodejs';
-
 type Props = { children: ReactNode; params: {locale: string} };
 
 export default async function LocaleLayout({children, params:{locale}}: Props) {
-  const messages = await getMessages();
+  const messages = await getMessages(); // берёт из i18n.ts (getRequestConfig)
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
       <CookieBanner/>
@@ -23,4 +21,8 @@ export default async function LocaleLayout({children, params:{locale}}: Props) {
       <Footer/>
     </NextIntlClientProvider>
   );
+}
+
+export function generateStaticParams() {
+  return ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'].map(locale => ({locale}));
 }

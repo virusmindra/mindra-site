@@ -1,49 +1,48 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
-import type {AbstractIntlMessages} from 'next-intl';
 
-// какие локали реально есть в /app/[locale]/messages
 export const locales = ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
 export type AppLocale = typeof locales[number];
 export const defaultLocale: AppLocale = 'en';
 
-/** грузим пакеты сообщений одной локали */
+// Подгружаем все бандлы сообщений для локали (с запасом по именам файлов)
 async function loadMessages(locale: AppLocale) {
-  // подправь пути, если у тебя другие
-  const common      = (await import(`@/app/[locale]/messages/${locale}.json`)).default;
-  const header      = (await import(`@/app/[locale]/messages/${locale}.header.json`)).default;
-  const pricing     = (await import(`@/app/[locale]/messages/${locale}.pricing.json`)).default;
-  const donate      = (await import(`@/app/[locale]/messages/${locale}.donate.json`)).default;
-  const thanks      = (await import(`@/app/[locale]/messages/${locale}.thanks.json`)).default;
-  const supportPage = (await import(`@/app/[locale]/messages/${locale}.supportPage.json`)).default;
+  // Если каких-то файлов нет — спокойно возвращаем {}
+  const safeImport = async (path: string) => {
+    try {
+      const mod = await import(/* @vite-ignore */ path);
+      return (mod as any).default ?? {};
+    } catch {
+      return {};
+    }
+  };
 
-  // объединяем в один объект (простое слияние по ключам)
+  const base        = await safeImport(`@/app/locales/messages/${locale}.json`);
+  const header      = await safeImport(`@/app/locales/messages/${locale}.header.json`);
+  const pricing     = await safeImport(`@/app/locales/messages/${locale}.pricing.json`);
+  const donate      = await safeImport(`@/app/locales/messages/${locale}.donate.json`);
+  const thanks      = await safeImport(`@/app/locales/messages/${locale}.thanks.json`);
+  const supportPage = await safeImport(`@/app/locales/messages/${locale}.supportPage.json`);
+
+  // Один объект сообщений
   return {
-    ...common,
+    ...base,
     header,
     pricing,
     donate,
     thanks,
     supportPage
-  };
+  } as Record<string, unknown>;
 }
 
-/** typed-обёртка (удобно для TS) */
-export async function getMessagesTyped(locale: AppLocale): Promise<AbstractIntlMessages> {
-  return (await loadMessages(locale)) as AbstractIntlMessages;
-}
-
-/** главный конфиг для next-intl */
+// Конфиг для next-intl/server
 export default getRequestConfig(async ({locale}) => {
-  const supported = new Set<string>(locales as readonly string[]);
-  const chosen: AppLocale =
-    (locale && supported.has(locale)) ? (locale as AppLocale) : defaultLocale;
+  const supported = new Set(locales as readonly string[]);
+  const chosen = (locale && supported.has(locale as AppLocale))
+    ? (locale as AppLocale)
+    : defaultLocale;
 
-  const messages = await getMessagesTyped(chosen);
-
-  // Важно вернуть и locale, и messages
-  return {
-    locale: chosen,
-    messages
-  };
+  const messages = await loadMessages(chosen);
+  // ВАЖНО: вернуть обе части
+  return { locale: chosen, messages };
 });
