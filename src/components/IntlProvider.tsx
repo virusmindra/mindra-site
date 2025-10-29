@@ -1,17 +1,12 @@
 'use client';
 
-import {NextIntlClientProvider} from 'next-intl';
-
-type Props = {
-  locale: string;
-  messages: Record<string, unknown>;
+export default function IntlProvider({
+  children
+}: {
+  locale: string;              // типы оставляем
+  messages: unknown;
   children: React.ReactNode;
-};
-
-export default function IntlProvider({ locale, messages, children }: Props) {
-  return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      {children}
-    </NextIntlClientProvider>
-  );
+}) {
+  // ВРЕМЕННО: никакого NextIntlClientProvider
+  return <>{children}</>;
 }
