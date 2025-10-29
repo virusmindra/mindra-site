@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import {getTranslations, getLocale} from 'next-intl/server';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // <— выключаем SSG
 export const revalidate = 0;            // <— на всякий случай
 

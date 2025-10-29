@@ -7,6 +7,8 @@ import CookieBanner from '@/components/CookieBanner';
 import AppHeader from '@/components/AppHeader';
 import Footer from '@/components/Footer';
 
+export const runtime = 'nodejs';
+
 type Props = { children: ReactNode; params: {locale: string} };
 
 export default async function LocaleLayout({children, params:{locale}}: Props) {
