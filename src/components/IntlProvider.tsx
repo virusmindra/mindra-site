@@ -1,24 +1,16 @@
 'use client';
 
 import {NextIntlClientProvider} from 'next-intl';
-import type {AbstractIntlMessages} from 'next-intl';
 
-export default function IntlProvider({
-  locale,
-  messages,
-  children
-}: {
+type Props = {
   locale: string;
-  messages: AbstractIntlMessages;
+  messages: Record<string, unknown>;
   children: React.ReactNode;
-}) {
+};
+
+export default function IntlProvider({ locale, messages, children }: Props) {
   return (
-    <NextIntlClientProvider
-      locale={locale}
-      messages={messages}
-      onError={() => {}}                 // глушим throw при MISSING_MESSAGE в проде
-      getMessageFallback={({key}) => key} // показываем ключ, если перевода нет
-    >
+    <NextIntlClientProvider locale={locale} messages={messages}>
       {children}
     </NextIntlClientProvider>
   );
