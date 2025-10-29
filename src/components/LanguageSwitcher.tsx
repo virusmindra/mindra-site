@@ -7,7 +7,6 @@ const LABELS: Record<string,string> = {
   ru:'Русский', en:'English', uk:'Українська', pl:'Polski', es:'Español',
   fr:'Français', de:'Deutsch', kk:'Қазақша', hy:'Հայերեն', ka:'ქართული', md:'Română'
 };
-
 const ORDER = ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'];
 
 export default function LanguageSwitcher() {
@@ -17,8 +16,8 @@ export default function LanguageSwitcher() {
 
   const changeLocale = (next: string) => {
     if (!pathname || next === locale) return;
-    const parts = pathname.split('/'); // ['', 'en', '...']
-    parts[1] = next;                   // /en/... -> /ru/...
+    const parts = pathname.split('/');
+    parts[1] = next;
     router.push(parts.join('/'));
   };
 

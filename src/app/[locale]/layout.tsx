@@ -7,22 +7,22 @@ import CookieBanner from '@/components/CookieBanner';
 import AppHeader from '@/components/AppHeader';
 import Footer from '@/components/Footer';
 
-type Props = { children: ReactNode; params: { locale: string } };
+type Props = {children: ReactNode; params: {locale: string}};
 
-export default async function LocaleLayout({ children, params: { locale } }: Props) {
-  const messages = await getMessages(); // читает конфиг из src/i18n.ts / next-intl.config.ts
+export default async function LocaleLayout({children, params:{locale}}: Props) {
+  const messages = await getMessages(); // берет из src/i18n.ts
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <CookieBanner />
-      <AppHeader />
+      <CookieBanner/>
+      <AppHeader/>
       <main className="flex-1">
         <div className="mx-auto w-full max-w-6xl px-4 py-8">{children}</div>
       </main>
-      <Footer />
+      <Footer/>
     </NextIntlClientProvider>
   );
 }
 
 export function generateStaticParams() {
-  return ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'].map((locale) => ({ locale }));
+  return ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'].map(locale => ({locale}));
 }

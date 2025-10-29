@@ -6,33 +6,35 @@ import {usePathname} from 'next/navigation';
 import LanguageSwitcher from './LanguageSwitcher';
 import * as React from 'react';
 
-export default function AppHeader() {
-  const t = useTranslations();
-  const locale = useLocale();
+function NavLink({href, children}:{href:string; children:React.ReactNode}) {
   const pathname = usePathname();
-
-  const isActive = (href: string) => pathname?.startsWith(href);
-
-  const Nav = ({href, children}:{href:string; children:React.ReactNode}) => (
+  const active = pathname === href || (pathname?.startsWith(href) && href !== '/');
+  return (
     <Link
       href={href}
-      className={`px-3 py-1.5 rounded-xl text-sm transition
-        ${isActive(href) ? 'bg-white text-zinc-900' : 'border border-white/15 hover:bg-white/10'}`}
+      className={[
+        'px-3 py-1.5 rounded-xl text-sm transition',
+        active ? 'bg-white text-zinc-900' : 'border border-white/15 hover:bg-white/10'
+      ].join(' ')}
     >
       {children}
     </Link>
   );
+}
+
+export default function AppHeader() {
+  const t = useTranslations();
+  const locale = useLocale();
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur border-b border-white/10">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
         <Link href={`/${locale}`} className="font-semibold tracking-wide">MINDRA</Link>
-
-        <nav className="ml-auto flex items-center gap-2">
-          <Nav href={`/${locale}`}>Home</Nav>
-          <Nav href={`/${locale}/chat`}>Chat</Nav>
-          <Nav href={`/${locale}/pricing`}>{t('nav.pricing')}</Nav>
-          <Nav href={`/${locale}/donate`}>{t('nav.donate')}</Nav>
+        <nav className="flex items-center gap-2">
+          <NavLink href={`/${locale}`}>Home</NavLink>
+          <NavLink href={`/${locale}/chat`}>Chat</NavLink>
+          <NavLink href={`/${locale}/pricing`}>{t('nav.pricing')}</NavLink>
+          <NavLink href={`/${locale}/donate`}>{t('nav.donate')}</NavLink>
           <LanguageSwitcher/>
         </nav>
       </div>
