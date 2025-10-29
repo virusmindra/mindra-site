@@ -20,13 +20,11 @@ export default async function RootLayout({children, params:{locale}}: Props) {
         <NextIntlClientProvider messages={messages} locale={locale}>
           <CookieBanner />
           <AppHeader />
-
           <main className="flex-1">
             <div className="mx-auto w-full max-w-6xl px-4 py-8">
               {children}
             </div>
           </main>
-
           <Footer />
         </NextIntlClientProvider>
       </body>
