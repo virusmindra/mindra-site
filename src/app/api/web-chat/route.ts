@@ -1,5 +1,4 @@
 // src/app/api/web-chat/route.ts
-export const runtime = 'edge'; // быстрый старт, ближе к пользователю
 
 // греем Render ровно один раз на первом запросе
 let warmed = false;

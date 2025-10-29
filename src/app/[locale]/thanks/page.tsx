@@ -1,7 +1,7 @@
 // src/app/[locale]/thanks/page.tsx
 import { auth } from '@/server/auth';
 
-export const dynamic = 'force-dynamic';     // отключаем SSG/ISR
+    // отключаем SSG/ISR
 export const revalidate = 0;                // на всякий
 
 export default async function ThanksPage() {

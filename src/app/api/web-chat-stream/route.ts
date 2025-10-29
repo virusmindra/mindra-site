@@ -1,5 +1,4 @@
 // src/app/api/web-chat-stream/route.ts
-export const runtime = 'edge';
 
 // Укажи URL стрима на Render, напр. https://mindra-wsxi.onrender.com/api/web-chat-stream
 const RENDER_STREAM_URL = process.env.RENDER_BOT_STREAM_URL!;

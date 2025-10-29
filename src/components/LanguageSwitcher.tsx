@@ -1,6 +1,6 @@
 'use client';
 
-import {useLocale} from 'next-intl';
+import {useLocale, useTranslations} from 'next-intl';
 import {usePathname, useRouter} from 'next/navigation';
 
 const LABELS: Record<string,string> = {

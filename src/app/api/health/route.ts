@@ -5,4 +5,4 @@ export function GET(req: Request) {
   url.pathname = '/ru';
   return NextResponse.redirect(url);
 }
-export const dynamic = 'force-dynamic';
+

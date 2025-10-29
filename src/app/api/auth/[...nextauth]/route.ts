@@ -1,5 +1,5 @@
 // src/app/api/auth/[...nextauth]/route.ts
-export const runtime = 'nodejs';
+
 
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 import Google from 'next-auth/providers/google';

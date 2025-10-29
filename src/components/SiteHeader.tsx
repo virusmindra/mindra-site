@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import {useLocale, useTranslations} from 'next-intl';
 import AuthButton from '@/components/AuthButton';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
