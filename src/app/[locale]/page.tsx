@@ -1,7 +1,6 @@
-'use client';
-
+// src/app/[locale]/page.tsx
 import Link from 'next/link';
-import {useLocale, useTranslations} from 'next-intl';
+import {getTranslations, getLocale} from 'next-intl/server';
 
 type Card = {
   titleKey: string;
@@ -17,9 +16,9 @@ const CARDS: Card[] = [
   {titleKey: 'features.cards.premium.title', textKey: 'features.cards.premium.text'},
 ];
 
-export default function HomePage() {
-  const t = useTranslations();
-  const locale = useLocale();
+export default async function HomePage() {
+  const t = await getTranslations();   // серверный доступ к сообщениям
+  const locale = await getLocale();    // текущая локаль для ссылок
 
   return (
     <section className="mx-auto max-w-5xl text-center space-y-10">

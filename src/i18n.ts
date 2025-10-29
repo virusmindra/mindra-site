@@ -1,40 +1,39 @@
 // src/i18n.ts
-type Dict = Record<string, any>;
-type Locale = 'ru'|'en'|'uk'|'pl'|'es'|'fr'|'de'|'kk'|'hy'|'ka'|'md';
+import {getRequestConfig} from 'next-intl/server';
+import type {AbstractIntlMessages} from 'next-intl';
 
-// превращаем {"a.b.c": "x"} -> {a:{b:{c:"x"}}}
-function unflatten(obj: Dict): Dict {
+// поддерживаемые локали
+export const locales = ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
+export type AppLocale = typeof locales[number];
+export const defaultLocale: AppLocale = 'en';
+
+// ----------------- СБОРКА СООБЩЕНИЙ -----------------
+type Dict = Record<string, any>;
+type Locale = AppLocale;
+
+// утилиты
+const unflat = (obj: Dict): Dict => {
   const out: Dict = {};
-  for (const [key, val] of Object.entries(obj ?? {})) {
-    const parts = key.split('.');
+  for (const [k, v] of Object.entries(obj ?? {})) {
+    const parts = k.split('.');
     let cur = out;
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i]!;
-      if (i === parts.length - 1) {
-        cur[p] = val;
-      } else {
-        if (typeof cur[p] !== 'object' || cur[p] == null || Array.isArray(cur[p])) cur[p] = {};
-        cur = cur[p];
-      }
-    }
+    parts.forEach((p, i) => {
+      if (i === parts.length - 1) cur[p] = v;
+      else cur[p] = typeof cur[p] === 'object' && cur[p] ? cur[p] : {};
+      cur = cur[p];
+    });
   }
   return out;
-}
-
-function deepMerge<A extends Dict, B extends Dict>(a: A, b: B): A & B {
+};
+const dmerge = (a: Dict, b: Dict): Dict => {
   const out: Dict = Array.isArray(a) ? [...a] : {...a};
   for (const [k, v] of Object.entries(b ?? {})) {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      out[k] = deepMerge((out[k] ?? {}) as Dict, v as Dict);
-    } else if (v !== undefined) {
-      out[k] = v;
-    }
+    out[k] = v && typeof v === 'object' && !Array.isArray(v) ? dmerge(out[k] ?? {}, v) : v;
   }
-  return out as A & B;
-}
+  return out;
+};
 
-/** --- STATIC IMPORTS (бандлятся гарантированно) --- */
-// Base
+// БАЗА (плоские json)
 import enBase from '@/app/[locale]/messages/en.json';
 import ruBase from '@/app/[locale]/messages/ru.json';
 import ukBase from '@/app/[locale]/messages/uk.json';
@@ -47,7 +46,7 @@ import hyBase from '@/app/[locale]/messages/hy.json';
 import kaBase from '@/app/[locale]/messages/ka.json';
 import mdBase from '@/app/[locale]/messages/md.json';
 
-// header
+// namespaces
 import enHeader from '@/app/[locale]/messages/en.header.json';
 import ruHeader from '@/app/[locale]/messages/ru.header.json';
 import ukHeader from '@/app/[locale]/messages/uk.header.json';
@@ -60,7 +59,6 @@ import hyHeader from '@/app/[locale]/messages/hy.header.json';
 import kaHeader from '@/app/[locale]/messages/ka.header.json';
 import mdHeader from '@/app/[locale]/messages/md.header.json';
 
-// pricing
 import enPricing from '@/app/[locale]/messages/en.pricing.json';
 import ruPricing from '@/app/[locale]/messages/ru.pricing.json';
 import ukPricing from '@/app/[locale]/messages/uk.pricing.json';
@@ -73,7 +71,6 @@ import hyPricing from '@/app/[locale]/messages/hy.pricing.json';
 import kaPricing from '@/app/[locale]/messages/ka.pricing.json';
 import mdPricing from '@/app/[locale]/messages/md.pricing.json';
 
-// donate
 import enDonate from '@/app/[locale]/messages/en.donate.json';
 import ruDonate from '@/app/[locale]/messages/ru.donate.json';
 import ukDonate from '@/app/[locale]/messages/uk.donate.json';
@@ -86,7 +83,6 @@ import hyDonate from '@/app/[locale]/messages/hy.donate.json';
 import kaDonate from '@/app/[locale]/messages/ka.donate.json';
 import mdDonate from '@/app/[locale]/messages/md.donate.json';
 
-// thanks
 import enThanks from '@/app/[locale]/messages/en.thanks.json';
 import ruThanks from '@/app/[locale]/messages/ru.thanks.json';
 import ukThanks from '@/app/[locale]/messages/uk.thanks.json';
@@ -99,7 +95,6 @@ import hyThanks from '@/app/[locale]/messages/hy.thanks.json';
 import kaThanks from '@/app/[locale]/messages/ka.thanks.json';
 import mdThanks from '@/app/[locale]/messages/md.thanks.json';
 
-// supportPage (отдельным namespace)
 import enSupport from '@/app/[locale]/messages/en.supportPage.json';
 import ruSupport from '@/app/[locale]/messages/ru.supportPage.json';
 import ukSupport from '@/app/[locale]/messages/uk.supportPage.json';
@@ -112,79 +107,36 @@ import hySupport from '@/app/[locale]/messages/hy.supportPage.json';
 import kaSupport from '@/app/[locale]/messages/ka.supportPage.json';
 import mdSupport from '@/app/[locale]/messages/md.supportPage.json';
 
-/** Карты по локали */
-const BASE: Record<Locale, Dict> = {
-  en: enBase, ru: ruBase, uk: ukBase, pl: plBase, es: esBase,
-  fr: frBase, de: deBase, kk: kkBase, hy: hyBase, ka: kaBase, md: mdBase
-};
-const HEADER: Record<Locale, Dict> = {
-  en: enHeader, ru: ruHeader, uk: ukHeader, pl: plHeader, es: esHeader,
-  fr: frHeader, de: deHeader, kk: kkHeader, hy: hyHeader, ka: kaHeader, md: mdHeader
-};
-const PRICING: Record<Locale, Dict> = {
-  en: enPricing, ru: ruPricing, uk: ukPricing, pl: plPricing, es: esPricing,
-  fr: frPricing, de: dePricing, kk: kkPricing, hy: hyPricing, ka: kaPricing, md: mdPricing
-};
-const DONATE: Record<Locale, Dict> = {
-  en: enDonate, ru: ruDonate, uk: ukDonate, pl: plDonate, es: esDonate,
-  fr: frDonate, de: deDonate, kk: kkDonate, hy: hyDonate, ka: kaDonate, md: mdDonate
-};
-const THANKS: Record<Locale, Dict> = {
-  en: enThanks, ru: ruThanks, uk: ukThanks, pl: plThanks, es: esThanks,
-  fr: frThanks, de: deThanks, kk: kkThanks, hy: hyThanks, ka: kaThanks, md: mdThanks
-};
-const SUPPORT: Record<Locale, Dict> = {
-  en: enSupport, ru: ruSupport, uk: ukSupport, pl: plSupport, es: esSupport,
-  fr: frSupport, de: deSupport, kk: kkSupport, hy: hySupport, ka: kaSupport, md: mdSupport
-};
+const BASE: Record<Locale, Dict> = {en: enBase, ru: ruBase, uk: ukBase, pl: plBase, es: esBase, fr: frBase, de: deBase, kk: kkBase, hy: hyBase, ka: kaBase, md: mdBase};
+const HEADER: Record<Locale, Dict> = {en: enHeader, ru: ruHeader, uk: ukHeader, pl: plHeader, es: esHeader, fr: frHeader, de: deHeader, kk: kkHeader, hy: hyHeader, ka: kaHeader, md: mdHeader};
+const PRICING: Record<Locale, Dict> = {en: enPricing, ru: ruPricing, uk: ukPricing, pl: plPricing, es: esPricing, fr: frPricing, de: dePricing, kk: kkPricing, hy: hyPricing, ka: kaPricing, md: mdPricing};
+const DONATE: Record<Locale, Dict> = {en: enDonate, ru: ruDonate, uk: ukDonate, pl: plDonate, es: esDonate, fr: frDonate, de: deDonate, kk: kkDonate, hy: hyDonate, ka: kaDonate, md: mdDonate};
+const THANKS: Record<Locale, Dict> = {en: enThanks, ru: ruThanks, uk: ukThanks, pl: plThanks, es: esThanks, fr: frThanks, de: deThanks, kk: kkThanks, hy: hyThanks, ka: kaThanks, md: mdThanks};
+const SUPPORT: Record<Locale, Dict> = {en: enSupport, ru: ruSupport, uk: ukSupport, pl: plSupport, es: esSupport, fr: frSupport, de: deSupport, kk: kkSupport, hy: hySupport, ka: kaSupport, md: mdSupport};
 
-const U = (d: Dict) => unflatten(d);
+export async function getMessages({locale}: {locale: string}): Promise<AbstractIntlMessages> {
+  const fb: Locale = defaultLocale;
+  const lng = (locales as readonly string[]).includes(locale) ? (locale as Locale) : fb;
 
-export async function getMessages({ locale }: { locale: string }) {
-  const fb: Locale = 'en';
-  const lng = (locale as Locale);
+  let msg: Dict = dmerge(unflat(BASE[fb] ?? {}), unflat(BASE[lng] ?? {}));
+  for (const pack of [HEADER, PRICING, DONATE, THANKS]) {
+    msg = dmerge(msg, unflat(pack[fb] ?? {}));
+    msg = dmerge(msg, unflat(pack[lng] ?? {}));
+  }
+  msg.supportPage = dmerge(unflat(SUPPORT[fb] ?? {}), unflat(SUPPORT[lng] ?? {}));
 
-  // 1) база + фолбэк
-  let messages = deepMerge(U(BASE[fb] ?? {}), U(BASE[lng] ?? {}));
-
-  // 2) пакеты + фолбэк
-  messages = deepMerge(messages, U(HEADER[fb] ?? {}));
-  messages = deepMerge(messages, U(HEADER[lng] ?? {}));
-
-  messages = deepMerge(messages, U(PRICING[fb] ?? {}));
-  messages = deepMerge(messages, U(PRICING[lng] ?? {}));
-
-  messages = deepMerge(messages, U(DONATE[fb] ?? {}));
-  messages = deepMerge(messages, U(DONATE[lng] ?? {}));
-
-  messages = deepMerge(messages, U(THANKS[fb] ?? {}));
-  messages = deepMerge(messages, U(THANKS[lng] ?? {}));
-
-  // 3) supportPage — отдельным namespace
-  messages.supportPage = deepMerge(U(SUPPORT[fb] ?? {}), U(SUPPORT[lng] ?? {}));
-
-  return messages;
+  return msg as AbstractIntlMessages;
 }
 
-// ---------- next-intl/server config ----------
-import { getRequestConfig } from "next-intl/server";
-import type { AbstractIntlMessages } from "next-intl";
-
-export const locales = ["en","ru","uk","pl","es","fr","de","kk","hy","ka","md"] as const;
-export type AppLocale = typeof locales[number];
-export const defaultLocale: AppLocale = "en";
-
-export async function getMessagesTyped({ locale }: { locale: string }): Promise<AbstractIntlMessages> {
-  return (await getMessages({ locale })) as AbstractIntlMessages;
-}
-
-export default getRequestConfig(async ({ locale }) => {
+export default getRequestConfig(async ({locale}) => {
   const supported = new Set<string>(locales as readonly string[]);
   const chosen = (locale && supported.has(locale)) ? (locale as AppLocale) : defaultLocale;
 
-  const messages = await getMessagesTyped({ locale: chosen });
+  const messages = await getMessages({ locale: chosen }) as AbstractIntlMessages;
 
-  // ТВОЯ версия next-intl ожидает и locale, и messages — вернём оба.
-  // Кастом «as any» безопасен здесь и убирает расхождение типов между версиями пакета.
-  return { locale: chosen, messages } as any;
+  // <= ВАЖНО: вернуть и locale, и messages, чтобы удовлетворить d.ts твоей версии
+  return {
+    locale: chosen,
+    messages
+  } as const;
 });

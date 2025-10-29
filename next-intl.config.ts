@@ -1,6 +1,6 @@
-export const locales = ['ru','en','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
-export type AppLocale = typeof locales[number];
-
-export const defaultLocale: AppLocale = 'en';
-
-export default { locales, defaultLocale };
+// next-intl.config.ts
+const config = {
+  locales: ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'] as const,
+  defaultLocale: 'en' as const
+};
+export default config;
