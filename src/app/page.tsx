@@ -1,7 +1,7 @@
 // src/app/page.tsx
 import {redirect} from 'next/navigation';
-import intlConfig from '../../next-intl.config';
+import {defaultLocale} from '@/i18n';
 
 export default function Home() {
-  redirect(`/${intlConfig.defaultLocale}`);
+  redirect(`/${defaultLocale}`);
 }
