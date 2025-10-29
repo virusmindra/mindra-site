@@ -1,41 +1,24 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
+import type {AbstractIntlMessages} from 'next-intl';
 
 export const locales = ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
 export type AppLocale = typeof locales[number];
 export const defaultLocale: AppLocale = 'en';
 
-// Подгружаем все бандлы сообщений для локали (с запасом по именам файлов)
-async function loadMessages(locale: AppLocale) {
-  // Если каких-то файлов нет — спокойно возвращаем {}
-  const safeImport = async (path: string) => {
-    try {
-      const mod = await import(/* @vite-ignore */ path);
-      return (mod as any).default ?? {};
-    } catch {
-      return {};
-    }
-  };
+// Все JSON лежат в: src/app/[locale]/messages/*
+async function loadMessages(locale: AppLocale): Promise<AbstractIntlMessages> {
+  const base       = (await import(`./app/[locale]/messages/${locale}.json`)).default;
+  const header     = (await import(`./app/[locale]/messages/${locale}.header.json`)).default;
+  const pricing    = (await import(`./app/[locale]/messages/${locale}.pricing.json`)).default;
+  const donate     = (await import(`./app/[locale]/messages/${locale}.donate.json`)).default;
+  const thanks     = (await import(`./app/[locale]/messages/${locale}.thanks.json`)).default;
+  const supportPage= (await import(`./app/[locale]/messages/${locale}.supportPage.json`)).default;
 
-  const base        = await safeImport(`@/app/locales/messages/${locale}.json`);
-  const header      = await safeImport(`@/app/locales/messages/${locale}.header.json`);
-  const pricing     = await safeImport(`@/app/locales/messages/${locale}.pricing.json`);
-  const donate      = await safeImport(`@/app/locales/messages/${locale}.donate.json`);
-  const thanks      = await safeImport(`@/app/locales/messages/${locale}.thanks.json`);
-  const supportPage = await safeImport(`@/app/locales/messages/${locale}.supportPage.json`);
-
-  // Один объект сообщений
-  return {
-    ...base,
-    header,
-    pricing,
-    donate,
-    thanks,
-    supportPage
-  } as Record<string, unknown>;
+  return { ...base, header, pricing, donate, thanks, supportPage };
 }
 
-// Конфиг для next-intl/server
+// ВАЖНО: возвращаем { messages, locale }
 export default getRequestConfig(async ({locale}) => {
   const supported = new Set(locales as readonly string[]);
   const chosen = (locale && supported.has(locale as AppLocale))
@@ -43,6 +26,5 @@ export default getRequestConfig(async ({locale}) => {
     : defaultLocale;
 
   const messages = await loadMessages(chosen);
-  // ВАЖНО: вернуть обе части
   return { locale: chosen, messages };
 });
