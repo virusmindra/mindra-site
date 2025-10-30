@@ -1,16 +1,10 @@
 // src/app/[locale]/page.tsx
 import Link from 'next/link';
-import {createTranslator} from 'next-intl';
-import {getMessagesSync} from '@/i18n';
-import type {Locale} from '@/i18n';
+import {getLocale, getTranslations} from 'next-intl/server';
 
-type Props = { params: { locale: Locale } };
-
-export default function LocaleHome({ params: { locale } }: Props) {
-  // Берём JSON-словарь синхронно
-  const messages = getMessagesSync(locale);
-  // Создаём t без server-API next-intl
-  const t = createTranslator({ locale, messages });
+export default async function Page() {
+  const locale = (await getLocale())!;
+  const t = await getTranslations(); // плоские ключи без namespace
 
   return (
     <section className="mx-auto max-w-5xl text-center space-y-8">
@@ -21,8 +15,6 @@ export default function LocaleHome({ params: { locale } }: Props) {
         <Link
           href="https://t.me/talktomindra_bot"
           className="rounded-xl bg-white text-zinc-900 px-4 py-2 text-sm"
-          target="_blank"
-          rel="noopener"
         >
           {t('cta.launch')}
         </Link>
