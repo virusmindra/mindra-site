@@ -14,3 +14,5 @@ export const localeLabels: Record<Locale, string> = {
   ka: 'ქართული',
   md: 'Română'
 };
+
+export const defaultLocale: Locale = 'en';
