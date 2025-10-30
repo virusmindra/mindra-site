@@ -1,23 +1,25 @@
 // src/app/[locale]/layout.tsx
 import '../globals.css';
-import type {ReactNode} from 'react';
+import {ReactNode} from 'react';
 import {NextIntlClientProvider} from 'next-intl';
-import {getMessages, getLocale} from 'next-intl/server';
+import {getMessagesSync} from '@/i18n';
 
-type Props = {children: ReactNode; params: {locale: string}};
+type Props = {
+  children: ReactNode;
+  params: { locale: string };
+};
 
-export default async function RootLayout({children, params: {locale}}: Props) {
-  await getLocale();             // фиксируем locale из middleware
-  const messages = await getMessages(); // плоские ключи без namespace
+export default function RootLayout({children, params: {locale}}: Props) {
+  const messages = getMessagesSync(locale as any);
 
   return (
     <html lang={locale}>
-      <body>
+      <body className="min-h-dvh text-zinc-100 bg-zinc-950">
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
-          onError={() => {}}
-          getMessageFallback={({key}) => key}
+          onError={() => {}}                 // глушим MISSING_MESSAGE в проде
+          getMessageFallback={({key}) => key} // покажем ключ, если перевода нет
         >
           {children}
         </NextIntlClientProvider>

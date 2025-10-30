@@ -1,10 +1,13 @@
 // src/app/[locale]/page.tsx
 import Link from 'next/link';
-import {getLocale, getTranslations} from 'next-intl/server';
+import {createTranslator} from 'next-intl';
+import {getMessagesSync, type Locale} from '@/i18n';
 
-export default async function Page() {
-  const locale = (await getLocale())!;
-  const t = await getTranslations(); // плоские ключи
+type Props = { params: { locale: Locale } };
+
+export default function Page({params: {locale}}: Props) {
+  const messages = getMessagesSync(locale);
+  const t = createTranslator({locale, messages}); // синхронно, без server-API
 
   return (
     <section className="mx-auto max-w-5xl text-center space-y-8">
@@ -15,6 +18,8 @@ export default async function Page() {
         <Link
           href="https://t.me/talktomindra_bot"
           className="rounded-xl bg-white text-zinc-900 px-4 py-2 text-sm"
+          target="_blank"
+          rel="noopener"
         >
           {t('cta.launch')}
         </Link>
@@ -28,4 +33,3 @@ export default async function Page() {
     </section>
   );
 }
-
