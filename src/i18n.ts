@@ -1,30 +1,26 @@
 // src/i18n.ts
-import {getRequestConfig} from 'next-intl/server';
-import type {AbstractIntlMessages} from 'next-intl';
+import type { Locale } from '@/locales';
 
-export const locales = ['en','ru','uk','pl','es','fr','de','kk','hy','ka','md'] as const;
-export type AppLocale = typeof locales[number];
-export const defaultLocale: AppLocale = 'en';
+// ⬇️ JSON-словарики: строго чистый JSON без функций/JSX
+import en from '@/app/[locale]/messages/en.json';
+import ru from '@/app/[locale]/messages/ru.json';
+import uk from '@/app/[locale]/messages/uk.json';
+import pl from '@/app/[locale]/messages/pl.json';
+import es from '@/app/[locale]/messages/es.json';
+import fr from '@/app/[locale]/messages/fr.json';
+import de from '@/app/[locale]/messages/de.json';
+import kk from '@/app/[locale]/messages/kk.json';
+import hy from '@/app/[locale]/messages/hy.json';
+import ka from '@/app/[locale]/messages/ka.json';
+import md from '@/app/[locale]/messages/md.json';
 
-// Все JSON лежат в: src/app/[locale]/messages/*
-async function loadMessages(locale: AppLocale): Promise<AbstractIntlMessages> {
-  const base       = (await import(`./app/[locale]/messages/${locale}.json`)).default;
-  const header     = (await import(`./app/[locale]/messages/${locale}.header.json`)).default;
-  const pricing    = (await import(`./app/[locale]/messages/${locale}.pricing.json`)).default;
-  const donate     = (await import(`./app/[locale]/messages/${locale}.donate.json`)).default;
-  const thanks     = (await import(`./app/[locale]/messages/${locale}.thanks.json`)).default;
-  const supportPage= (await import(`./app/[locale]/messages/${locale}.supportPage.json`)).default;
+const dict: Record<Locale, any> = {
+  en, ru, uk, pl, es, fr, de, kk, hy, ka, md,
+} as const;
 
-  return { ...base, header, pricing, donate, thanks, supportPage };
+// Возвращаем «чистые» сообщения для next-intl / createTranslator
+export function getMessagesFor(locale: Locale) {
+  return dict[locale] ?? en; // fallback на en
 }
 
-// ВАЖНО: возвращаем { messages, locale }
-export default getRequestConfig(async ({locale}) => {
-  const supported = new Set(locales as readonly string[]);
-  const chosen = (locale && supported.has(locale as AppLocale))
-    ? (locale as AppLocale)
-    : defaultLocale;
-
-  const messages = await loadMessages(chosen);
-  return { locale: chosen, messages };
-});
+export const defaultLocale: Locale = 'en';
