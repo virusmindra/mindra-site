@@ -2,22 +2,20 @@
 import '../globals.css';
 import type {ReactNode} from 'react';
 import {NextIntlClientProvider} from 'next-intl';
-import {getMessagesSync} from '@/i18n';
-import type {Locale} from '@/i18n';
+import {getMessages, getLocale} from 'next-intl/server';
 
-type Props = { children: ReactNode; params: { locale: Locale } };
+type Props = {children: ReactNode; params: {locale: string}};
 
-export default function RootLayout({children, params: {locale}}: Props) {
-  // Берём наши JSON-сообщения синхронно (а не через next-intl/server)
-  const messages = getMessagesSync(locale);
+export default async function RootLayout({children, params: {locale}}: Props) {
+  await getLocale();             // фиксируем locale из middleware
+  const messages = await getMessages(); // плоские ключи без namespace
 
   return (
     <html lang={locale}>
-      <body className="min-h-dvh text-zinc-100 bg-zinc-950">
+      <body>
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
-          // Не валим рендер, если какого-то ключа нет:
           onError={() => {}}
           getMessageFallback={({key}) => key}
         >

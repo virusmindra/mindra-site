@@ -4,7 +4,7 @@ import {getLocale, getTranslations} from 'next-intl/server';
 
 export default async function Page() {
   const locale = (await getLocale())!;
-  const t = await getTranslations(); // плоские ключи без namespace
+  const t = await getTranslations(); // плоские ключи
 
   return (
     <section className="mx-auto max-w-5xl text-center space-y-8">
@@ -28,3 +28,4 @@ export default async function Page() {
     </section>
   );
 }
+

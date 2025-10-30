@@ -8,8 +8,5 @@ export default createMiddleware({
 });
 
 export const config = {
-  matcher: [
-    // исключаем api, _next, любые файлы (.*\..*) и favicon.ico
-    '/((?!api|_next|.*\\..*|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next|.*\\..*|favicon.ico).*)'],
 };
