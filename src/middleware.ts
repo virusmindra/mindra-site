@@ -1,6 +1,6 @@
 // src/middleware.ts
 import createMiddleware from 'next-intl/middleware';
-import {locales, defaultLocale} from './i18n';
+import {locales, defaultLocale} from '@/locales';
 
 export default createMiddleware({
   locales,
