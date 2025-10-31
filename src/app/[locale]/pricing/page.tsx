@@ -1,22 +1,26 @@
-import {getT} from '@/lib/getT';
+// src/app/[locale]/pricing/page.tsx
+import {createTranslator, type AbstractIntlMessages} from 'next-intl';
+import {getMessagesSync, type Locale} from '@/i18n';
 import {TELEGRAM_URL} from '@/lib/links';
 
-export default async function PricingPage({params}: {params: {locale: string}}) {
-  const {locale} = params;
-  const t = await getT({locale}); // было getTranslations({ locale })
+type Props = { params: { locale: Locale } };
 
-  const featuresRaw = await import(
-    `@/app/[locale]/messages/${locale}.pricing.json`
-  )
-    .then(m => (m.default as any)?.['features.items'])
-    .catch(() => undefined) as unknown;
+export default function PricingPage({ params: { locale } }: Props) {
+  // Берём объединённый словарь: base + pricing
+  const messages = getMessagesSync(locale, 'pricing') as AbstractIntlMessages;
 
-  const features =
-    Array.isArray(featuresRaw)
-      ? (featuresRaw as string[])
-      : featuresRaw && typeof featuresRaw === 'object'
-        ? Object.values(featuresRaw as Record<string, string>)
-        : [];
+  // Подсказываем TS сигнатуру t, чтобы не было never
+  const t = createTranslator({ locale, messages }) as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
+
+  // features.items может быть массивом или объектом — нормализуем в string[]
+  const raw = (messages as any)['features.items'];
+  const features: string[] =
+    Array.isArray(raw) ? raw :
+    raw && typeof raw === 'object' ? Object.values(raw as Record<string, string>) :
+    [];
 
   return (
     <section className="py-10">

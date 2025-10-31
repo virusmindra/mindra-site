@@ -1,11 +1,18 @@
 // src/app/[locale]/page.tsx
 import Link from 'next/link';
-import {createTranslator} from 'next-intl';
+import {createTranslator, type AbstractIntlMessages} from 'next-intl';
 import {getMessagesSync, type Locale} from '@/i18n';
 
-export default function LocaleHome({ params: { locale } }: { params: { locale: Locale } }) {
-  const messages = getMessagesSync(locale);
-  const t = createTranslator({ locale, messages });
+type Props = { params: { locale: Locale } };
+
+export default function Page({ params: { locale } }: Props) {
+  const messages = getMessagesSync(locale) as AbstractIntlMessages;
+
+  // жёстко подсказываем TS сигнатуру t
+  const t = createTranslator({ locale, messages }) as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
 
   return (
     <section className="mx-auto max-w-5xl text-center space-y-8">
