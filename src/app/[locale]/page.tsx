@@ -1,13 +1,12 @@
 // src/app/[locale]/page.tsx
 import Link from 'next/link';
-import {createTranslator} from 'next-intl';
-import {getMessagesSync, type Locale} from '@/i18n';
+import type {Locale} from '@/i18n';
+import {createT} from '@/i18n';
 
 type Props = { params: { locale: Locale } };
 
-export default function Page({params: {locale}}: Props) {
-  const messages = getMessagesSync(locale);
-  const t = createTranslator({locale, messages}); // синхронно, без server-API
+export default function LocaleHome({ params: { locale } }: Props) {
+  const t = createT(locale);
 
   return (
     <section className="mx-auto max-w-5xl text-center space-y-8">
