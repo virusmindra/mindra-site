@@ -21,19 +21,10 @@ export default function LocaleLayout({ children, params: { locale } }: Props) {
             </Link>
 
             <nav className="flex items-center gap-3 text-sm">
-              <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">
-                Home
-              </Link>
-              <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">
-                Pricing
-              </Link>
-              <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">
-                Chat
-              </Link>
-              <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">
-                Donate
-              </Link>
-
+              <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">Home</Link>
+              <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">Pricing</Link>
+              <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">Chat</Link>
+              <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">Donate</Link>
               {/* Если твой свитчер ожидает проп current, используй:
                    <LanguageSwitcher current={locale} /> */}
               <LanguageSwitcher />
