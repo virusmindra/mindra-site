@@ -1,17 +1,17 @@
-import {getT} from '@/lib/getT';
+import {getTSync} from '@/lib/getT';
 import {DONATE_URL} from '@/lib/links';
 import Link from 'next/link';
 import {getProgress} from '@/lib/donations';
 import PricingClient from './pricing-client';
 
-export default async function SupportPage({
-  params,
-  searchParams
-}: {
+type Props = {
   params: { locale: string };
   searchParams?: { founder?: string };
-}) {
-  const t = await getT({ locale: params.locale, namespace: 'supportPage' });
+};
+
+export default async function SupportPage({ params, searchParams }: Props) {
+  const { locale } = params;
+  const t = getTSync(locale as any, 'support'); // тип Locale у тебя уже объявлен — подставь если нужно
 
   // Живые цифры со Stripe
   const { raised, goal, backers } = await getProgress();

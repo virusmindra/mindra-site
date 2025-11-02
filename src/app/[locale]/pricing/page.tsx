@@ -1,26 +1,18 @@
-// src/app/[locale]/pricing/page.tsx
-import {createTranslator, type AbstractIntlMessages} from 'next-intl';
+import {getTSync} from '@/lib/getT';
 import {getMessagesSync, type Locale} from '@/i18n';
 import {TELEGRAM_URL} from '@/lib/links';
 
-type Props = { params: { locale: Locale } };
+export default function PricingPage({ params: { locale } }: {params: {locale: Locale}}) {
+  const t = getTSync(locale, 'pricing');
 
-export default function PricingPage({ params: { locale } }: Props) {
-  // Берём объединённый словарь: base + pricing
-  const messages = getMessagesSync(locale, 'pricing') as AbstractIntlMessages;
-
-  // Подсказываем TS сигнатуру t, чтобы не было never
-  const t = createTranslator({ locale, messages }) as (
-    key: string,
-    values?: Record<string, unknown>
-  ) => string;
-
-  // features.items может быть массивом или объектом — нормализуем в string[]
-  const raw = (messages as any)['features.items'];
-  const features: string[] =
-    Array.isArray(raw) ? raw :
-    raw && typeof raw === 'object' ? Object.values(raw as Record<string, string>) :
-    [];
+  // Достаём features из объединённого словаря pricing
+  const messages = getMessagesSync(locale, 'pricing') as Record<string, unknown>;
+  const raw = (messages['features.items'] ?? []) as unknown;
+  const features = Array.isArray(raw)
+    ? (raw as string[])
+    : raw && typeof raw === 'object'
+      ? Object.values(raw as Record<string, string>)
+      : [];
 
   return (
     <section className="py-10">
