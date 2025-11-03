@@ -1,3 +1,9 @@
 {
-  "chat.title": "Чат с Mindra"
+  "chat.title": "Чат с Mindra",
+  "chat.new": "Новый чат",
+  "chat.history": "История",
+  "chat.signIn": "Войти",
+  "chat.signIn.note": "Войдите, чтобы синхронизировать чаты и управлять подпиской.",
+  "chat.placeholder": "Напишите сообщение...",
+  "chat.send": "Отправить"
 }

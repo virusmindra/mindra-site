@@ -1,3 +1,9 @@
 {
-  "chat.title": "Mindra-мен чат"
+  "chat.title": "Mindra-пен чат",
+  "chat.new": "Жаңа чат",
+  "chat.history": "Тарих",
+  "chat.signIn": "Кіру",
+  "chat.signIn.note": "Чаттарды синхрондау және жазылымды басқару үшін кіріңіз.",
+  "chat.placeholder": "Хабарлама жазыңыз...",
+  "chat.send": "Жіберу"
 }

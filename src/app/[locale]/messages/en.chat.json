@@ -1,3 +1,9 @@
 {
-  "chat.title": "Chat with Mindra"
+  "chat.title": "Chat with Mindra",
+  "chat.new": "New chat",
+  "chat.history": "History",
+  "chat.signIn": "Sign in",
+  "chat.signIn.note": "Sign in to sync chats and manage your subscription.",
+  "chat.placeholder": "Type a message...",
+  "chat.send": "Send"
 }

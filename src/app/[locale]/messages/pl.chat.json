@@ -1,3 +1,9 @@
 {
-  "chat.title": "Czat z Mindrą"
+  "chat.title": "Czat z Mindrą",
+  "chat.new": "Nowy czat",
+  "chat.history": "Historia",
+  "chat.signIn": "Zaloguj się",
+  "chat.signIn.note": "Zaloguj się, aby synchronizować czaty i zarządzać subskrypcją.",
+  "chat.placeholder": "Napisz wiadomość...",
+  "chat.send": "Wyślij"
 }

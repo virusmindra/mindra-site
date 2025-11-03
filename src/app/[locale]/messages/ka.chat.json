@@ -1,3 +1,9 @@
 {
-  "chat.title": "ჩატი Mindra-სთან"
+  "chat.title": "ჩატი Mindra-სთან",
+  "chat.new": "ახალი ჩატი",
+  "chat.history": "ისტორია",
+  "chat.signIn": "შესვლა",
+  "chat.signIn.note": "შედით ჩატების სინქრონიზაციისა და გამოწერის მართვისთვის.",
+  "chat.placeholder": "დაწერე შეტყობინება...",
+  "chat.send": "გაგზავნა"
 }

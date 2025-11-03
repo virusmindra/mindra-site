@@ -1,3 +1,9 @@
 {
-  "chat.title": "Chat cu Mindra"
+  "chat.title": "Chat cu Mindra",
+  "chat.new": "Chat nou",
+  "chat.history": "Istoric",
+  "chat.signIn": "Autentificare",
+  "chat.signIn.note": "Autentifică-te pentru a sincroniza chat-urile și a gestiona abonamentul.",
+  "chat.placeholder": "Scrie un mesaj...",
+  "chat.send": "Trimite"
 }

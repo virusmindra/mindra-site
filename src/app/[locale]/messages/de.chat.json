@@ -1,3 +1,9 @@
 {
-  "chat.title": "Chat mit Mindra"
+  "chat.title": "Chat mit Mindra",
+  "chat.new": "Neuer Chat",
+  "chat.history": "Verlauf",
+  "chat.signIn": "Anmelden",
+  "chat.signIn.note": "Melde dich an, um Chats zu synchronisieren und dein Abo zu verwalten.",
+  "chat.placeholder": "Nachricht eingeben...",
+  "chat.send": "Senden"
 }
