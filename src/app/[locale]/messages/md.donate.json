@@ -1,46 +1,35 @@
 {
   "donate.title": "Susține proiectul",
-  "donate.subtitle": "Mindra este dezvoltat pentru a sprijini și motiva oamenii. Orice contribuție ne ajută să adăugăm funcții și limbi noi.",
-  "donate.cta": "Susține proiectul",
-  "donate.note": "Mulțumim pentru bunătatea ta! 💜",
-  "donate": {
-    "plans": {
-      "title": "Abonamente",
-      "subtitle": "Prețuri în USD. Reducerile pentru fondatori se aplică automat.",
-      "monthly": "1 lună",
-      "q3": "3 luni",
-      "q6": "6 luni",
-      "annual": "12 luni",
-      "lifetime": "Pe viață",
-      "select": "Alege",
-      "freeNote": "Plan gratuit fără FaceTime cu botul.",
-      "soon": "Abonamentele vor fi disponibile în curând. Deocamdată poți susține proiectul cu o donație ❤️"
-    },
-    "tier": {
-      "free": {
-        "name": "Gratuit",
-        "desc": "Funcțiile botului fără apeluri video."
-      },
-      "lite": {
-        "name": "Mindra Lite",
-        "minutes": "Limită: ~8–10 minute FaceTime pe zi"
-      },
-      "std": {
-        "name": "Mindra+ (Standard)",
-        "minutes": "Limită: ~20–30 minute FaceTime pe zi"
-      },
-      "pro": {
-        "name": "Mindra Pro / VIP",
-        "minutes": "FaceTime nelimitat"
-      }
-    },
-    "founders": {
-      "toggle": "Sunt fondator — arată prețurile reduse",
-      "badge35": "Founders: -35% pentru totdeauna (de la $300)",
-      "badge40": "Founders: -40% pentru totdeauna (de la $500)"
-    },
-    "meta": {
-      "note": "Reducerile sunt legate de emailul/ID-ul tău Telegram și vor funcționa și în aplicație."
-    }
-  }
+  "donate.subtitle": "Mindra este creată pentru a susține și motiva. Orice contribuție ne ajută să adăugăm funcții și limbi noi.",
+  "donate.cta": "Susține dezvoltarea",
+  "donate.progress.raised": "Strâns: {raised}",
+  "donate.progress.goal": "Obiectiv: {goal}",
+  "donate.progress.backers": "Susținători: {n}",
+  "donate.goal.title": "De ce avem nevoie de fonduri",
+  "donate.goal.text": "Fondurile merg către aplicația mobilă, servere și munca echipei. Obiectiv: 150.000 $. Cu cât strângem mai mult, cu atât lansăm mai repede și extindem capabilitățile.",
+  "donate.goal.points.1": "Apeluri video tip FaceTime cu Mindra — alege aspectul și vorbește față în față.",
+  "donate.goal.points.2": "Toate funcțiile botului Telegram într-un singur loc: dialog, obiective, obiceiuri, rapoarte.",
+  "donate.goal.points.3": "11 limbi, interfață prietenoasă și bază pentru un mod offline în viitor.",
+  "donate.plans.title": "Planuri",
+  "donate.plans.subtitle": "Prețuri în USD. Reducerile pentru fondatori se aplică automat.",
+  "donate.plans.monthly": "1 lună",
+  "donate.plans.q3": "3 luni",
+  "donate.plans.q6": "6 luni",
+  "donate.plans.annual": "12 luni",
+  "donate.plans.lifetime": "Lifetime",
+  "donate.plans.select": "Alege",
+  "donate.plans.freeNote": "Plan gratuit fără FaceTime cu botul.",
+  "donate.plans.soon": "Abonamentele vin curând. Deocamdată poți susține printr-o donație ❤️",
+  "donate.tier.free.name": "Gratuit",
+  "donate.tier.free.desc": "Funcțiile botului fără apeluri video.",
+  "donate.tier.lite.name": "Mindra Lite",
+  "donate.tier.lite.minutes": "Limită: ~8–10 min FaceTime pe zi",
+  "donate.tier.std.name": "Mindra+ (Standard)",
+  "donate.tier.std.minutes": "Limită: ~20–30 min FaceTime pe zi",
+  "donate.tier.pro.name": "Mindra Pro / VIP",
+  "donate.tier.pro.minutes": "FaceTime nelimitat",
+  "donate.founders.toggle": "Sunt fondator — arată prețuri reduse",
+  "donate.founders.badge35": "Founders: −35% pe viață (de la 300 $)",
+  "donate.founders.badge40": "Founders: −40% pe viață (de la 500 $)",
+  "donate.meta.note": "Reducerile sunt legate de email/Telegram ID și vor fi valabile și în aplicație."
 }
