@@ -16,6 +16,19 @@ import hyBase from '@/app/[locale]/messages/hy.json';
 import kaBase from '@/app/[locale]/messages/ka.json';
 import mdBase from '@/app/[locale]/messages/md.json';
 
+import enChat from '@/app/[locale]/messages/en.chat.json';
+import ruChat from '@/app/[locale]/messages/ru.chat.json';
+import ukChat from '@/app/[locale]/messages/uk.chat.json';
+import plChat from '@/app/[locale]/messages/pl.chat.json';
+import esChat from '@/app/[locale]/messages/es.chat.json';
+import frChat from '@/app/[locale]/messages/fr.chat.json';
+import deChat from '@/app/[locale]/messages/de.chat.json';
+import kkChat from '@/app/[locale]/messages/kk.chat.json';
+import hyChat from '@/app/[locale]/messages/hy.chat.json';
+import kaChat from '@/app/[locale]/messages/ka.chat.json';
+import mdChat from '@/app/[locale]/messages/md.chat.json';
+
+
 // СТРАНИЧНЫЕ (опционально)
 import enPricing from '@/app/[locale]/messages/en.pricing.json';
 import ruPricing from '@/app/[locale]/messages/ru.pricing.json';
@@ -75,6 +88,11 @@ const BASE: Record<Locale, Messages> = {
   fr: frBase, de: deBase, kk: kkBase, hy: hyBase, ka: kaBase, md: mdBase
 };
 
+const CHAT: PerLocale<Messages> = {
+  en: enChat, ru: ruChat, uk: ukChat, pl: plChat, es: esChat,
+  fr: frChat, de: deChat, kk: kkChat, hy: hyChat, ka: kaChat, md: mdChat
+};
+
 // страничные словари
 const PRICING: PerLocale<Messages> = {
   en: enPricing, ru: ruPricing, uk: ukPricing, pl: plPricing, es: esPricing,
@@ -98,6 +116,7 @@ const PAGE_MAP = {
   pricing: PRICING,
   donate: DONATE,
   support: DONATE,
+  chat: CHAT,
   thanks: THANKS
 } as const;
 export type PageKey = keyof typeof PAGE_MAP;
