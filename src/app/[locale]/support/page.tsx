@@ -1,6 +1,8 @@
+// src/app/[locale]/support/page.tsx
 import type {Locale} from '@/i18n';
 import {getMessagesSync} from '@/i18n';
 import {getTSync} from '@/lib/getT';
+import {dotToNested} from '@/lib/i18nShape';
 import SafeIntlProvider from '@/components/SafeIntlProvider';
 import PricingClient from './pricing-client';
 
@@ -12,8 +14,13 @@ type Props = {
 export const revalidate = 0;
 
 export default async function SupportPage({ params: { locale }, searchParams }: Props) {
+  // серверные заголовки/интро
   const t = getTSync(locale, 'donate');
-  const messages = getMessagesSync(locale, 'donate');
+
+  // КЛЮЧЕВОЕ: превращаем плоские ключи в nested перед провайдером
+  const flat = getMessagesSync(locale, 'donate') as Record<string, unknown>;
+  const messages = dotToNested(flat);
+
   const founder = Number(searchParams?.founder ?? 0) || 0;
 
   return (
@@ -36,4 +43,3 @@ export default async function SupportPage({ params: { locale }, searchParams }: 
     </section>
   );
 }
-
