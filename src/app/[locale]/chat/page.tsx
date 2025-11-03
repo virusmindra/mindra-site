@@ -1,7 +1,13 @@
-// src/app/[locale]/chat/page.tsx  (СЕРВЕРНЫЙ)
+// серверный компонент
+import SafeIntlProvider from '@/components/SafeIntlProvider';
+import {getMessagesSync, type Locale} from '@/i18n';
 import ClientPage from './ClientPage';
 
-export default async function ChatPage() {
-  // Никаких useTranslations/useLocale здесь!
-  return <ClientPage />; // внутри ClientPage уже 'use client' и useTranslations()
+export default function ChatPage({ params: { locale } }:{ params:{ locale: Locale }}) {
+  const messages = getMessagesSync(locale);      // базовые сообщения для страницы
+  return (
+    <SafeIntlProvider locale={locale} messages={messages}>
+      <ClientPage />
+    </SafeIntlProvider>
+  );
 }

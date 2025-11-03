@@ -96,7 +96,7 @@ const THANKS: PerLocale<Messages> = {
 // регистр страниц → карта локалей
 const PAGE_MAP = {
   pricing: PRICING,
-  donate: DONATE,
+  donate: SUPPORT,
   support: SUPPORT,
   thanks: THANKS
 } as const;
