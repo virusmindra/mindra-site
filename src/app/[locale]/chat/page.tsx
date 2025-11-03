@@ -1,5 +1,12 @@
-import ClientChatPage from '../../../components/chat/ClientChatPage';
+// src/app/[locale]/chat/page.tsx
+import ClientChatPage from '@/components/chat/ClientChatPage';
+import AuthProvider from '@/components/AuthProvider';
 
 export default function ChatPage() {
-  return <ClientChatPage />;
+  return (
+    <AuthProvider>
+      <ClientChatPage />
+    </AuthProvider>
+  );
 }
+
