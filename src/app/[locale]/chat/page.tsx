@@ -1,12 +1,6 @@
-// src/app/[locale]/chat/page.tsx
 import ClientChatPage from '@/components/chat/ClientChatPage';
-import AuthProvider from '@/components/AuthProvider';
+// Если алиас '@/...' вдруг не резолвится, замени на '../../../components/chat/ClientChatPage'
 
 export default function ChatPage() {
-  return (
-    <AuthProvider>
-      <ClientChatPage />
-    </AuthProvider>
-  );
+  return <ClientChatPage />;
 }
-
