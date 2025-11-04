@@ -1,4 +1,7 @@
 {
+  "nav.home": "Accueil",
+  "nav.chat": "Chat",
+
   "brand.tagline": "MINDRA — votre ami IA et coach bienveillant",
   "nav.pricing": "Tarifs",
   "nav.donate": "Soutenir",
