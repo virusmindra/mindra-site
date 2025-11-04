@@ -6,6 +6,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import type { Locale } from '@/i18n';
 import AuthProvider from '@/components/AuthProvider';
 import { getTSync } from '@/lib/getT';
+import Footer from '@/components/Footer';
 
 type Props = {
   children: ReactNode;
@@ -13,7 +14,7 @@ type Props = {
 };
 
 export default function LocaleLayout({ children, params: { locale } }: Props) {
-  const t = getTSync(locale); // переводы из базового словаря
+  const t = getTSync(locale); // локализованные строки "nav.*" и "footer.*"
 
   return (
     <html lang={locale}>
@@ -46,37 +47,8 @@ export default function LocaleLayout({ children, params: { locale } }: Props) {
           {/* MAIN */}
           <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
 
-          {/* FOOTER (маленькие ссылки, как на скрине) */}
-          <footer className="mt-12 border-t border-white/10">
-            <div className="mx-auto max-w-6xl px-4 py-6">
-              <div className="flex flex-col gap-3 text-sm">
-                <div className="opacity-70">© {new Date().getFullYear()} Mindra Group LLC</div>
-
-                <nav aria-label={t('footer.legalNavAria')} className="flex flex-wrap gap-x-6 gap-y-2 opacity-90">
-                  <Link href={`/${locale}/privacy`} className="hover:opacity-100 underline underline-offset-4">
-                    {t('footer.privacy')}
-                  </Link>
-                  <Link href={`/${locale}/terms`} className="hover:opacity-100 underline underline-offset-4">
-                    {t('footer.terms')}
-                  </Link>
-                  <Link href={`/${locale}/refunds`} className="hover:opacity-100 underline underline-offset-4">
-                    {t('footer.refunds')}
-                  </Link>
-                  <Link href={`/${locale}/support`} className="hover:opacity-100 underline underline-offset-4">
-                    {t('footer.support')}
-                  </Link>
-                  <Link href={`/${locale}/billing/portal`} className="hover:opacity-100 underline underline-offset-4">
-                    {t('footer.portal')}
-                  </Link>
-                </nav>
-
-                <p className="text-sm opacity-70">{t('footer.disclaimer')}</p>
-                <p className="text-sm">
-                  {t('footer.contact')}: <a className="underline underline-offset-4" href="mailto:support@mindra.group">support@mindra.group</a>
-                </p>
-              </div>
-            </div>
-          </footer>
+          {/* FOOTER */}
+          <Footer locale={locale} />
         </AuthProvider>
       </body>
     </html>
