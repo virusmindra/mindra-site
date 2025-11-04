@@ -1,31 +1,26 @@
 {
-  "brand.tagline": "MINDRA — un prieten și coach AI cald",
+  "brand.tagline": "MINDRA — prietenul tău cald cu AI și coach-ul tău",
   "nav.pricing": "Prețuri",
   "nav.donate": "Donează",
-  "hero.title": "Suport, motivație și urmărirea obiceiurilor — într-un singur bot",
-  "hero.subtitle": "Mindra te ajută să vorbești despre ce contează, să rămâi concentrat pe obiective și să ai grijă de tine. Funcționează în 11 limbi.",
+
+  "hero.title": "Sprijin, motivație și urmărirea obiceiurilor — în bot și pe site",
+  "hero.subtitle": "Mindra te ajută să vorbești despre ce contează, să rămâi concentrat pe obiective și să ai grijă de tine. Folosește-l în Telegram sau direct pe site. Funcționează în 11 limbi.",
   "cta.launch": "Deschide în Telegram",
   "cta.pricing": "Vezi prețurile",
+
   "features.title": "Ce poate face Mindra",
   "features.cards.chat.title": "Dialog de susținere",
-  "features.cards.chat.text": "Răspunsuri calde și blânde — fără judecată sau presiune.",
+  "features.cards.chat.text": "Răspunsuri calde și blânde — fără judecăți sau presiune.",
   "features.cards.coach.title": "Motivație și coaching",
-  "features.cards.coach.text": "Plan de acțiune, micro-pași și check-in-uri regulate.",
+  "features.cards.coach.text": "Planuri de acțiune, micro-pași și check-in-uri regulate.",
   "features.cards.goals.title": "Obiective și obiceiuri",
-  "features.cards.goals.text": "Adaugă obiective, un tracker de obiceiuri și mementouri.",
+  "features.cards.goals.text": "Adaugă obiective, urmărește obiceiuri și primește mementouri.",
   "features.cards.reports.title": "Rapoarte și statistici",
-  "features.cards.reports.text": "Rapoarte săptămânale, puncte și ranguri pentru progres.",
-  "features.cards.voice.title": "Citire cu voce",
-  "features.cards.voice.text": "Voci (incl. ElevenLabs) și sunete ambientale pentru somn.",
-  "features.cards.premium.title": "Provocări premium",
-  "features.cards.premium.text": "Provocări săptămânale, fixare și defixare automată după finalizare.",
-  "support.title": "De ce contează sprijinul tău",
-  "support.intro": "Mindra este creată pentru a susține cu blândețe oamenii, obiectivele și obiceiurile. Orice contribuție accelerează dezvoltarea, localizarea și funcțiile noi.",
-  "support.goal.title": "Scopul strângerii de fonduri — Mindra App",
-  "support.goal.text": "Construim aplicația mobilă Mindra. Funcții cheie la lansare:",
-  "support.features.1": "Apeluri video față în față cu Mindra — poți alege felul în care arată botul.",
-  "support.features.2": "Toate funcțiile botului de Telegram într-un singur loc: chat, obiective, obiceiuri, rapoarte.",
-  "support.features.3": "11 limbi, interfață clară și bază pentru un viitor mod offline.",
-  "support.cta": "Susține dezvoltarea"
+  "features.cards.reports.text": "Rezumat săptămânal, puncte și serii pentru progres.",
+  "features.cards.voice.title": "Răspunsuri vocale",
+  "features.cards.voice.text": "Mai multe voci (inclusiv ElevenLabs) și sunete pentru somn.",
+  "features.cards.premium.title": "Provocări Premium",
+  "features.cards.premium.text": "Provocări săptămânale, pini și marcaj automat al realizărilor."
 }
+
 
