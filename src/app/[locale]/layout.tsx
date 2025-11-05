@@ -8,46 +8,29 @@ import AuthProvider from '@/components/AuthProvider';
 import { getTSync } from '@/lib/getT';
 import Footer from '@/components/Footer';
 
-type Props = {
-  children: ReactNode;
-  params: { locale: Locale };
-};
+type Props = { children: ReactNode; params: { locale: Locale } };
 
 export default function LocaleLayout({ children, params: { locale } }: Props) {
-  const t = getTSync(locale); // локализованные строки "nav.*" и "footer.*"
+  const t = getTSync(locale);
 
   return (
     <html lang={locale}>
       <body className="min-h-dvh bg-zinc-950 text-zinc-100 antialiased">
         <AuthProvider>
-          {/* HEADER */}
           <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/80 backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-              <Link href={`/${locale}`} className="font-semibold tracking-tight">
-                Mindra
-              </Link>
+              <Link href={`/${locale}`} className="font-semibold tracking-tight">Mindra</Link>
               <nav className="flex items-center gap-3 text-sm">
-                <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">
-                  {t('nav.home')}
-                </Link>
-                <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">
-                  {t('nav.pricing')}
-                </Link>
-                <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">
-                  {t('nav.chat')}
-                </Link>
-                <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">
-                  {t('nav.donate')}
-                </Link>
+                <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">{t('nav.home')}</Link>
+                <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">{t('nav.pricing')}</Link>
+                <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">{t('nav.chat')}</Link>
+                <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">{t('nav.donate')}</Link>
                 <LanguageSwitcher />
               </nav>
             </div>
           </header>
 
-          {/* MAIN */}
           <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-
-          {/* FOOTER */}
           <Footer locale={locale} />
         </AuthProvider>
       </body>
