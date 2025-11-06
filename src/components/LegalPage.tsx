@@ -1,82 +1,63 @@
-// НЕТ "use client"
+// src/components/LegalPage.tsx  (без "use client")
 import { getTSync } from "@/lib/getT";
 import type { Locale } from "@/i18n";
 
 type NS = "privacy" | "terms" | "refunds";
+type Section = { h?: string; p?: string; ul?: string[] };
+type Doc = {
+  title?: string;
+  updatedLabel?: string;  // лейбл "Последнее обновление"
+  updated?: string;       // дата, например "30 сентября 2025 г."
+  contactLabel?: string;  // лейбл "Контакт"
+  sections?: Section[];
+};
 
 export default function LegalPage({
   ns,
   locale,
-  fallback,
+  fallback
 }: {
   ns: NS;
   locale: Locale;
   fallback?: React.ReactNode;
 }) {
-  const t = getTSync(locale);
+  // t.raw существует на рантайме, типы у getTSync просто не включают raw — делаем мягкий каст
+  const t: any = getTSync(locale);
+  const doc: Doc = (t?.raw?.(ns) ?? {}) as Doc;
 
-  // Типобезопасный вызов .raw с падением в undefined, если метода нет
-  const doc =
-    (typeof (t as any).raw === "function"
-      ? (t as any).raw(ns)
-      : undefined) as
-      | { title?: string; updated?: string; contact?: string; sections?: any[] }
-      | undefined;
-
-  // Если нет объектной записи, попробуем собрать минимум из строковых ключей
-  const fallbackDoc =
-    doc ?? {
-      title: safe(t, `${ns}.title`),
-      updated: safe(t, `${ns}.updated`),
-      contact: safe(t, `${ns}.contact`),
-      // секции без .raw достать нельзя — оставим пустыми
-      sections: [] as any[],
-    };
-
-  if (
-    (!fallbackDoc.title && !fallbackDoc.sections?.length) &&
-    !fallback
-  ) {
-    return null;
+  // если нет ни заголовка, ни секций — показываем переданный fallback (если есть)
+  if (!doc.title && !(doc.sections && doc.sections.length)) {
+    return <>{fallback ?? null}</>;
   }
-  if (!fallbackDoc.title && !fallbackDoc.sections?.length && fallback) {
-    return <>{fallback}</>;
-  }
+
+  const updatedLabel = doc.updatedLabel ?? "Last updated";
+  const contactLabel = doc.contactLabel ?? "Contact";
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12 prose prose-invert">
-      <h1>{fallbackDoc.title ?? "Legal"}</h1>
-      {fallbackDoc.updated && (
-        <p>
-          {safe(t, `${ns}.updated`) ?? "Last updated"}: {fallbackDoc.updated}
+      <h1>{doc.title ?? "Legal"}</h1>
+
+      {doc.updated && (
+        <p className="text-sm">
+          {updatedLabel}: {doc.updated}
         </p>
       )}
 
-      {Array.isArray(fallbackDoc.sections) &&
-        fallbackDoc.sections.map((sec: any, i: number) => (
+      {Array.isArray(doc.sections) &&
+        doc.sections.map((sec, i) => (
           <section key={i}>
-            {sec?.h && <h2>{sec.h}</h2>}
-            {sec?.p && <p>{sec.p}</p>}
-            {Array.isArray(sec?.ul) && (
-              <ul>
-                {sec.ul.map((li: string, j: number) => (
-                  <li key={j}>{li}</li>
-                ))}
-              </ul>
+            {sec.h && <h2>{sec.h}</h2>}
+            {sec.p && <p>{sec.p}</p>}
+            {Array.isArray(sec.ul) && (
+              <ul>{sec.ul.map((li, j) => <li key={j}>{li}</li>)}</ul>
             )}
           </section>
         ))}
+
+      <hr />
+      <p>
+        {contactLabel}: <a href="mailto:support@mindra.group">support@mindra.group</a>
+      </p>
     </article>
   );
-}
-
-function safe(t: (k: string) => string, key: string): string | undefined {
-  try {
-    const v = t(key);
-    // если i18n вернёт сам ключ — считаем, что перевода нет
-    if (typeof v === "string" && v !== key) return v;
-  } catch {
-    /* ignore */
-  }
-  return undefined;
 }

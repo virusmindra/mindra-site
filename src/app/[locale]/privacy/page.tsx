@@ -1,8 +1,6 @@
+// src/app/[locale]/privacy/page.tsx
 import LegalPage from "@/components/LegalPage";
-import type { Locale } from "@/i18n";
-
 export const metadata = { title: "Privacy Policy — Mindra" };
-
-export default function Page({ params: { locale } }: { params: { locale: Locale } }) {
+export default function Page({ params: { locale } }: { params: { locale: any } }) {
   return <LegalPage ns="privacy" locale={locale} />;
 }
