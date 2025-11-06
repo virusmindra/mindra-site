@@ -1,92 +1,82 @@
-// src/components/LegalPage.tsx
-"use client";
+// НЕТ "use client"
+import { getTSync } from "@/lib/getT";
+import type { Locale } from "@/i18n";
 
-import {useTranslations} from "next-intl";
-import type {ReactNode} from "react";
-
-// Статически подгружаем EN как универсальный fallback
-// (пути проверь: у тебя JSON лежат в app/[locale]/messages/*.json)
-import enMessages from "@/app/[locale]/messages/en.json";
-
-type Ns = "privacy" | "terms" | "refunds";
+type NS = "privacy" | "terms" | "refunds";
 
 export default function LegalPage({
   ns,
-  fallback
+  locale,
+  fallback,
 }: {
-  ns: Ns;
-  fallback?: ReactNode; // fallback-JSX, если вообще нет секций
+  ns: NS;
+  locale: Locale;
+  fallback?: React.ReactNode;
 }) {
-  const t = useTranslations(ns);
+  const t = getTSync(locale);
 
-  // 1) Пытаемся взять секции из текущей локали
-  const currentSections = tryGetArray(() => (t.raw("sections") as unknown));
+  // Типобезопасный вызов .raw с падением в undefined, если метода нет
+  const doc =
+    (typeof (t as any).raw === "function"
+      ? (t as any).raw(ns)
+      : undefined) as
+      | { title?: string; updated?: string; contact?: string; sections?: any[] }
+      | undefined;
 
-  // 2) Если секций нет — берём из английского JSON
-  const enSections = tryGetArray(() => (enMessages as any)?.[ns]?.sections);
+  // Если нет объектной записи, попробуем собрать минимум из строковых ключей
+  const fallbackDoc =
+    doc ?? {
+      title: safe(t, `${ns}.title`),
+      updated: safe(t, `${ns}.updated`),
+      contact: safe(t, `${ns}.contact`),
+      // секции без .raw достать нельзя — оставим пустыми
+      sections: [] as any[],
+    };
 
-  // 3) Выбор итоговых секций
-  const sections = (currentSections.length ? currentSections : enSections);
-
-  // 4) Базовые строки с безопасными фолбэками
-  const title        = safeGet(t, "title", defaultTitle(ns));
-  const updatedLabel = safeGet(t, "updated", "Last updated");
-  const contactLabel = safeGet(t, "contact", "Contact:");
-
-  // Если нет секций ни в локали, ни в EN — можно показать переданный JSX
-  if (!sections.length && fallback) {
+  if (
+    (!fallbackDoc.title && !fallbackDoc.sections?.length) &&
+    !fallback
+  ) {
+    return null;
+  }
+  if (!fallbackDoc.title && !fallbackDoc.sections?.length && fallback) {
     return <>{fallback}</>;
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 prose prose-neutral">
-      <h1>{title}</h1>
-      <p className="text-sm">{updatedLabel}: 30 Sep 2025</p>
+    <article className="mx-auto max-w-3xl px-4 py-12 prose prose-invert">
+      <h1>{fallbackDoc.title ?? "Legal"}</h1>
+      {fallbackDoc.updated && (
+        <p>
+          {safe(t, `${ns}.updated`) ?? "Last updated"}: {fallbackDoc.updated}
+        </p>
+      )}
 
-      {sections.map((s: any, i: number) => (
-        <section key={i}>
-          {s?.h && <h2>{s.h}</h2>}
-          {s?.p && <p>{s.p}</p>}
-          {Array.isArray(s?.ul) && (
-            <ul>
-              {s.ul.map((li: string, j: number) => (
-                <li key={j}>{li}</li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ))}
-
-      <hr />
-      <p>
-        {contactLabel}{" "}
-        <a href="mailto:support@mindra.group">support@mindra.group</a>
-      </p>
-    </div>
+      {Array.isArray(fallbackDoc.sections) &&
+        fallbackDoc.sections.map((sec: any, i: number) => (
+          <section key={i}>
+            {sec?.h && <h2>{sec.h}</h2>}
+            {sec?.p && <p>{sec.p}</p>}
+            {Array.isArray(sec?.ul) && (
+              <ul>
+                {sec.ul.map((li: string, j: number) => (
+                  <li key={j}>{li}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+    </article>
   );
 }
 
-/* ----------------- helpers ----------------- */
-
-function safeGet(t: ReturnType<typeof useTranslations>, key: string, fb: string) {
+function safe(t: (k: string) => string, key: string): string | undefined {
   try {
-    return t(key);
+    const v = t(key);
+    // если i18n вернёт сам ключ — считаем, что перевода нет
+    if (typeof v === "string" && v !== key) return v;
   } catch {
-    return fb;
+    /* ignore */
   }
-}
-
-function tryGetArray(getter: () => unknown): any[] {
-  try {
-    const v = getter();
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
-}
-
-function defaultTitle(ns: Ns) {
-  if (ns === "privacy") return "Privacy Policy";
-  if (ns === "terms") return "Terms of Service";
-  return "Refund Policy";
+  return undefined;
 }

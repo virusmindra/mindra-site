@@ -1,47 +1,8 @@
 import LegalPage from "@/components/LegalPage";
+import type { Locale } from "@/i18n";
 
 export const metadata = { title: "Refund Policy — Mindra" };
 
-function RefundsFallback() {
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-12 prose prose-neutral">
-      <h1>Refund Policy</h1>
-      <p>Последнее обновление: 30 сентября 2025 г.</p>
-
-      <h2>1. Общие положения</h2>
-      <p>Мы стремимся, чтобы вы были довольны Mindra. Ниже — базовые правила возвратов.</p>
-
-      <h2>2. 7-дневный период для новых покупок</h2>
-      <ul>
-        <li>Вы можете запросить возврат в течение 7 дней с момента первой покупки подписки при отсутствии злоупотреблений.</li>
-        <li>Повторные/пролонгированные периоды подписки обычно не подлежат возврату, если иное не требуется законом.</li>
-      </ul>
-
-      <h2>3. Исключения</h2>
-      <ul>
-        <li>Цифровой контент и активированные функции могут не подлежать возврату.</li>
-        <li>Злоупотребления, нарушения Условий сервиса или мошенническое поведение лишают права на возврат.</li>
-      </ul>
-
-      <h2>4. Как запросить возврат</h2>
-      <p>
-        Напишите на{" "}
-        <a href="mailto:support@mindra.group">support@mindra.group</a>{" "}
-        с email, которым вы оформляли покупку, и опишите причину запроса. Мы можем попросить дополнительную информацию для проверки платежа.
-      </p>
-
-      <h2>5. Сроки возврата</h2>
-      <p>После одобрения возврата перечисление обычно производится в течение 5–10 рабочих дней на тот же способ оплаты (фактические сроки зависят от банка/эмитента).</p>
-
-      <hr />
-      <p>
-        Вопросы по возвратам:{" "}
-        <a href="mailto:support@mindra.group">support@mindra.group</a>.
-      </p>
-    </div>
-  );
-}
-
-export default function Page() {
-  return <LegalPage ns="refunds" fallback={<RefundsFallback />} />;
+export default function Page({ params: { locale } }: { params: { locale: Locale } }) {
+  return <LegalPage ns="refunds" locale={locale} />;
 }
