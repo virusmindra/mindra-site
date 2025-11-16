@@ -2,25 +2,15 @@
 'use client';
 
 import type { ChatSession, ChatFeature } from './types';
-import { signIn, signOut, useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
 
-type Props = {
+type SidebarProps = {
   sessions: ChatSession[];
   currentId?: string;
+  onSelectSession: (id: string) => void;
+  onChangeSessions: (next: ChatSession[]) => void;
 
-  // управление списком чатов
-  onSelectSession?: (id: string) => void;
-  onChangeSessions?: (next: ChatSession[]) => void;
-
-  // управление фичами — ОБЯЗАТЕЛЬНО
   activeFeature: ChatFeature;
   onChangeFeature: (f: ChatFeature) => void;
-
-  // legacy-хендлеры, если где-то ещё дергаются
-  onNew?: () => void;
-  onPick?: (id: string) => void;
-  onDelete?: (id: string) => void;
 };
 
 const featureList: { id: ChatFeature; label: string }[] = [
@@ -43,22 +33,9 @@ export default function Sidebar({
   onChangeSessions,
   activeFeature,
   onChangeFeature,
-  onNew,
-  onPick,
-}: Props) {
-  const { data: session, status } = useSession();
-  const authed = !!session?.user;
-
-  const params = useParams();
-  const locale = String((params as any)?.locale ?? 'en');
-
+}: SidebarProps) {
+  // новый чат
   const handleNewChat = () => {
-    if (onNew) {
-      onNew();
-      return;
-    }
-    if (!onChangeSessions) return;
-
     const now = Date.now();
     const id =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -67,21 +44,19 @@ export default function Sidebar({
 
     const newSession: ChatSession = {
       id,
-      title: 'Новый чат',
+      title: 'New chat',
       messages: [],
       createdAt: now,
       updatedAt: now,
     };
 
-    onChangeSessions([newSession, ...sessions]);
-
-    if (onSelectSession) onSelectSession(id);
-    else if (onPick) onPick(id);
+    const next = [newSession, ...sessions];
+    onChangeSessions(next);
+    onSelectSession(id);
   };
 
   const handleSelect = (id: string) => {
-    if (onSelectSession) onSelectSession(id);
-    else if (onPick) onPick(id);
+    onSelectSession(id);
   };
 
   return (
@@ -115,7 +90,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Чаты + функции */}
+      {/* Список чатов */}
       <div className="flex-1 overflow-auto">
         <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
           Чаты
@@ -137,6 +112,7 @@ export default function Sidebar({
           ))}
         </ul>
 
+        {/* Функции */}
         <div className="px-3 py-3 text-[11px] uppercase tracking-wide text-zinc-500">
           Функции
         </div>
@@ -159,49 +135,10 @@ export default function Sidebar({
         </ul>
       </div>
 
-      {/* Низ: настройки + аккаунт */}
-      <div className="border-t border-white/10 px-3 py-3 space-y-3 text-xs text-zinc-400">
-        <div className="space-y-1">
-          <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
-            <span>⚙️</span>
-            <span>Настройки и подписка</span>
-          </button>
-          <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
-            <span>💬</span>
-            <span>Оставить отзыв</span>
-          </button>
-          <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
-            <span>Поддержка: support@mindra.group</span>
-          </button>
-        </div>
-
-        <div className="pt-2 border-t border-white/10">
-          <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-1">
-            Account
-          </div>
-          {authed ? (
-            <button
-              className="w-full border border-white/15 rounded-xl px-3 py-2 text-[11px] hover:bg-white/10"
-              onClick={() => signOut({ callbackUrl: `/${locale}/chat` })}
-            >
-              Sign out
-            </button>
-          ) : (
-            <button
-              className="w-full border border-white/15 rounded-xl px-3 py-2 text-[11px] hover:bg-white/10"
-              onClick={() => signIn('google', { callbackUrl: `/${locale}/chat` })}
-            >
-              Sign in
-            </button>
-          )}
-          <p className="text-[11px] mt-2 text-zinc-400">
-            {status === 'loading'
-              ? 'Checking session…'
-              : authed
-              ? `Hello, ${session?.user?.name ?? 'user'}`
-              : 'Sign in to sync chats and manage your subscription.'}
-          </p>
-        </div>
+      {/* Низ пока без авторизации, просто заглушка */}
+      <div className="border-t border-white/10 px-3 py-3 space-y-2 text-xs text-zinc-400">
+        <p>Mindra web chat alpha.</p>
+        <p>Sign-in & billing подключим позже.</p>
       </div>
     </aside>
   );
