@@ -9,28 +9,31 @@ type Props = {
   sessions: ChatSession[];
   currentId?: string;
 
-  // новый API
+  // управление списком чатов
   onSelectSession?: (id: string) => void;
   onChangeSessions?: (next: ChatSession[]) => void;
-  activeFeature?: ChatFeature;
-  onChangeFeature?: (f: ChatFeature) => void;
 
-  // старый API
+  // управление фичами — теперь ОБЯЗАТЕЛЬНО
+  activeFeature: ChatFeature;
+  onChangeFeature: (f: ChatFeature) => void;
+
+  // legacy-хэндлеры (если где-то ещё используются)
   onNew?: () => void;
   onPick?: (id: string) => void;
   onDelete?: (id: string) => void;
 };
 
 const featureList: { id: ChatFeature; label: string }[] = [
-  { id: 'goals', label: 'Цели' },
-  { id: 'habits', label: 'Привычки' },
-  { id: 'reminders', label: 'Напоминания' },
-  { id: 'challenges', label: 'Челленджи' },
-  { id: 'sleep_sounds', label: 'Звуки для сна' },
-  { id: 'bedtime_stories', label: 'Сказки' },
-  { id: 'daily_tasks', label: 'Задания на день' },
-  { id: 'modes', label: 'Режим общения' },
-  { id: 'points', label: 'Очки и титулы' },
+  { id: 'default',        label: 'Чат' },
+  { id: 'goals',          label: 'Цели' },
+  { id: 'habits',         label: 'Привычки' },
+  { id: 'reminders',      label: 'Напоминания' },
+  { id: 'challenges',     label: 'Челленджи' },
+  { id: 'sleep_sounds',   label: 'Звуки для сна' },
+  { id: 'bedtime_stories',label: 'Сказки' },
+  { id: 'daily_tasks',    label: 'Задания на день' },
+  { id: 'modes',          label: 'Режим общения' },
+  { id: 'points',         label: 'Очки и титулы' },
 ];
 
 export default function Sidebar({
@@ -38,7 +41,7 @@ export default function Sidebar({
   currentId,
   onSelectSession,
   onChangeSessions,
-  activeFeature = 'default',
+  activeFeature,
   onChangeFeature,
   onNew,
   onPick,
@@ -54,7 +57,6 @@ export default function Sidebar({
       onNew();
       return;
     }
-
     if (!onChangeSessions) return;
 
     const now = Date.now();
@@ -71,8 +73,7 @@ export default function Sidebar({
       updatedAt: now,
     };
 
-    const next = [newSession, ...sessions];
-    onChangeSessions(next);
+    onChangeSessions([newSession, ...sessions]);
 
     if (onSelectSession) onSelectSession(id);
     else if (onPick) onPick(id);
@@ -85,7 +86,7 @@ export default function Sidebar({
 
   return (
     <aside className="w-72 flex flex-col border-r border-white/10 bg-zinc-950 h-[calc(100dvh-4.5rem)]">
-      {/* Верх: логотип Mindra */}
+      {/* Top bar */}
       <div className="flex items-center gap-2 px-3 py-3 border-b border-white/10">
         <div className="h-8 w-8 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
           <span className="text-sm font-semibold">M</span>
@@ -93,7 +94,7 @@ export default function Sidebar({
         <span className="font-semibold text-sm">Mindra</span>
       </div>
 
-      {/* Блок: чаты */}
+      {/* New chat + search */}
       <div className="px-3 py-3 border-b border-white/5">
         <div className="flex gap-2 mb-3">
           <button
@@ -114,7 +115,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Список чатов */}
+      {/* Chats */}
       <div className="flex-1 overflow-auto">
         <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
           Чаты
@@ -136,7 +137,7 @@ export default function Sidebar({
           ))}
         </ul>
 
-        {/* Функции чата */}
+        {/* Features */}
         <div className="px-3 py-3 text-[11px] uppercase tracking-wide text-zinc-500">
           Функции
         </div>
@@ -144,8 +145,8 @@ export default function Sidebar({
           {featureList.map((f) => (
             <li key={f.id}>
               <button
-                onClick={() => onChangeFeature && onChangeFeature(f.id)}
-                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs ${
+                onClick={() => onChangeFeature(f.id)}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition ${
                   activeFeature === f.id
                     ? 'bg-indigo-600/80 text-white'
                     : 'text-zinc-300 hover:bg-zinc-900/60'
@@ -159,7 +160,7 @@ export default function Sidebar({
         </ul>
       </div>
 
-      {/* Нижний блок: настройки + аккаунт */}
+      {/* Bottom: settings + account */}
       <div className="border-t border-white/10 px-3 py-3 space-y-3 text-xs text-zinc-400">
         <div className="space-y-1">
           <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
