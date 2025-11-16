@@ -32,21 +32,26 @@ export async function POST(req: Request) {
     }
 
     // читаем тело
-    const { input, sessionId } = await req.json();
+    const { input, sessionId, feature } = await req.json();
 
     // основной запрос к FastAPI на Render
     let upstream: Response;
     try {
-      upstream = await fetchWithTimeout(URL_FULL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // cache: 'no-store' — на edge не обязательно, но можно оставить
-        body: JSON.stringify({
-          userId: 'web-anon',                 // на edge не дергаем getCurrentUser
-          sessionId: sessionId ?? 'default',
-          input: input ?? '',
-        }),
-      }, 15000); // 15s таймаут
+      upstream = await fetchWithTimeout(
+        URL_FULL,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: 'web-anon',                 // на edge не дергаем getCurrentUser
+            sessionId: sessionId ?? 'default',
+            input: input ?? '',
+            feature: feature ?? 'default',      // <--- прокидываем режим
+            source: 'web',                      // <--- чтобы бекенд знал, что это с сайта
+          }),
+        },
+        15000,
+      );
     } catch (e) {
       // таймаут/сеть
       return new Response(JSON.stringify({ reply: 'Upstream timeout' }), {
@@ -56,23 +61,25 @@ export async function POST(req: Request) {
     }
 
     const text = await upstream.text();
-    // если Render ответил ошибкой — прокинем «красиво»
     if (!upstream.ok) {
-      // попробуем отдать тело как есть, но с нашим сообщением
       let payload: any;
-      try { payload = JSON.parse(text); }
-      catch { payload = { reply: 'Upstream error' }; }
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = { reply: 'Upstream error' };
+      }
       return new Response(JSON.stringify(payload), {
         status: 502,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // успешный ответ
-    // (FastAPI отдает { reply: string }, но на всякий — парсим/нормализуем)
     let data: any;
-    try { data = JSON.parse(text); }
-    catch { data = { reply: text || 'Empty response' }; }
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { reply: text || 'Empty response' };
+    }
 
     return new Response(JSON.stringify(data), {
       status: 200,
