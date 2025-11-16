@@ -1,3 +1,4 @@
+// src/app/[locale]/chat/ClientPage.tsx
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -16,14 +17,14 @@ export default function ClientPage() {
 
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadSessions());
   const [currentId, setCurrentId] = useState<string | undefined>(
-    () => loadSessions()[0]?.id
+    () => loadSessions()[0]?.id,
   );
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
   const current = useMemo(
     () => sessions.find((s) => s.id === currentId),
-    [sessions, currentId]
+    [sessions, currentId],
   );
 
   // если current отсутствует, но есть сессии — выбираем первую
@@ -70,11 +71,10 @@ export default function ClientPage() {
         createdAt: now,
         updatedAt: now,
       };
-
       others = sessions;
       setCurrentId(id);
     } else {
-      others = sessions.filter((s) => s.id !== session!.id);
+      others = sessions.filter((s) => s.id !== (session as ChatSession).id);
     }
 
     const userMsg: ChatMessage = {
@@ -108,7 +108,9 @@ export default function ClientPage() {
 
       const botMsg: ChatMessage = {
         role: 'assistant',
-        content: replyText || t('empty_reply', { defaultValue: 'Нет ответа.' }),
+        content:
+          replyText ||
+          t('empty_reply', { defaultValue: 'Нет ответа.' }),
         ts: Date.now(),
       };
 
@@ -140,13 +142,17 @@ export default function ClientPage() {
     }
   };
 
-  // === РЕНДЕР ===
+  // РЕНДЕР
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-950">
-      {/* Сайдбар с переключением фич */}
+      {/* Сайдбар с чатами и фичами */}
       <Sidebar
+        sessions={sessions}
+        currentId={currentId}
+        onSelectSession={handleSelectSession}
+        onChangeSessions={handleChangeSessions}
         activeFeature={activeFeature}
-        onSelectFeature={setActiveFeature}
+        onChangeFeature={setActiveFeature}
       />
 
       {/* Основное содержимое */}
