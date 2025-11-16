@@ -6,48 +6,46 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 
 type Props = {
-  sessions?: ChatSession[];
+  sessions: ChatSession[];
   currentId?: string;
 
   // управление списком чатов
   onSelectSession?: (id: string) => void;
   onChangeSessions?: (next: ChatSession[]) => void;
 
-  // управление фичами
-  activeFeature?: ChatFeature;
-  onChangeFeature?: (f: ChatFeature) => void;
+  // управление фичами — ОБЯЗАТЕЛЬНО
+  activeFeature: ChatFeature;
+  onChangeFeature: (f: ChatFeature) => void;
 
-  // legacy-хэндлеры (если где-то ещё используются)
+  // legacy-хендлеры, если где-то ещё дергаются
   onNew?: () => void;
   onPick?: (id: string) => void;
   onDelete?: (id: string) => void;
 };
 
 const featureList: { id: ChatFeature; label: string }[] = [
-  { id: 'default',         label: 'Чат' },
-  { id: 'goals',           label: 'Цели' },
-  { id: 'habits',          label: 'Привычки' },
-  { id: 'reminders',       label: 'Напоминания' },
-  { id: 'challenges',      label: 'Челленджи' },
-  { id: 'sleep_sounds',    label: 'Звуки для сна' },
+  { id: 'default', label: 'Чат' },
+  { id: 'goals', label: 'Цели' },
+  { id: 'habits', label: 'Привычки' },
+  { id: 'reminders', label: 'Напоминания' },
+  { id: 'challenges', label: 'Челленджи' },
+  { id: 'sleep_sounds', label: 'Звуки для сна' },
   { id: 'bedtime_stories', label: 'Сказки' },
-  { id: 'daily_tasks',     label: 'Задания на день' },
-  { id: 'modes',           label: 'Режим общения' },
-  { id: 'points',          label: 'Очки и титулы' },
+  { id: 'daily_tasks', label: 'Задания на день' },
+  { id: 'modes', label: 'Режим общения' },
+  { id: 'points', label: 'Очки и титулы' },
 ];
 
-export default function Sidebar(props: Props) {
-  const {
-    sessions = [],
-    currentId,
-    onSelectSession,
-    onChangeSessions,
-    activeFeature = 'default',
-    onChangeFeature,
-    onNew,
-    onPick,
-  } = props;
-
+export default function Sidebar({
+  sessions,
+  currentId,
+  onSelectSession,
+  onChangeSessions,
+  activeFeature,
+  onChangeFeature,
+  onNew,
+  onPick,
+}: Props) {
   const { data: session, status } = useSession();
   const authed = !!session?.user;
 
@@ -117,7 +115,7 @@ export default function Sidebar(props: Props) {
         </div>
       </div>
 
-      {/* Чаты */}
+      {/* Чаты + функции */}
       <div className="flex-1 overflow-auto">
         <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
           Чаты
@@ -139,7 +137,6 @@ export default function Sidebar(props: Props) {
           ))}
         </ul>
 
-        {/* Функции */}
         <div className="px-3 py-3 text-[11px] uppercase tracking-wide text-zinc-500">
           Функции
         </div>
@@ -147,7 +144,7 @@ export default function Sidebar(props: Props) {
           {featureList.map((f) => (
             <li key={f.id}>
               <button
-                onClick={() => onChangeFeature && onChangeFeature(f.id)}
+                onClick={() => onChangeFeature(f.id)}
                 className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition ${
                   activeFeature === f.id
                     ? 'bg-indigo-600/80 text-white'
