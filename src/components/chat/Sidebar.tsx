@@ -1,3 +1,4 @@
+// src/components/chat/Sidebar.tsx
 'use client';
 
 import type { ChatSession, ChatFeature } from './types';
@@ -5,15 +6,18 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 
 type Props = {
-  sessions: ChatSession[];
+  sessions?: ChatSession[];
   currentId?: string;
 
+  // управление списком чатов
   onSelectSession?: (id: string) => void;
   onChangeSessions?: (next: ChatSession[]) => void;
 
-  activeFeature: ChatFeature;
-  onChangeFeature: (f: ChatFeature) => void;
+  // управление фичами
+  activeFeature?: ChatFeature;
+  onChangeFeature?: (f: ChatFeature) => void;
 
+  // legacy-хэндлеры (если где-то ещё используются)
   onNew?: () => void;
   onPick?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -32,16 +36,18 @@ const featureList: { id: ChatFeature; label: string }[] = [
   { id: 'points',          label: 'Очки и титулы' },
 ];
 
-export default function Sidebar({
-  sessions,
-  currentId,
-  onSelectSession,
-  onChangeSessions,
-  activeFeature,
-  onChangeFeature,
-  onNew,
-  onPick,
-}: Props) {
+export default function Sidebar(props: Props) {
+  const {
+    sessions = [],
+    currentId,
+    onSelectSession,
+    onChangeSessions,
+    activeFeature = 'default',
+    onChangeFeature,
+    onNew,
+    onPick,
+  } = props;
+
   const { data: session, status } = useSession();
   const authed = !!session?.user;
 
@@ -69,7 +75,7 @@ export default function Sidebar({
       updatedAt: now,
     };
 
-    onChangeSessions([newSession, ...(sessions ?? [])]);
+    onChangeSessions([newSession, ...sessions]);
 
     if (onSelectSession) onSelectSession(id);
     else if (onPick) onPick(id);
@@ -82,7 +88,7 @@ export default function Sidebar({
 
   return (
     <aside className="w-72 flex flex-col border-r border-white/10 bg-zinc-950 h-[calc(100dvh-4.5rem)]">
-      {/* Top bar */}
+      {/* Верх: логотип */}
       <div className="flex items-center gap-2 px-3 py-3 border-b border-white/10">
         <div className="h-8 w-8 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
           <span className="text-sm font-semibold">M</span>
@@ -90,7 +96,7 @@ export default function Sidebar({
         <span className="font-semibold text-sm">Mindra</span>
       </div>
 
-      {/* New chat + search */}
+      {/* Новый чат + поиск */}
       <div className="px-3 py-3 border-b border-white/5">
         <div className="flex gap-2 mb-3">
           <button
@@ -111,13 +117,13 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Chats */}
+      {/* Чаты */}
       <div className="flex-1 overflow-auto">
         <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
           Чаты
         </div>
         <ul className="px-2 space-y-1">
-          {(sessions ?? []).map((s) => (
+          {sessions.map((s) => (
             <li key={s.id}>
               <button
                 onClick={() => handleSelect(s.id)}
@@ -133,7 +139,7 @@ export default function Sidebar({
           ))}
         </ul>
 
-        {/* Features */}
+        {/* Функции */}
         <div className="px-3 py-3 text-[11px] uppercase tracking-wide text-zinc-500">
           Функции
         </div>
@@ -141,7 +147,7 @@ export default function Sidebar({
           {featureList.map((f) => (
             <li key={f.id}>
               <button
-                onClick={() => onChangeFeature(f.id)}
+                onClick={() => onChangeFeature && onChangeFeature(f.id)}
                 className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition ${
                   activeFeature === f.id
                     ? 'bg-indigo-600/80 text-white'
@@ -156,7 +162,7 @@ export default function Sidebar({
         </ul>
       </div>
 
-      {/* Bottom: settings + account */}
+      {/* Низ: настройки + аккаунт */}
       <div className="border-t border-white/10 px-3 py-3 space-y-3 text-xs text-zinc-400">
         <div className="space-y-1">
           <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">

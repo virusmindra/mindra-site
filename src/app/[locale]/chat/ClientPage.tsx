@@ -1,67 +1,57 @@
+// src/app/[locale]/chat/ClientPage.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
 import type { ChatMessage, ChatSession, ChatFeature } from '@/components/chat/types';
+import { loadSessions, saveSessions } from '@/components/chat/storage';
 import GoalsPanel from '@/components/chat/GoalsPanel';
 import HabitsPanel from '@/components/chat/HabitsPanel';
 
-// ЛОКАЛЬНОЕ безопасное хранилище (чтобы не падать из-за старого storage.ts)
-const STORAGE_KEY = 'mindra:web-chat-sessions';
-
-function safeLoadSessions(): ChatSession[] {
+function loadInitialSessions(): ChatSession[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed as ChatSession[];
-  } catch (e) {
-    console.error('safeLoadSessions: failed, clearing storage', e);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    return loadSessions();
+  } catch {
     return [];
-  }
-}
-
-function safeSaveSessions(sessions: ChatSession[]) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-  } catch (e) {
-    console.error('safeSaveSessions:', e);
   }
 }
 
 export default function ClientPage() {
   const t = useTranslations('chat');
 
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentId, setCurrentId] = useState<string | undefined>(undefined);
+  const initialSessions = loadInitialSessions();
+
+  const [sessions, setSessions] = useState<ChatSession[]>(initialSessions);
+  const [currentId, setCurrentId] = useState<string | undefined>(
+    initialSessions[0]?.id,
+  );
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
-
-  // Инициализация сессий только на клиенте
-  useEffect(() => {
-    const loaded = safeLoadSessions();
-    setSessions(loaded);
-    if (loaded[0]) setCurrentId(loaded[0].id);
-  }, []);
 
   const current = useMemo(
     () => sessions.find((s) => s.id === currentId),
     [sessions, currentId],
   );
 
+  // если current отсутствует, но есть сессии — выбираем первую
+  useEffect(() => {
+    if (!current && sessions.length > 0) {
+      setCurrentId(sessions[0].id);
+    }
+  }, [current, sessions]);
+
   const setAndSave = (next: ChatSession[]) => {
     setSessions(next);
-    safeSaveSessions(next);
+    try {
+      saveSessions(next);
+    } catch {
+      // игнорируем ошибки localStorage
+    }
   };
 
   const handleChangeSessions = (next: ChatSession[]) => {
@@ -82,7 +72,7 @@ export default function ClientPage() {
     let session = current;
     let others = sessions;
 
-    // если чатов ещё нет — создаём первый
+    // если ещё нет ни одной сессии — создаём первую
     if (!session) {
       const id =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -100,6 +90,7 @@ export default function ClientPage() {
       setCurrentId(id);
     } else {
       others = sessions.filter((s) => s.id !== (session as ChatSession).id);
+      
     }
 
     const userMsg: ChatMessage = {
@@ -147,7 +138,6 @@ export default function ClientPage() {
 
       setAndSave([updatedSession, ...others]);
     } catch (e) {
-      console.error('web-chat error', e);
       const errMsg: ChatMessage = {
         role: 'assistant',
         content: t('error_generic', {
@@ -168,9 +158,10 @@ export default function ClientPage() {
     }
   };
 
+  // === РЕНДЕР ===
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-950">
-      {/* Сайдбар слева */}
+      {/* Sidebar слева */}
       <Sidebar
         sessions={sessions}
         currentId={currentId}
