@@ -4,10 +4,26 @@ import { useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import ChatWindow from './ChatWindow';
 import Sidebar from './Sidebar';
-import type { ChatMessage, ChatSession } from './types';
+import type { ChatMessage, ChatSession, ChatFeature } from './types';
 import { loadSessions, saveSessions, newSessionTitle } from './storage';
 
+const [sessions, setSessions] = useState<ChatSession[]>(() => loadSessions());
+const [currentId, setCurrentId] = useState<string | undefined>(() => loadSessions()[0]?.id);
+const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
+
 const DIRECT_URL = process.env.NEXT_PUBLIC_BOT_URL; // можно оставить пустым — мы ловим ошибки
+
+const handleSelectSession = (id: string) => {
+  setCurrentId(id);
+};
+
+const handleChangeSessions = (next: ChatSession[]) => {
+  setSessions(next);
+  saveSessions(next);
+  if (!next.find((s) => s.id === currentId)) {
+    setCurrentId(next[0]?.id);
+  }
+};
 
 function getOrCreateSessionId(key = 'mindra:web:session') {
   if (typeof window === 'undefined') return 'default';
@@ -146,11 +162,12 @@ export default function ClientChatPage() {
     <section className="mx-auto max-w-6xl flex gap-4">
       {/* Sidebar слева */}
       <Sidebar
-        sessions={sessions}
-        currentId={currentId}
-        onNew={onNew}
-        onPick={onPick}
-        onDelete={onDelete}
+      sessions={sessions}
+      currentId={currentId}
+      onSelectSession={handleSelectSession}
+      onChangeSessions={handleChangeSessions}
+      activeFeature={activeFeature}
+      onChangeFeature={setActiveFeature}
       />
 
       {/* Контент справа */}
