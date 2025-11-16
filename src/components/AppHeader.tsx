@@ -32,7 +32,10 @@ export default function AppHeader() {
         <Link href={`/${locale}`} className="font-semibold tracking-wide">MINDRA</Link>
         <nav className="flex items-center gap-2">
           <NavLink href={`/${locale}`}>Home</NavLink>
-          <NavLink href={`/${locale}/chat`}>Chat</NavLink>
+          <Link href={`/${locale}/chat`} className="px-3 py-1.5 hover:bg-white/5 rounded">
+  Chat
+</Link>
+
           <NavLink href={`/${locale}/pricing`}>{t('nav.pricing')}</NavLink>
           <NavLink href={`/${locale}/donate`}>{t('nav.donate')}</NavLink>
           <LanguageSwitcher/>
