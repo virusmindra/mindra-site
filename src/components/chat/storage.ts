@@ -13,10 +13,6 @@ function safeParse<T>(txt: string | null, fallback: T): T {
   }
 }
 
-/**
- * Грубая нормализация данных, чтобы старые/битые структуры
- * не ломали приложение.
- */
 function normalizeSessions(raw: any): ChatSession[] {
   if (!Array.isArray(raw)) return [];
 
@@ -29,8 +25,8 @@ function normalizeSessions(raw: any): ChatSession[] {
         : (typeof crypto !== 'undefined' &&
            'randomUUID' in crypto &&
            // @ts-ignore
-           crypto.randomUUID())
-          || String(now);
+           crypto.randomUUID()) ||
+          String(now);
 
     const messages: ChatMessage[] = Array.isArray(item?.messages)
       ? item.messages
@@ -59,7 +55,6 @@ function normalizeSessions(raw: any): ChatSession[] {
 
 export function loadSessions(): ChatSession[] {
   if (typeof window === 'undefined') return [];
-
   const raw = safeParse<any[]>(localStorage.getItem(KEY), []);
   return normalizeSessions(raw);
 }
@@ -69,7 +64,7 @@ export function saveSessions(sessions: ChatSession[]) {
   try {
     localStorage.setItem(KEY, JSON.stringify(sessions));
   } catch {
-    // переполнен localStorage / режим инкогнито — просто молча игнорим
+    // localStorage может быть недоступен — просто молча игнорим
   }
 }
 
