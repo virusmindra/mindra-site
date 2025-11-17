@@ -1,3 +1,4 @@
+// src/app/[locale]/chat/ClientPage.tsx
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +7,15 @@ import Composer from '@/components/chat/Composer';
 import type { ChatMessage } from '@/components/chat/types';
 
 export default function ClientPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // стартуем с приветственным сообщением от Mindra
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: 'assistant',
+      content:
+        'Привет! Я Mindra 😊 Напиши, что у тебя на душе — цели, привычки, настроение — и я помогу разобраться.',
+      ts: Date.now(),
+    },
+  ]);
   const [sending, setSending] = useState(false);
 
   const handleSend = async (text: string) => {
@@ -62,10 +71,12 @@ export default function ClientPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-950">
-      <main className="flex-1 flex flex-col">
-        <ChatWindow messages={messages} />
-        <Composer onSend={handleSend} disabled={sending} />
-      </main>
+      <div className="flex-1 flex justify-center">
+        <div className="w-full max-w-3xl flex flex-col px-4 pt-6 pb-4">
+          <ChatWindow messages={messages} />
+          <Composer onSend={handleSend} disabled={sending} />
+        </div>
+      </div>
     </div>
   );
 }
