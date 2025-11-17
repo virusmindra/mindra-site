@@ -1,24 +1,23 @@
 // src/app/[locale]/chat/ClientPage.tsx
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
-import type { ChatMessage, ChatSession, ChatFeature } from '@/components/chat/types';
-import { loadSessions, saveSessions } from '@/components/chat/storage';
 import GoalsPanel from '@/components/chat/GoalsPanel';
 import HabitsPanel from '@/components/chat/HabitsPanel';
+
+import type { ChatFeature, ChatMessage, ChatSession } from '@/components/chat/types';
+import { loadSessions, saveSessions } from '@/components/chat/storage';
 
 export default function ClientPage() {
   const t = useTranslations('chat');
 
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadSessions());
-  const [currentId, setCurrentId] = useState<string | undefined>(
-    () => loadSessions()[0]?.id,
-  );
+  const [currentId, setCurrentId] = useState<string | undefined>(() => loadSessions()[0]?.id);
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
@@ -54,10 +53,12 @@ export default function ClientPage() {
     if (!text.trim()) return;
 
     const now = Date.now();
-    let session = current;
-    let others = sessions;
 
-    if (!session) {
+    // гарантируем, что у нас есть session и others
+    let session: ChatSession;
+    let others: ChatSession[];
+
+    if (!current) {
       const id =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
@@ -73,7 +74,8 @@ export default function ClientPage() {
       others = sessions;
       setCurrentId(id);
     } else {
-      others = sessions.filter((s) => s.id !== session!.id);
+      session = current;
+      others = sessions.filter((s) => s.id !== current.id);
     }
 
     const userMsg: ChatMessage = {
@@ -82,12 +84,9 @@ export default function ClientPage() {
       ts: now,
     };
 
-    // тут явно говорим TS: session уже точно есть
-    const base = session as ChatSession;
-
     let updatedSession: ChatSession = {
-      ...base,
-      messages: [...base.messages, userMsg],
+      ...session,
+      messages: [...session.messages, userMsg],
       updatedAt: now,
     };
 
@@ -112,7 +111,9 @@ export default function ClientPage() {
         role: 'assistant',
         content:
           replyText ||
-          t('empty_reply', { defaultValue: 'Нет ответа.' }),
+          t('empty_reply', {
+            defaultValue: 'Нет ответа.',
+          }),
         ts: Date.now(),
       };
 
@@ -144,7 +145,6 @@ export default function ClientPage() {
     }
   };
 
-  // === РЕНДЕР ===
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-950">
       {/* Sidebar слева */}

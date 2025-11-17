@@ -9,45 +9,41 @@ type Props = {
   sessions: ChatSession[];
   currentId?: string;
 
-  // управление списком чатов
-  onSelectSession?: (id: string) => void;
-  onChangeSessions?: (next: ChatSession[]) => void;
+  onSelectSession: (id: string) => void;
+  onChangeSessions: (next: ChatSession[]) => void;
 
-  // управление фичами
   activeFeature: ChatFeature;
   onChangeFeature: (f: ChatFeature) => void;
 
-  // legacy
+  // legacy-хэндлеры (если где-то ещё используются – не обязательно)
   onNew?: () => void;
   onPick?: (id: string) => void;
   onDelete?: (id: string) => void;
 };
 
 const featureList: { id: ChatFeature; label: string }[] = [
-  { id: 'default', label: 'Чат' },
-  { id: 'goals', label: 'Цели' },
-  { id: 'habits', label: 'Привычки' },
-  { id: 'reminders', label: 'Напоминания' },
-  { id: 'challenges', label: 'Челленджи' },
-  { id: 'sleep_sounds', label: 'Звуки для сна' },
+  { id: 'default',         label: 'Чат' },
+  { id: 'goals',           label: 'Цели' },
+  { id: 'habits',          label: 'Привычки' },
+  { id: 'reminders',       label: 'Напоминания' },
+  { id: 'challenges',      label: 'Челленджи' },
+  { id: 'sleep_sounds',    label: 'Звуки для сна' },
   { id: 'bedtime_stories', label: 'Сказки' },
-  { id: 'daily_tasks', label: 'Задания на день' },
-  { id: 'modes', label: 'Режим общения' },
-  { id: 'points', label: 'Очки и титулы' },
+  { id: 'daily_tasks',     label: 'Задания на день' },
+  { id: 'modes',           label: 'Режим общения' },
+  { id: 'points',          label: 'Очки и титулы' },
 ];
 
-export default function Sidebar(props: Props) {
-  const {
-    sessions = [],
-    currentId,
-    onSelectSession,
-    onChangeSessions,
-    activeFeature,
-    onChangeFeature,
-    onNew,
-    onPick,
-  } = props;
-
+export default function Sidebar({
+  sessions,
+  currentId,
+  onSelectSession,
+  onChangeSessions,
+  activeFeature,
+  onChangeFeature,
+  onNew,
+  onPick,
+}: Props) {
   const { data: session, status } = useSession();
   const authed = !!session?.user;
 
@@ -59,7 +55,6 @@ export default function Sidebar(props: Props) {
       onNew();
       return;
     }
-    if (!onChangeSessions) return;
 
     const now = Date.now();
     const id =
@@ -82,13 +77,13 @@ export default function Sidebar(props: Props) {
   };
 
   const handleSelect = (id: string) => {
-    if (onSelectSession) onSelectSession(id);
-    else if (onPick) onPick(id);
+    onSelectSession(id);
+    if (onPick) onPick(id);
   };
 
   return (
     <aside className="w-72 flex flex-col border-r border-white/10 bg-zinc-950 h-[calc(100dvh-4.5rem)]">
-      {/* Top bar */}
+      {/* Верх: логотип Mindra */}
       <div className="flex items-center gap-2 px-3 py-3 border-b border-white/10">
         <div className="h-8 w-8 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
           <span className="text-sm font-semibold">M</span>
@@ -96,7 +91,7 @@ export default function Sidebar(props: Props) {
         <span className="font-semibold text-sm">Mindra</span>
       </div>
 
-      {/* New chat + search */}
+      {/* Блок: чаты */}
       <div className="px-3 py-3 border-b border-white/5">
         <div className="flex gap-2 mb-3">
           <button
@@ -117,8 +112,9 @@ export default function Sidebar(props: Props) {
         </div>
       </div>
 
-      {/* Chats */}
+      {/* Список чатов + функции */}
       <div className="flex-1 overflow-auto">
+        {/* Чаты */}
         <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
           Чаты
         </div>
@@ -139,7 +135,7 @@ export default function Sidebar(props: Props) {
           ))}
         </ul>
 
-        {/* Features */}
+        {/* Функции */}
         <div className="px-3 py-3 text-[11px] uppercase tracking-wide text-zinc-500">
           Функции
         </div>
@@ -162,7 +158,7 @@ export default function Sidebar(props: Props) {
         </ul>
       </div>
 
-      {/* Bottom: settings + account */}
+      {/* Нижний блок: настройки + аккаунт */}
       <div className="border-t border-white/10 px-3 py-3 space-y-3 text-xs text-zinc-400">
         <div className="space-y-1">
           <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
