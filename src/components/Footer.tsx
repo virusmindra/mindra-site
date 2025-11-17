@@ -13,11 +13,33 @@ export default function Footer({ locale }: { locale: Locale }) {
           <span className="opacity-70">© {year} Mindra Group LLC</span>
           <nav aria-label={t("footer.legalNavAria")}>
             <ul className="flex flex-wrap gap-4">
-              <li><Link href={`/${locale}/privacy`} className="hover:underline">{t("footer.privacy")}</Link></li>
-              <li><Link href={`/${locale}/terms`} className="hover:underline">{t("footer.terms")}</Link></li>
-              <li><Link href={`/${locale}/refunds`} className="hover:underline">{t("footer.refunds")}</Link></li>
-              <li><Link href={`/${locale}/support`} className="hover:underline">{t("footer.support")}</Link></li>
-              <li><Link href={`/${locale}/billing/portal`} className="hover:underline">{t("footer.portal")}</Link></li>
+              <li>
+                <Link href={`/${locale}/privacy`} className="hover:underline">
+                  {t("footer.privacy")}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/terms`} className="hover:underline">
+                  {t("footer.terms")}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/refunds`} className="hover:underline">
+                  {t("footer.refunds")}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/support`} className="hover:underline">
+                  {t("footer.support")}
+                </Link>
+              </li>
+
+              {/* ВАЖНО: больше никакого /{locale}/billing/portal */}
+              <li>
+                <a href="/api/portal" className="hover:underline">
+                  {t("footer.portal")}
+                </a>
+              </li>
             </ul>
           </nav>
         </div>
@@ -25,7 +47,9 @@ export default function Footer({ locale }: { locale: Locale }) {
         <p className="mt-3 opacity-70">{t("footer.disclaimer")}</p>
         <p className="opacity-70">
           {t("footer.contact")}{" "}
-          <a className="hover:underline" href="mailto:support@mindra.group">support@mindra.group</a>
+          <a className="hover:underline" href="mailto:support@mindra.group">
+            support@mindra.group
+          </a>
         </p>
       </div>
     </footer>
