@@ -1,6 +1,6 @@
-import ClientChatPage from '@/components/chat/ClientChatPage';
-// Если алиас '@/...' вдруг не резолвится, замени на '../../../components/chat/ClientChatPage'
+// src/app/[locale]/chat/page.tsx
+import ClientPage from './ClientPage';
 
 export default function ChatPage() {
-  return <ClientChatPage />;
+  return <ClientPage />;
 }

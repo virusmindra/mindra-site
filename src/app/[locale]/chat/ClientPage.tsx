@@ -7,11 +7,7 @@ import { useTranslations } from 'next-intl';
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
-import type {
-  ChatMessage,
-  ChatSession,
-  ChatFeature,
-} from '@/components/chat/types';
+import type { ChatMessage, ChatSession, ChatFeature } from '@/components/chat/types';
 import { loadSessions, saveSessions } from '@/components/chat/storage';
 import GoalsPanel from '@/components/chat/GoalsPanel';
 import HabitsPanel from '@/components/chat/HabitsPanel';
@@ -19,7 +15,6 @@ import HabitsPanel from '@/components/chat/HabitsPanel';
 export default function ClientPage() {
   const t = useTranslations('chat');
 
-  // локальные сессии
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadSessions());
   const [currentId, setCurrentId] = useState<string | undefined>(
     () => loadSessions()[0]?.id,
@@ -32,7 +27,7 @@ export default function ClientPage() {
     [sessions, currentId],
   );
 
-  // если current потерялся — выбираем первую сессию
+  // если current отсутствует, но есть сессии — выбираем первую
   useEffect(() => {
     if (!current && sessions.length > 0) {
       setCurrentId(sessions[0].id);
@@ -62,7 +57,6 @@ export default function ClientPage() {
     let session = current;
     let others = sessions;
 
-    // если нет сессий — создаём первую
     if (!session) {
       const id =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -79,7 +73,7 @@ export default function ClientPage() {
       others = sessions;
       setCurrentId(id);
     } else {
-      others = sessions.filter((s) => s.id !== (session as ChatSession).id);
+      others = sessions.filter((s) => s.id !== session!.id);
     }
 
     const userMsg: ChatMessage = {
@@ -88,9 +82,12 @@ export default function ClientPage() {
       ts: now,
     };
 
+    // тут явно говорим TS: session уже точно есть
+    const base = session as ChatSession;
+
     let updatedSession: ChatSession = {
-      ...session,
-      messages: [...session.messages, userMsg],
+      ...base,
+      messages: [...base.messages, userMsg],
       updatedAt: now,
     };
 
@@ -150,7 +147,7 @@ export default function ClientPage() {
   // === РЕНДЕР ===
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-950">
-      {/* Сайдбар */}
+      {/* Sidebar слева */}
       <Sidebar
         sessions={sessions}
         currentId={currentId}

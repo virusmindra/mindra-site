@@ -2,15 +2,25 @@
 'use client';
 
 import type { ChatSession, ChatFeature } from './types';
+import { signIn, signOut, useSession } from 'next-auth/react';
+import { useParams } from 'next/navigation';
 
-type SidebarProps = {
+type Props = {
   sessions: ChatSession[];
   currentId?: string;
-  onSelectSession: (id: string) => void;
-  onChangeSessions: (next: ChatSession[]) => void;
 
+  // управление списком чатов
+  onSelectSession?: (id: string) => void;
+  onChangeSessions?: (next: ChatSession[]) => void;
+
+  // управление фичами
   activeFeature: ChatFeature;
   onChangeFeature: (f: ChatFeature) => void;
+
+  // legacy
+  onNew?: () => void;
+  onPick?: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
 const featureList: { id: ChatFeature; label: string }[] = [
@@ -26,16 +36,31 @@ const featureList: { id: ChatFeature; label: string }[] = [
   { id: 'points', label: 'Очки и титулы' },
 ];
 
-export default function Sidebar({
-  sessions,
-  currentId,
-  onSelectSession,
-  onChangeSessions,
-  activeFeature,
-  onChangeFeature,
-}: SidebarProps) {
-  // новый чат
+export default function Sidebar(props: Props) {
+  const {
+    sessions = [],
+    currentId,
+    onSelectSession,
+    onChangeSessions,
+    activeFeature,
+    onChangeFeature,
+    onNew,
+    onPick,
+  } = props;
+
+  const { data: session, status } = useSession();
+  const authed = !!session?.user;
+
+  const params = useParams();
+  const locale = String((params as any)?.locale ?? 'en');
+
   const handleNewChat = () => {
+    if (onNew) {
+      onNew();
+      return;
+    }
+    if (!onChangeSessions) return;
+
     const now = Date.now();
     const id =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -44,24 +69,26 @@ export default function Sidebar({
 
     const newSession: ChatSession = {
       id,
-      title: 'New chat',
+      title: 'Новый чат',
       messages: [],
       createdAt: now,
       updatedAt: now,
     };
 
-    const next = [newSession, ...sessions];
-    onChangeSessions(next);
-    onSelectSession(id);
+    onChangeSessions([newSession, ...sessions]);
+
+    if (onSelectSession) onSelectSession(id);
+    else if (onPick) onPick(id);
   };
 
   const handleSelect = (id: string) => {
-    onSelectSession(id);
+    if (onSelectSession) onSelectSession(id);
+    else if (onPick) onPick(id);
   };
 
   return (
     <aside className="w-72 flex flex-col border-r border-white/10 bg-zinc-950 h-[calc(100dvh-4.5rem)]">
-      {/* Верх: логотип */}
+      {/* Top bar */}
       <div className="flex items-center gap-2 px-3 py-3 border-b border-white/10">
         <div className="h-8 w-8 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
           <span className="text-sm font-semibold">M</span>
@@ -69,7 +96,7 @@ export default function Sidebar({
         <span className="font-semibold text-sm">Mindra</span>
       </div>
 
-      {/* Новый чат + поиск */}
+      {/* New chat + search */}
       <div className="px-3 py-3 border-b border-white/5">
         <div className="flex gap-2 mb-3">
           <button
@@ -90,7 +117,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Список чатов */}
+      {/* Chats */}
       <div className="flex-1 overflow-auto">
         <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
           Чаты
@@ -112,7 +139,7 @@ export default function Sidebar({
           ))}
         </ul>
 
-        {/* Функции */}
+        {/* Features */}
         <div className="px-3 py-3 text-[11px] uppercase tracking-wide text-zinc-500">
           Функции
         </div>
@@ -135,10 +162,49 @@ export default function Sidebar({
         </ul>
       </div>
 
-      {/* Низ пока без авторизации, просто заглушка */}
-      <div className="border-t border-white/10 px-3 py-3 space-y-2 text-xs text-zinc-400">
-        <p>Mindra web chat alpha.</p>
-        <p>Sign-in & billing подключим позже.</p>
+      {/* Bottom: settings + account */}
+      <div className="border-t border-white/10 px-3 py-3 space-y-3 text-xs text-zinc-400">
+        <div className="space-y-1">
+          <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
+            <span>⚙️</span>
+            <span>Настройки и подписка</span>
+          </button>
+          <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
+            <span>💬</span>
+            <span>Оставить отзыв</span>
+          </button>
+          <button className="flex items-center gap-2 w-full text-left hover:text-zinc-100">
+            <span>Поддержка: support@mindra.group</span>
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-white/10">
+          <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-1">
+            Account
+          </div>
+          {authed ? (
+            <button
+              className="w-full border border-white/15 rounded-xl px-3 py-2 text-[11px] hover:bg-white/10"
+              onClick={() => signOut({ callbackUrl: `/${locale}/chat` })}
+            >
+              Sign out
+            </button>
+          ) : (
+            <button
+              className="w-full border border-white/15 rounded-xl px-3 py-2 text-[11px] hover:bg-white/10"
+              onClick={() => signIn('google', { callbackUrl: `/${locale}/chat` })}
+            >
+              Sign in
+            </button>
+          )}
+          <p className="text-[11px] mt-2 text-zinc-400">
+            {status === 'loading'
+              ? 'Checking session…'
+              : authed
+              ? `Hello, ${session?.user?.name ?? 'user'}`
+              : 'Sign in to sync chats and manage your subscription.'}
+          </p>
+        </div>
       </div>
     </aside>
   );
