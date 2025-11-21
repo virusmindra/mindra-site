@@ -43,7 +43,7 @@ export default function Sidebar({
   const locale = String((params as any)?.locale ?? 'en');
 
   return (
-    <aside className="w-72 flex flex-col border-r border-white/10 bg-zinc-950">
+    <aside className="w-64 flex flex-col border-r border-white/10 bg-zinc-950">
       {/* верх: новый чат */}
       <div className="p-3 border-b border-white/10">
         <button
