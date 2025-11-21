@@ -1,13 +1,14 @@
+// src/app/[locale]/chat/ClientPage.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
-import type { ChatMessage, ChatSession, ChatFeature } from '@/components/chat/types';
+import type { ChatFeature, ChatMessage, ChatSession } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 
-function createSession(): ChatSession {
+function createEmptySession(): ChatSession {
   const now = Date.now();
   const id =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -17,32 +18,40 @@ function createSession(): ChatSession {
   return {
     id,
     title: 'New chat',
-    messages: [],
     createdAt: now,
     updatedAt: now,
+    messages: [],
   };
 }
 
 export default function ClientPage() {
-  const [sessions, setSessions] = useState<ChatSession[]>(() => {
-    const initial = loadSessions();
-    return initial.length ? initial : [createSession()];
-  });
-
-  const [currentId, setCurrentId] = useState<string | undefined>(() => {
-    const initial = loadSessions();
-    return initial[0]?.id;
-  });
-
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentId, setCurrentId] = useState<string | undefined>(undefined);
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
+  // загрузка из localStorage
+  useEffect(() => {
+    const loaded = loadSessions();
+    if (loaded.length) {
+      setSessions(loaded);
+      setCurrentId(loaded[0].id);
+    } else {
+      const first = createEmptySession();
+      setSessions([first]);
+      setCurrentId(first.id);
+      saveSessions([first]);
+    }
+  }, []);
+
+  // текущая сессия
   const current = useMemo(
     () => sessions.find((s) => s.id === currentId) ?? sessions[0],
     [sessions, currentId],
   );
 
-  // helper: обновить список сессий + сохранить в localStorage
+  const currentMessages: ChatMessage[] = current?.messages ?? [];
+
   const updateSessions = (updater: (prev: ChatSession[]) => ChatSession[]) => {
     setSessions((prev) => {
       const next = updater(prev);
@@ -52,43 +61,35 @@ export default function ClientPage() {
   };
 
   const handleNewChat = () => {
-    const s = createSession();
-    updateSessions((prev) => [s, ...prev]);
-    setCurrentId(s.id);
-  };
-
-  const handleSelectSession = (id: string) => {
-    setCurrentId(id);
+    updateSessions((prev) => {
+      const nextSession = createEmptySession();
+      setCurrentId(nextSession.id);
+      return [nextSession, ...prev];
+    });
   };
 
   const handleSend = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    // гарантируем, что есть текущая сессия
-    let target = current;
-    if (!target) {
-      target = createSession();
-      updateSessions((prev) => [target!, ...prev]);
-      setCurrentId(target.id);
-    }
+    if (!text.trim()) return;
+    if (!current) return;
 
     const ts = Date.now();
     const userMsg: ChatMessage = {
       role: 'user',
-      content: trimmed,
+      content: text,
       ts,
     };
 
-    // оптимистично добавляем сообщение пользователя
+    const sessionId = current.id;
+
+    // сразу добавляем сообщение пользователя
     updateSessions((prev) =>
       prev.map((s) =>
-        s.id === target.id
+        s.id === sessionId
           ? {
               ...s,
               messages: [...s.messages, userMsg],
-              title: newSessionTitle([...s.messages, userMsg]),
               updatedAt: ts,
+              title: newSessionTitle([...s.messages, userMsg]),
             }
           : s,
       ),
@@ -101,13 +102,14 @@ export default function ClientPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          input: trimmed,
-          sessionId: target.id,       // <--- важный момент
-          feature: activeFeature,     // <--- какой режим выбран
+          input: text,
+          sessionId,          // <-- реальный id чата
+          feature: activeFeature,
         }),
       });
 
       let reply = 'Извини, сервер сейчас недоступен.';
+
       try {
         const data = await res.json();
         if (data && typeof data.reply === 'string' && data.reply) {
@@ -123,10 +125,9 @@ export default function ClientPage() {
         ts: Date.now(),
       };
 
-      // добавляем ответ бота
       updateSessions((prev) =>
         prev.map((s) =>
-          s.id === target.id
+          s.id === sessionId
             ? {
                 ...s,
                 messages: [...s.messages, botMsg],
@@ -135,16 +136,16 @@ export default function ClientPage() {
             : s,
         ),
       );
-    } catch {
+    } catch (e) {
       const errMsg: ChatMessage = {
         role: 'assistant',
-        content: 'Ошибка сервера, попробуй ещё раз позже.',
+        content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
         ts: Date.now(),
       };
 
       updateSessions((prev) =>
         prev.map((s) =>
-          s.id === target.id
+          s.id === sessionId
             ? {
                 ...s,
                 messages: [...s.messages, errMsg],
@@ -158,21 +159,18 @@ export default function ClientPage() {
     }
   };
 
-  const messages = current ? current.messages : [];
-
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-zinc-950">
+    <div className="flex w-full min-h-[calc(100vh-64px)] bg-zinc-950">
       <Sidebar
         sessions={sessions}
-        currentId={current?.id}
+        currentId={currentId}
         onNewChat={handleNewChat}
-        onSelect={handleSelectSession}
+        onSelect={setCurrentId}
         activeFeature={activeFeature}
         onChangeFeature={setActiveFeature}
       />
-
       <main className="flex-1 flex flex-col">
-        <ChatWindow messages={messages} />
+        <ChatWindow messages={currentMessages} />
         <Composer onSend={handleSend} disabled={sending} />
       </main>
     </div>
