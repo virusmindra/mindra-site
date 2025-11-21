@@ -11,8 +11,34 @@ import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/s
 
 const DEFAULT_FEATURE = 'default'; // потом сюда сможем подставлять режимы
 
+type ChatFeature =
+  | 'default'
+  | 'goals'
+  | 'habits'
+  | 'reminders'
+  | 'challenges'
+  | 'sleep_sounds'
+  | 'bedtime_stories'
+  | 'daily_tasks'
+  | 'modes'
+  | 'points';
+
+const featureList: { id: ChatFeature; label: string }[] = [
+  { id: 'default',         label: 'Чат' },
+  { id: 'goals',           label: 'Цели' },
+  { id: 'habits',          label: 'Привычки' },
+  { id: 'reminders',       label: 'Напоминания' },
+  { id: 'challenges',      label: 'Челленджи' },
+  { id: 'sleep_sounds',    label: 'Сон' },
+  { id: 'bedtime_stories', label: 'Сказки' },
+  { id: 'daily_tasks',     label: 'Задания на день' },
+  { id: 'modes',           label: 'Режим общения' },
+  { id: 'points',          label: 'Очки и титулы' },
+];
+
 export default function ClientPage() {
   // ---- СЕССИИ ----
+  const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     const fromStorage = loadSessions();
     if (fromStorage.length > 0) return fromStorage;
@@ -105,12 +131,12 @@ export default function ClientPage() {
 
     try {
       const res = await fetch('/api/web-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: text,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input: text,
           sessionId: session.id,
-          feature: DEFAULT_FEATURE,
+          feature: activeFeature,
         }),
       });
 
@@ -161,6 +187,26 @@ export default function ClientPage() {
         onSelect={handleSelectSession}
       />
       <main className="flex-1 flex flex-col">
+        {/* Feature bar */}
+        <div className="flex gap-2 px-4 pt-4 pb-2 border-b border-white/10 overflow-x-auto text-xs">
+          {featureList.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setActiveFeature(f.id)}
+              className={[
+                'px-3 py-1 rounded-full border transition whitespace-nowrap',
+                activeFeature === f.id
+                  ? 'bg-white text-zinc-900 border-white'
+                  : 'border-white/20 text-zinc-200 hover:bg-white/10',
+              ].join(' ')}
+            >
+              {f.label}
+           </button>
+         ))}
+        </div>
+
+        {/* Сам чат */}
         <ChatWindow messages={current ? current.messages : []} />
         <Composer onSend={handleSend} disabled={sending} />
       </main>
