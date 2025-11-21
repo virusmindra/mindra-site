@@ -1,9 +1,14 @@
 // src/components/chat/types.ts
+export type ChatRole = 'user' | 'assistant';
 
-export type ChatRole = 'user' | 'assistant' | 'bot';
+export type ChatMessage = {
+  role: ChatRole;
+  content: string;
+  ts: number;
+};
 
 export type ChatFeature =
-  | 'default'       // обычный чат
+  | 'default'
   | 'goals'
   | 'habits'
   | 'reminders'
@@ -13,12 +18,6 @@ export type ChatFeature =
   | 'daily_tasks'
   | 'modes'
   | 'points';
-
-export type ChatMessage = {
-  role: ChatRole;
-  content: string;
-  ts: number;         // таймстемп, чтобы сортировать/сохранять
-};
 
 export type ChatSession = {
   id: string;
