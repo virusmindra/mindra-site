@@ -15,22 +15,37 @@ export default function LocaleLayout({ children, params: { locale } }: Props) {
 
   return (
     <html lang={locale}>
-      <body className="min-h-dvh bg-zinc-950 text-zinc-100 antialiased">
+      <body className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 antialiased">
         <AuthProvider>
+          {/* HEADER на всю ширину */}
           <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/80 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-              <Link href={`/${locale}`} className="font-semibold tracking-tight">Mindra</Link>
+            <div className="w-full px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+              <Link href={`/${locale}`} className="font-semibold tracking-tight">
+                Mindra
+              </Link>
               <nav className="flex items-center gap-3 text-sm">
-                <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">{t('nav.home')}</Link>
-                <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">{t('nav.pricing')}</Link>
-                <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">{t('nav.chat')}</Link>
-                <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">{t('nav.donate')}</Link>
+                <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">
+                  {t('nav.home')}
+                </Link>
+                <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">
+                  {t('nav.pricing')}
+                </Link>
+                <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">
+                  {t('nav.chat')}
+                </Link>
+                <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">
+                  {t('nav.donate')}
+                </Link>
                 <LanguageSwitcher />
               </nav>
             </div>
           </header>
 
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+          {/* MAIN тянется на всю ширину, без max-w */}
+          <main className="flex-1 flex bg-zinc-950">
+            {children}
+          </main>
+
           <Footer locale={locale} />
         </AuthProvider>
       </body>
