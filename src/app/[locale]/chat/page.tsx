@@ -1,6 +1,10 @@
+// src/app/[locale]/chat/page.tsx
 import ClientPage from './ClientPage';
 
 export default function ChatPage() {
-  // без лишних обёрток, просто отдаём страницу чата
-  return <ClientPage />;
+  return (
+    <div className="flex-1">
+      <ClientPage />
+    </div>
+  );
 }
