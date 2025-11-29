@@ -44,7 +44,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className="w-72 flex flex-col border-r border-white/10 bg-zinc-950 h-[calc(100dvh-4.5rem)]"
+      className="w-64 flex flex-col border-r border-white/10 bg-zinc-950 h-[calc(100dvh-4.5rem)]"
     >
       {/* верх: новый чат */}
       <div className="p-3 border-b border-white/10">
