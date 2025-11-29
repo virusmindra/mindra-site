@@ -24,7 +24,7 @@ export default async function SupportPage({ params: { locale }, searchParams }: 
   const founder = Number(searchParams?.founder ?? 0) || 0;
 
   return (
-    <section className="py-10 mx-auto max-w-5xl">
+    <section className="pt-16 md:pt-24 pb-12 md:pb-16 mx-auto max-w-5xl">
       <h1 className="text-4xl font-semibold">{t('donate.title')}</h1>
       <p className="mt-3 opacity-80">{t('donate.subtitle')}</p>
 
