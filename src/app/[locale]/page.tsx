@@ -6,9 +6,8 @@ import type { Locale } from '@/i18n';
 type Props = { params: { locale: Locale } };
 
 export default function Page({ params: { locale } }: Props) {
-  const t = getTSync(locale); // базовый словарь локали
+  const t = getTSync(locale);
 
-  // Описываем карточки “Что умеет Mindra” через ключи i18n
   const featureItems = [
     { title: t('features.cards.chat.title'),    text: t('features.cards.chat.text') },
     { title: t('features.cards.coach.title'),   text: t('features.cards.coach.text') },
@@ -19,10 +18,9 @@ export default function Page({ params: { locale } }: Props) {
   ];
 
   return (
-    <section className="mx-auto max-w-6xl space-y-14">
+    <section className="pt-16 md:pt-24 pb-12 md:pb-16 mx-auto max-w-6xl space-y-14">
       {/* HERO */}
       <header className="text-center space-y-6">
-        {/* небольшой надзаголовок с теглайном бренда (если есть) */}
         <p className="text-sm uppercase tracking-wider text-white/60">
           {t('brand.tagline')}
         </p>
@@ -30,6 +28,7 @@ export default function Page({ params: { locale } }: Props) {
         <h1 className="text-3xl md:text-5xl font-semibold">
           {t('hero.title')}
         </h1>
+
         <p className="opacity-80 max-w-3xl mx-auto">
           {t('hero.subtitle')}
         </p>
@@ -43,6 +42,7 @@ export default function Page({ params: { locale } }: Props) {
           >
             {t('cta.launch')}
           </Link>
+
           <Link
             href={`/${locale}/pricing`}
             className="rounded-xl border border-white/15 px-4 py-2 text-sm hover:bg-white/10"
@@ -71,7 +71,7 @@ export default function Page({ params: { locale } }: Props) {
         </div>
       </section>
 
-      {/* CTA на страницу поддержки/донатов */}
+      {/* CTA */}
       <section className="text-center">
         <Link
           href={`/${locale}/support`}
