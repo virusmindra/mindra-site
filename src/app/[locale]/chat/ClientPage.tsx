@@ -78,6 +78,38 @@ export default function ClientPage() {
       prev.map((s) => (s.id === currentId ? updater(s) : s)),
     );
   };
+// Пытаемся вытащить текст цели из ответа бота
+function extractGoalFromReply(reply: string, fallbackUserText: string): string | null {
+  // Ищем кусок после "Цель:" или "Цель**:"
+  const m =
+    reply.match(/Цель[:»"\s]+\**(.+?)(?:[\.\n]|$)/i) ||
+    reply.match(/"Ходить в зал.+?\d+ месяцев?/i);
+
+  if (m && m[1]) {
+    const goal = m[1].trim().replace(/^"|"$/g, '');
+    if (goal.length > 5) return goal;
+  }
+
+  const fb = fallbackUserText.trim();
+  return fb.length > 5 ? fb : null;
+}
+
+// Создаём цель через тот же API, что и панель "Цели"
+async function createGoalFromChat(goalText: string) {
+  try {
+    await fetch('/api/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // ⚠️ Если в GoalsPanel используются другие поля (например title / description / deadline),
+      // просто продублий сюда тот же payload.
+      body: JSON.stringify({
+        text: goalText,
+      }),
+    });
+  } catch {
+    // молча игнорируем — это побочный бонус, а не блокер для чата
+  }
+}
 
   const handleSend = async (text: string) => {
     const trimmed = text.trim();
@@ -134,7 +166,7 @@ export default function ClientPage() {
         // оставляем дефолт
       }
 
-      const botMsg: ChatMessage = {
+            const botMsg: ChatMessage = {
         role: 'assistant',
         content: replyText,
         ts: Date.now(),
@@ -146,6 +178,16 @@ export default function ClientPage() {
         messages: [...prev.messages, botMsg],
         updatedAt: Date.now(),
       }));
+
+      // 🔥 Автосоздание цели, если мы в режиме "Цели"
+      if (activeFeature === 'goals') {
+        const goalText = extractGoalFromReply(replyText, trimmed);
+        if (goalText) {
+          // не ждём, пока она создастся, просто запускаем побочку
+          createGoalFromChat(goalText);
+        }
+      }
+
     } catch {
       const errMsg: ChatMessage = {
         role: 'assistant',
