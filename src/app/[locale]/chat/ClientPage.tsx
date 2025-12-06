@@ -8,7 +8,7 @@ import Composer from '@/components/chat/Composer';
 import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 
-function createEmptySession(): ChatSession {
+function createEmptySession(feature: ChatFeature = 'default'): ChatSession {
   const now = Date.now();
   const id =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -21,6 +21,7 @@ function createEmptySession(): ChatSession {
     messages: [],
     createdAt: now,
     updatedAt: now,
+    feature,
   };
 }
 
@@ -36,10 +37,12 @@ export default function ClientPage() {
     if (stored.length > 0) {
       setSessions(stored);
       setCurrentId(stored[0].id);
+      setActiveFeature(stored[0].feature ?? 'default');
     } else {
       const first = createEmptySession();
       setSessions([first]);
       setCurrentId(first.id);
+      setActiveFeature(first.feature ?? 'default');
     }
   }, []);
 
@@ -55,16 +58,17 @@ export default function ClientPage() {
     [sessions, currentId],
   );
 
-  const handleChangeSessions = (next: ChatSession[]) => {
-    setSessions(next);
-  };
-
   const handleSelectSession = (id: string) => {
     setCurrentId(id);
+    const found = sessions.find((s) => s.id === id);
+    if (found) {
+      setActiveFeature(found.feature ?? 'default');
+    }
   };
 
   const handleNewChat = () => {
-    const fresh = createEmptySession();
+    // новый чат сразу создаём под текущий режим
+    const fresh = createEmptySession(activeFeature);
     setSessions((prev) => [fresh, ...prev]);
     setCurrentId(fresh.id);
   };
@@ -81,7 +85,7 @@ export default function ClientPage() {
 
     // если по какой-то причине current ещё нет — создаём
     if (!current) {
-      const fresh = createEmptySession();
+      const fresh = createEmptySession(activeFeature);
       setSessions([fresh]);
       setCurrentId(fresh.id);
       return;
@@ -97,9 +101,12 @@ export default function ClientPage() {
     // сразу добавляем сообщение в текущую сессию
     updateCurrentSession((prev) => ({
       ...prev,
+      feature: prev.feature ?? activeFeature, // записываем режим в сессию
       messages: [...prev.messages, userMsg],
       title:
-        prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
+        prev.title === 'New chat'
+          ? newSessionTitle([...prev.messages, userMsg])
+          : prev.title,
       updatedAt: Date.now(),
     }));
 
@@ -111,8 +118,8 @@ export default function ClientPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           input: trimmed,
-          sessionId: current.id,      // <--- ВАЖНО: правильный sessionId
-          feature: activeFeature,     // <--- режим (чат/цели/привычки...)
+          sessionId: current.id,
+          feature: activeFeature, // <--- режим (чат/цели/привычки...)
         }),
       });
 
@@ -135,6 +142,7 @@ export default function ClientPage() {
 
       updateCurrentSession((prev) => ({
         ...prev,
+        feature: prev.feature ?? activeFeature,
         messages: [...prev.messages, botMsg],
         updatedAt: Date.now(),
       }));
@@ -147,6 +155,7 @@ export default function ClientPage() {
 
       updateCurrentSession((prev) => ({
         ...prev,
+        feature: prev.feature ?? activeFeature,
         messages: [...prev.messages, errMsg],
         updatedAt: Date.now(),
       }));
@@ -159,7 +168,7 @@ export default function ClientPage() {
     <div className="flex h-[calc(100vh-4.5rem)] bg-zinc-950">
       {/* Левый столбец: чаты + режимы + тема/логин */}
       <Sidebar
-        sessions={sessions}
+       sessions={sessions}
         currentId={currentId}
         onNewChat={handleNewChat}
         onSelect={handleSelectSession}

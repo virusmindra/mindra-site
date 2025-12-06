@@ -25,4 +25,5 @@ export type ChatSession = {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
+  feature?: ChatFeature; // <── добавили
 };

@@ -43,17 +43,16 @@ export async function POST(req: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: 'web-anon',                 // на edge не дергаем getCurrentUser
+            userId: 'web-anon',
             sessionId: sessionId ?? 'default',
             input: input ?? '',
-            feature: feature ?? 'default',      // <--- прокидываем режим
-            source: 'web',                      // <--- чтобы бекенд знал, что это с сайта
+            feature: feature ?? 'default',
+            source: 'web',
           }),
         },
         15000,
       );
-    } catch (e) {
-      // таймаут/сеть
+    } catch {
       return new Response(JSON.stringify({ reply: 'Upstream timeout' }), {
         status: 504,
         headers: { 'Content-Type': 'application/json' },
@@ -85,7 +84,7 @@ export async function POST(req: Request) {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (e: any) {
+  } catch {
     return new Response(JSON.stringify({ reply: 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
