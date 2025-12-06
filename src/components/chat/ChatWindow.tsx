@@ -28,15 +28,15 @@ export default function ChatWindow({ messages }: Props) {
                 className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={[
-                    'px-4 py-2 rounded-2xl text-sm md:text-base leading-relaxed max-w-[80%]',
-                    isUser
-                      ? 'bg-white text-zinc-900 rounded-br-sm'
-                      : 'bg-zinc-900 text-zinc-50 border border-white/10 rounded-bl-sm',
-                  ].join(' ')}
-                >
-                  {m.content}
-                </div>
+                className={[
+                  'px-4 py-2 rounded-2xl text-sm md:text-base leading-relaxed max-w-[80%]',
+                  isUser
+                    ? 'bg-white text-zinc-900 rounded-br-sm'
+                    : 'bg-zinc-900 text-zinc-50 border border-white/10 rounded-bl-sm',
+                ].join(' ')}
+              >
+                {m.content}
+              </div>
               </div>
             );
           })}
