@@ -111,6 +111,25 @@ async function createGoalFromChat(goalText: string) {
   }
 }
 
+    const handleChangeFeature = (feature: ChatFeature) => {
+    setActiveFeature(feature);
+
+    setSessions((prev) => {
+      const existing = prev.find(
+        (s) => (s.feature ?? 'default') === feature,
+      );
+
+      if (existing) {
+        setCurrentId(existing.id);
+        return prev;
+      }
+
+      const fresh = createEmptySession(feature);
+      setCurrentId(fresh.id);
+      return [fresh, ...prev];
+    });
+  };
+
   const handleSend = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -215,7 +234,7 @@ async function createGoalFromChat(goalText: string) {
         onNewChat={handleNewChat}
         onSelect={handleSelectSession}
         activeFeature={activeFeature}
-        onChangeFeature={setActiveFeature}
+        onChangeFeature={handleChangeFeature}
       />
 
       {/* Основной чат */}

@@ -66,33 +66,33 @@ export default function Sidebar({
           </div>
 
           {(() => {
-            const displayedSessions =
-              activeFeature === 'goals'
-                ? sessions.filter((s) => (s.feature ?? 'default') === 'goals')
-                : sessions;
+  const displayedSessions = sessions.filter(
+    (s) => (s.feature ?? 'default') === activeFeature,
+  );
 
-            return (
-              <ul className="flex-1 px-2 space-y-1 text-xs text-zinc-300 overflow-auto">
-                {displayedSessions.map((s) => (
-                  <li key={s.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(s.id)}
-                      className={[
-                        'w-full text-left px-2 py-1.5 rounded-md transition',
-                        s.id === currentId
-                          ? 'bg-zinc-800 text-white'
-                          : 'hover:bg-zinc-800/60',
-                      ].join(' ')}
-                    >
-                      {(s.feature ?? 'default') === 'goals' && '🎯 '}
-                      {s.title || 'Без названия'}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            );
-          })()}
+  return (
+    <ul className="flex-1 px-2 space-y-1 text-xs text-zinc-300 overflow-auto">
+      {displayedSessions.map((s) => (
+        <li key={s.id}>
+          <button
+            type="button"
+            onClick={() => onSelect(s.id)}
+            className={[
+              'w-full text-left px-2 py-1.5 rounded-md transition',
+              s.id === currentId
+                ? 'bg-zinc-800 text-white'
+                : 'hover:bg-zinc-800/60',
+            ].join(' ')}
+          >
+            {(s.feature ?? 'default') === 'goals' && '🎯 '}
+            {s.title || 'Без названия'}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+})()}
+
         </div>
 
         {/* РЕЖИМЫ */}
