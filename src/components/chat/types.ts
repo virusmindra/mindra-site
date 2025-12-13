@@ -25,5 +25,7 @@ export type ChatSession = {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
-  feature?: ChatFeature; // <── добавили
+
+  feature?: ChatFeature; // ✅ добавили
+  goalId?: string;       // ✅ для дневника цели
 };
