@@ -357,89 +357,109 @@ export default function ClientPage() {
       setLastGoalSuggestion(null);
     }
   };
+const handleSend = async (text: string) => {
+  const trimmed = text.trim();
+  if (!trimmed) return;
 
-  const handleSend = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  if (!current) {
+    const fresh = createEmptySession(activeFeature);
+    setSessions([fresh]);
+    setCurrentId(fresh.id);
+    setLastGoalSuggestion(null);
+    return;
+  }
 
-    if (!current) {
-      const fresh = createEmptySession(activeFeature);
-      setSessions([fresh]);
-      setCurrentId(fresh.id);
-      setLastGoalSuggestion(null);
-      return;
+  // 👇 ВАЖНО: определяем, что мы внутри дневника цели
+  const isGoalDiary = Boolean(current.id?.startsWith('goal:'));
+
+  setLastGoalSuggestion(null);
+
+  const ts = Date.now();
+  const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
+
+  updateCurrentSession((prev) => ({
+    ...prev,
+    feature: prev.feature ?? activeFeature,
+    messages: [...prev.messages, userMsg],
+    title:
+      prev.title === 'New chat'
+        ? newSessionTitle([...prev.messages, userMsg])
+        : prev.title,
+    updatedAt: Date.now(),
+  }));
+
+  setSending(true);
+
+  try {
+    const res = await fetch('/api/web-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input: trimmed,
+        sessionId: current.id,
+        feature: activeFeature,
+      }),
+    });
+
+    let replyText = 'Извини, сервер сейчас недоступен.';
+    let suggestion: { text: string } | null = null;
+
+    try {
+      const data = await res.json();
+
+      if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
+        replyText = data.reply.trim();
+      }
+
+      // ✅ ПОКАЗЫВАЕМ кнопку ТОЛЬКО если:
+      // - не дневник цели
+      // - режим goals
+      // - сервер реально прислал предложение
+      if (
+        !isGoalDiary &&
+        activeFeature === 'goals' &&
+        data?.goal_suggestion?.text
+      ) {
+        suggestion = { text: String(data.goal_suggestion.text) };
+      } else {
+        suggestion = null;
+      }
+    } catch {
+      // ignore parse errors
     }
 
-    setLastGoalSuggestion(null);
+    setLastGoalSuggestion(suggestion);
 
-    const ts = Date.now();
-    const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
+    const botMsg: ChatMessage = {
+      role: 'assistant',
+      content: replyText,
+      ts: Date.now(),
+    };
 
     updateCurrentSession((prev) => ({
       ...prev,
       feature: prev.feature ?? activeFeature,
-      messages: [...prev.messages, userMsg],
-      title: prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
+      messages: [...prev.messages, botMsg],
       updatedAt: Date.now(),
     }));
+  } catch {
+    const errMsg: ChatMessage = {
+      role: 'assistant',
+      content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
+      ts: Date.now(),
+    };
 
-    setSending(true);
+    updateCurrentSession((prev) => ({
+      ...prev,
+      feature: prev.feature ?? activeFeature,
+      messages: [...prev.messages, errMsg],
+      updatedAt: Date.now(),
+    }));
+  } finally {
+    setSending(false);
+  }
+};
 
-    try {
-      const res = await fetch('/api/web-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: trimmed,
-          sessionId: current.id,
-          feature: activeFeature,
-        }),
-      });
-
-      let replyText = 'Извини, сервер сейчас недоступен.';
-      let suggestion: { text: string } | null = null;
-
-      try {
-        const data = await res.json();
-
-        if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
-          replyText = data.reply.trim();
-        }
-
-        if (activeFeature === 'goals' && data?.goal_suggestion?.text) {
-          suggestion = { text: String(data.goal_suggestion.text) };
-        }
-      } catch {
-        // ignore
-      }
-
-      setLastGoalSuggestion(suggestion);
-
-      const botMsg: ChatMessage = { role: 'assistant', content: replyText, ts: Date.now() };
-
-      updateCurrentSession((prev) => ({
-        ...prev,
-        feature: prev.feature ?? activeFeature,
-        messages: [...prev.messages, botMsg],
-        updatedAt: Date.now(),
-      }));
-    } catch {
-      const errMsg: ChatMessage = {
-        role: 'assistant',
-        content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
-        ts: Date.now(),
-      };
-
-      updateCurrentSession((prev) => ({
-        ...prev,
-        feature: prev.feature ?? activeFeature,
-        messages: [...prev.messages, errMsg],
-        updatedAt: Date.now(),
-      }));
-    } finally {
-      setSending(false);
-    }
-  };
 
   return (
     <div className="flex h-[calc(100vh-4.5rem)] bg-zinc-950">
