@@ -96,19 +96,28 @@ export default function ClientPage() {
   };
 
 const saveAsGoal = async (goalText: string) => {
+  const text = goalText.trim();
+  if (!text) return;
+
   try {
     // 1) создаём цель
     const res = await fetch('/api/goals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: goalText }),
+      body: JSON.stringify({ text }),
     });
 
     const data = await res.json().catch(() => null);
     const goalId = data?.id ? String(data.id) : undefined;
 
+    // если бекенд не вернул id — всё равно спрячем кнопку и выйдем
+    if (!res.ok || !goalId) {
+      console.error('saveAsGoal: backend did not return id', { status: res.status, data });
+      return;
+    }
+
     // 2) авто-создание привычки из цели
-    const lower = goalText.toLowerCase();
+    const lower = text.toLowerCase();
     if (lower.includes('зал') || lower.includes('трен')) {
       await fetch('/api/habits', {
         method: 'POST',
@@ -122,33 +131,48 @@ const saveAsGoal = async (goalText: string) => {
     }
 
     // 3) дневник цели (чат внутри цели)
-    if (goalId) {
-      const diaryId = `goal:${goalId}`;
-      const now = Date.now();
+    const diaryId = `goal:${goalId}`;
+    const now = Date.now();
 
-      setSessions((prev) => {
-        // если уже есть — не создаём второй раз
-        if (prev.some((s) => s.id === diaryId)) return prev;
+    // красивое стартовое сообщение
+    const coachMsg =
+      `Круто! ✅ Я сохранила цель: "${text}".\n\n` +
+      `Давай сделаем её реальной и удобной.\n\n` +
+      `План на старт (3 шага):\n` +
+      `1) Выбери дни/время (например Пн/Ср/Пт или 2–3 раза в неделю).\n` +
+      `2) Первый маленький шаг — подготовка (форма/вода/тайм в календарь).\n` +
+      `3) Завтра — короткий старт, без перегруза.\n\n` +
+      `Скажи, когда тебе удобнее заниматься — утром, днём или вечером? 🙂`;
 
-        const diary: ChatSession = {
-          id: diaryId,
-          title: goalText.length > 40 ? goalText.slice(0, 40) + '…' : goalText,
-          messages: [],
-          createdAt: now,
-          updatedAt: now,
-          feature: 'goals',
-          // если в типе ChatSession нет поля goalId — либо добавь, либо оставь как any
-          goalId,
-        } as any;
+    setSessions((prev) => {
+      const exists = prev.find((s) => s.id === diaryId);
+      if (exists) return prev;
 
-        return [diary, ...prev];
-      });
+      const diary: ChatSession = {
+        id: diaryId,
+        title: text.length > 40 ? text.slice(0, 40) + '…' : text,
+        messages: [
+          {
+            role: 'assistant',
+            content: coachMsg,
+            ts: now + 1,
+          },
+        ],
+        createdAt: now,
+        updatedAt: now + 1,
+        feature: 'goals',
+        goalId,
+      } as any;
 
-      setActiveFeature('goals');
-      setCurrentId(diaryId);
-    }
+      return [diary, ...prev];
+    });
+
+    // 4) переключаемся на дневник цели
+    setActiveFeature('goals');
+    setCurrentId(diaryId);
+
   } finally {
-    // скрываем кнопку после клика
+    // 5) скрываем кнопку после клика
     setLastGoalSuggestion(null);
   }
 };
