@@ -7,6 +7,8 @@ import Composer from '@/components/chat/Composer';
 import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 
+/* ----------------------------- helpers ----------------------------- */
+
 function createEmptySession(feature: ChatFeature = 'default'): ChatSession {
   const now = Date.now();
   const id =
@@ -24,16 +26,218 @@ function createEmptySession(feature: ChatFeature = 'default'): ChatSession {
   };
 }
 
+type GoalCategory = 'gym' | 'read' | 'sleep' | 'money' | 'diet' | 'work' | 'default';
+type Lang = 'en' | 'ru' | 'uk' | 'ka' | 'hy' | 'ro' | 'es' | 'fr' | 'de' | 'kk' | 'pl';
+
+function resolveLang(locale?: string): Lang {
+  const l = (locale || 'en').toLowerCase();
+  if (l.startsWith('ru')) return 'ru';
+  if (l.startsWith('uk')) return 'uk';
+  if (l.startsWith('ka')) return 'ka';
+  if (l.startsWith('hy')) return 'hy';
+  if (l.startsWith('ro')) return 'ro';
+  if (l.startsWith('es')) return 'es';
+  if (l.startsWith('fr')) return 'fr';
+  if (l.startsWith('de')) return 'de';
+  if (l.startsWith('kk')) return 'kk';
+  if (l.startsWith('pl')) return 'pl';
+  return 'en';
+}
+
+function getLocaleFromPath(): string {
+  if (typeof window === 'undefined') return 'en';
+  const seg = window.location.pathname.split('/').filter(Boolean)[0];
+  return seg || 'en';
+}
+
+function detectGoalCategory(goalText: string): GoalCategory {
+  const t = goalText.trim().toLowerCase();
+  const has = (arr: string[]) => arr.some((k) => t.includes(k));
+
+  const isGym = has(['зал', 'трен', 'gym', 'workout', 'cardio', 'fitness', 'lifting', 'weights']);
+  const isRead = has(['книг', 'читать', 'reading', 'read', 'book', 'kindle']);
+  const isSleep = has(['сон', 'спать', 'sleep', 'bedtime', 'wake', 'insomnia']);
+  const isMoney = has(['деньг', 'доход', 'сэконом', 'budget', 'money', 'save', 'income']);
+  const isDiet = has(['пит', 'еда', 'диет', 'nutrition', 'diet', 'protein', 'calorie']);
+  const isWork = has(['работ', 'учёб', 'проект', 'career', 'study', 'job', 'work']);
+
+  if (isGym) return 'gym';
+  if (isRead) return 'read';
+  if (isSleep) return 'sleep';
+  if (isMoney) return 'money';
+  if (isDiet) return 'diet';
+  if (isWork) return 'work';
+  return 'default';
+}
+
+// ✅ Partial — языкам можно иметь только default
+const GOAL_TEMPLATES: Record<Lang, Partial<Record<GoalCategory, (t: string) => string>>> = {
+  en: {
+    gym: (t) => `Nice! ✅ I saved your goal: "${t}".
+
+Let’s make it realistic and easy.
+
+Quick start:
+1) Pick days & time (2–3x/week).
+2) Prep once (clothes + water).
+3) First workout = short & simple.
+
+When do you prefer training — morning, afternoon, or evening? 🙂`,
+
+    read: (t) => `Nice! ✅ Goal saved: "${t}".
+
+Let’s make reading effortless.
+• 10 minutes minimum
+• Tie it to a habit (coffee / bed)
+• Keep the book always nearby
+
+What do you want to read first? 📚`,
+
+    sleep: (t) => `Nice! ✅ Goal saved: "${t}".
+
+Better sleep starts simple:
+• Fixed wake-up time
+• No screens 60 min before bed
+• Short wind-down ritual
+
+What time do you want to wake up ideally? 🌙`,
+
+    money: (t) => `Nice! ✅ Goal saved: "${t}".
+
+Let’s make it measurable:
+• Choose a number
+• Pick one lever (earn or save)
+• Track for 7 days
+
+Is this about earning more or spending less? 💸`,
+
+    diet: (t) => `Nice! ✅ Goal saved: "${t}".
+
+Keep nutrition simple:
+• Protein + veggies
+• Water nearby
+• Fast healthy backup
+
+What’s the hardest part for you right now? 🥗`,
+
+    work: (t) => `Nice! ✅ Goal saved: "${t}".
+
+Steady progress plan:
+• 20 min/day or 3×/week
+• One clear focus
+• Weekly visible result
+
+Which rhythm fits you better? 🚀`,
+
+    default: (t) => `Nice! ✅ Goal saved: "${t}".
+
+Let’s clarify it:
+• What’s the weekly minimum?
+• When exactly will you do it?
+• What’s plan B if something blocks you?
+
+Want me to break it into steps? 🙂`,
+  },
+
+  ru: {
+    gym: (t) => `Круто! ✅ Я сохранила цель: "${t}".
+
+Давай сделаем её удобной.
+• 2–3 тренировки в неделю
+• Подготовка заранее
+• Первый старт — короткий
+
+Когда тебе удобнее заниматься — утром, днём или вечером? 🙂`,
+
+    read: (t) => `Круто! ✅ Цель сохранена: "${t}".
+
+Чтение без перегруза:
+• 10 минут — это уже успех
+• Привяжем к привычке
+• Книга всегда под рукой
+
+Что хочешь читать первым? 📚`,
+
+    sleep: (t) => `Круто! ✅ Цель сохранена: "${t}".
+
+Сон улучшаем мягко:
+• Фиксируем подъём
+• Без экрана перед сном
+• Короткий ритуал
+
+Во сколько хочешь просыпаться? 🌙`,
+
+    money: (t) => `Круто! ✅ Цель сохранена: "${t}".
+
+Фокус:
+• Конкретная сумма
+• Один финансовый рычаг
+• 7 дней трекинга
+
+Это больше про доход или экономию? 💸`,
+
+    diet: (t) => `Круто! ✅ Цель сохранена: "${t}".
+
+Просто и устойчиво:
+• Белок + овощи
+• Вода рядом
+• План Б вместо фастфуда
+
+Что сложнее всего сейчас? 🥗`,
+
+    work: (t) => `Круто! ✅ Цель сохранена: "${t}".
+
+Двигаемся стабильно:
+• Мини-слот по времени
+• Один фокус
+• Видимый результат раз в неделю
+
+Какой формат удобнее? 🚀`,
+
+    default: (t) => `Круто! ✅ Цель сохранена: "${t}".
+
+Уточним:
+• Минимум на неделю
+• Конкретное время
+• План Б
+
+Хочешь, разложу на шаги? 🙂`,
+  },
+
+  uk: { default: (t) => `Чудово! ✅ Я зберегла ціль: "${t}".\n\nХочеш, допоможу розбити на кроки? 🙂` },
+  ka: { default: (t) => `შესანიშნავია! ✅ მიზანი შენახულია: "${t}".\n\nგინდა ნაბიჯებად დავყოთ? 🙂` },
+  hy: { default: (t) => `Հիանալի է։ ✅ Նպատակը պահպանված է՝ "${t}".\n\nՑանկանու՞մ ես բաժանել քայլերի։ 🙂` },
+  ro: { default: (t) => `Super! ✅ Scop salvat: "${t}".\n\nVrei să-l împărțim în pași? 🙂` },
+  es: { default: (t) => `¡Genial! ✅ Objetivo guardado: "${t}".\n\n¿Quieres dividirlo en pasos? 🙂` },
+  fr: { default: (t) => `Parfait. ✅ Objectif enregistré : "${t}".\n\nTu veux que je le découpe en étapes ?` },
+  de: { default: (t) => `Sehr gut. ✅ Ziel gespeichert: "${t}".\n\nSoll ich es in Schritte aufteilen?` },
+  kk: { default: (t) => `Тамаша! ✅ Мақсат сақталды: "${t}".\n\nҚадамдарға бөліп берейін бе? 🙂` },
+  pl: { default: (t) => `Świetnie! ✅ Cel zapisany: "${t}".\n\nChcesz podzielić cel na kroki? 🙂` },
+};
+
+function buildSavedGoalCoachMessage(goalText: string, locale?: string) {
+  const lang = resolveLang(locale);
+  const category = detectGoalCategory(goalText);
+
+  const pack = GOAL_TEMPLATES[lang];
+  const fromLang = pack[category] || pack.default;
+
+  const fromEn = GOAL_TEMPLATES.en[category] || GOAL_TEMPLATES.en.default;
+
+  const fn = fromLang || fromEn || ((t: string) => `Nice! ✅ Goal saved: "${t}".`);
+  return fn(goalText.trim());
+}
+
+/* ----------------------------- component ----------------------------- */
+
 export default function ClientPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentId, setCurrentId] = useState<string | undefined>(undefined);
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
-  // ✅ suggestion для кнопки "Сохранить как цель"
   const [lastGoalSuggestion, setLastGoalSuggestion] = useState<{ text: string } | null>(null);
 
-  // --- загрузка из localStorage ---
   useEffect(() => {
     const stored = loadSessions();
     if (stored.length > 0) {
@@ -48,7 +252,6 @@ export default function ClientPage() {
     }
   }, []);
 
-  // --- автосохранение ---
   useEffect(() => {
     if (sessions.length) saveSessions(sessions);
   }, [sessions]);
@@ -57,6 +260,10 @@ export default function ClientPage() {
     () => sessions.find((s) => s.id === currentId),
     [sessions, currentId],
   );
+
+  const updateCurrentSession = (updater: (prev: ChatSession) => ChatSession) => {
+    setSessions((prev) => prev.map((s) => (s.id === currentId ? updater(s) : s)));
+  };
 
   const handleSelectSession = (id: string) => {
     setCurrentId(id);
@@ -70,12 +277,6 @@ export default function ClientPage() {
     setSessions((prev) => [fresh, ...prev]);
     setCurrentId(fresh.id);
     setLastGoalSuggestion(null);
-  };
-
-  const updateCurrentSession = (updater: (prev: ChatSession) => ChatSession) => {
-    setSessions((prev) =>
-      prev.map((s) => (s.id === currentId ? updater(s) : s)),
-    );
   };
 
   const handleChangeFeature = (feature: ChatFeature) => {
@@ -95,87 +296,67 @@ export default function ClientPage() {
     });
   };
 
-const saveAsGoal = async (goalText: string) => {
-  const text = goalText.trim();
-  if (!text) return;
-
-  try {
-    // 1) создаём цель
-    const res = await fetch('/api/goals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-
-    const data = await res.json().catch(() => null);
-    const goalId = data?.id ? String(data.id) : undefined;
-
-    // если бекенд не вернул id — всё равно спрячем кнопку и выйдем
-    if (!res.ok || !goalId) {
-      console.error('saveAsGoal: backend did not return id', { status: res.status, data });
-      return;
-    }
-
-    // 2) авто-создание привычки из цели
-    const lower = text.toLowerCase();
-    if (lower.includes('зал') || lower.includes('трен')) {
-      await fetch('/api/habits', {
+  const saveAsGoal = async (goalText: string) => {
+    try {
+      const res = await fetch('/api/goals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Тренировка',
-          cadence: 'weekly',
-          targetPerWeek: 3,
-        }),
-      }).catch(() => {});
+        body: JSON.stringify({ text: goalText }),
+      });
+
+      const data = await res.json().catch(() => null);
+      const goalId = data?.id ? String(data.id) : undefined;
+
+      // авто-привычка для зала
+      const lower = goalText.toLowerCase();
+      if (lower.includes('зал') || lower.includes('трен') || lower.includes('gym') || lower.includes('workout')) {
+        await fetch('/api/habits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'Тренировка',
+            cadence: 'weekly',
+            targetPerWeek: 3,
+          }),
+        }).catch(() => {});
+      }
+
+      if (goalId) {
+        const diaryId = `goal:${goalId}`;
+        const now = Date.now();
+
+        const locale = getLocaleFromPath();
+        const firstCoach = buildSavedGoalCoachMessage(goalText, locale);
+
+        setSessions((prev) => {
+          if (prev.some((s) => s.id === diaryId)) return prev;
+
+          const diary: ChatSession = {
+            id: diaryId,
+            title: goalText.length > 40 ? goalText.slice(0, 40) + '…' : goalText,
+            messages: [
+              {
+                role: 'assistant',
+                content: firstCoach,
+                ts: now + 1,
+              },
+            ],
+            createdAt: now,
+            updatedAt: now,
+            feature: 'goals',
+            goalId,
+          } as any;
+
+          return [diary, ...prev];
+        });
+
+        setActiveFeature('goals');
+        setCurrentId(diaryId);
+      }
+    } finally {
+      setLastGoalSuggestion(null);
     }
-
-    // 3) дневник цели (чат внутри цели)
-    const diaryId = `goal:${goalId}`;
-    const now = Date.now();
-
-    // красивое стартовое сообщение
-    const coachMsg =
-      `Круто! ✅ Я сохранила цель: "${text}".\n\n` +
-      `Давай сделаем её реальной и удобной.\n\n` +
-      `План на старт (3 шага):\n` +
-      `1) Выбери дни/время (например Пн/Ср/Пт или 2–3 раза в неделю).\n` +
-      `2) Первый маленький шаг — подготовка (форма/вода/тайм в календарь).\n` +
-      `3) Завтра — короткий старт, без перегруза.\n\n` +
-      `Скажи, когда тебе удобнее заниматься — утром, днём или вечером? 🙂`;
-
-    setSessions((prev) => {
-      const exists = prev.find((s) => s.id === diaryId);
-      if (exists) return prev;
-
-      const diary: ChatSession = {
-        id: diaryId,
-        title: text.length > 40 ? text.slice(0, 40) + '…' : text,
-        messages: [
-          {
-            role: 'assistant',
-            content: coachMsg,
-            ts: now + 1,
-          },
-        ],
-        createdAt: now,
-        updatedAt: now + 1,
-        feature: 'goals',
-        goalId,
-      } as any;
-
-      return [diary, ...prev];
-    });
-
-    // 4) переключаемся на дневник цели
-    setActiveFeature('goals');
-    setCurrentId(diaryId);
-
-  } finally {
-    // 5) скрываем кнопку после клика
-    setLastGoalSuggestion(null);
-  }
-};
+  };
 
   const handleSend = async (text: string) => {
     const trimmed = text.trim();
@@ -198,10 +379,7 @@ const saveAsGoal = async (goalText: string) => {
       ...prev,
       feature: prev.feature ?? activeFeature,
       messages: [...prev.messages, userMsg],
-      title:
-        prev.title === 'New chat'
-          ? newSessionTitle([...prev.messages, userMsg])
-          : prev.title,
+      title: prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
       updatedAt: Date.now(),
     }));
 
@@ -228,7 +406,6 @@ const saveAsGoal = async (goalText: string) => {
           replyText = data.reply.trim();
         }
 
-        // ✅ показываем кнопку только если пришёл goal_suggestion
         if (activeFeature === 'goals' && data?.goal_suggestion?.text) {
           suggestion = { text: String(data.goal_suggestion.text) };
         }
@@ -275,13 +452,12 @@ const saveAsGoal = async (goalText: string) => {
         onChangeFeature={handleChangeFeature}
       />
 
-      Remember:
       <main className="flex-1 flex flex-col">
         <ChatWindow
           messages={current ? current.messages : []}
           activeFeature={activeFeature}
           goalSuggestion={lastGoalSuggestion}
-          onSaveGoal={saveAsGoal}   // ✅ вот тут как ты просил
+          onSaveGoal={saveAsGoal}
         />
         <Composer onSend={handleSend} disabled={sending} />
       </main>
