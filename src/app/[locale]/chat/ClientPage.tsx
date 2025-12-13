@@ -339,49 +339,33 @@ export default function ClientPage() {
     });
   };
 
-  async function markGoalDone(goalId: string) {
-    const uid = getOrCreateWebUid();
-    const res = await fetch(
-      `/api/goals/${encodeURIComponent(goalId)}/done?user_id=${encodeURIComponent(uid)}`,
-      { method: 'POST' },
-    );
-    return await res.json().catch(() => null);
-  }
+  const markGoalDone = async (goalId: string) => {
+  const uid = getOrCreateWebUid();
 
-  const handleMarkGoalDone = async (goalId: string) => {
-    try {
-      const data = await markGoalDone(goalId);
-      const locale = getLocaleFromPath();
+  const res = await fetch(
+    `/api/goals/${encodeURIComponent(goalId)}/done?user_id=${encodeURIComponent(uid)}`,
+    { method: 'POST' },
+  );
 
-      if (data?.ok) {
-        updateCurrentSession((prev) => ({
-          ...prev,
-          messages: [
-            ...prev.messages,
-            {
-              role: 'assistant',
-              content: buildGoalDoneMessage(locale, Number(data.points ?? 0)),
-              ts: Date.now(),
-            },
-          ],
-          updatedAt: Date.now(),
-        }));
-      }
-    } catch {
-      updateCurrentSession((prev) => ({
-        ...prev,
-        messages: [
-          ...prev.messages,
-          {
-            role: 'assistant',
-            content: 'Ошибка сервера 😕 Попробуй ещё раз чуть позже.',
-            ts: Date.now(),
-          },
-        ],
-        updatedAt: Date.now(),
-      }));
-    }
-  };
+  const data = await res.json().catch(() => null);
+  if (!data?.ok) return;
+
+  const locale = getLocaleFromPath();
+
+  updateCurrentSession((prev) => ({
+    ...prev,
+    messages: [
+      ...prev.messages,
+      {
+        role: 'assistant',
+        content: buildGoalDoneMessage(locale, Number(data.points ?? 0)),
+        ts: Date.now(),
+      },
+    ],
+    updatedAt: Date.now(),
+  }));
+};
+
 
   const saveAsGoal = async (goalText: string) => {
     try {
@@ -550,14 +534,13 @@ export default function ClientPage() {
 
       <main className="flex-1 flex flex-col">
         <ChatWindow
-          messages={current ? current.messages : []}
-          activeFeature={activeFeature}
-          goalSuggestion={lastGoalSuggestion}
-          onSaveGoal={saveAsGoal}
-          // ✅ новые пропсы (нужно добавить в ChatWindow.tsx)
-          onMarkGoalDone={handleMarkGoalDone}
-          currentSessionId={current?.id}
-        />
+  messages={current ? current.messages : []}
+  activeFeature={activeFeature}
+  goalSuggestion={lastGoalSuggestion}
+  onSaveGoal={saveAsGoal}
+  onMarkGoalDone={markGoalDone}     // ✅ ВАЖНО
+  currentSessionId={current?.id}    // ✅ ВАЖНО
+/>
         <Composer onSend={handleSend} disabled={sending} />
       </main>
     </div>

@@ -9,10 +9,8 @@ type Props = {
   activeFeature: ChatFeature;
   goalSuggestion: { text: string } | null;
   onSaveGoal: (text: string) => Promise<void>;
-
-  // ✅ новые пропсы
-  onMarkGoalDone?: (goalId: string) => Promise<void> | void;
-  currentSessionId?: string;
+  onMarkGoalDone?: (goalId: string) => Promise<void>; // ✅ ДОБАВИЛИ
+  currentSessionId?: string; // ✅ чтобы понять, что это дневник цели
 };
 
 export default function ChatWindow({
@@ -69,18 +67,25 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* ✅ Кнопка "Отметить выполненной" — только внутри дневника цели */}
-                  {!isUser && isLast && isGoalDiary && goalId && onMarkGoalDone ? (
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onMarkGoalDone(goalId)}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-white text-zinc-900 hover:bg-zinc-200 transition"
-                      >
-                        ✅ Отметить выполненной
-                      </button>
-                    </div>
-                  ) : null}
+                  {/* ✅ Кнопка "Отметить выполненной" — только в goal-дневнике */}
+{!isUser &&
+ isLast &&
+ currentSessionId?.startsWith('goal:') &&
+ onMarkGoalDone ? (
+  <div className="mt-3 flex gap-2">
+    <button
+      type="button"
+      onClick={() => {
+        const goalId = currentSessionId.replace('goal:', '');
+        onMarkGoalDone(goalId);
+      }}
+      className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition"
+    >
+      ✅ Отметить выполненной
+    </button>
+  </div>
+) : null}
+
                 </div>
               </div>
             );
