@@ -95,9 +95,9 @@ export default function ClientPage() {
     });
   };
 
- const saveAsGoal = async (goalText: string) => {
+const saveAsGoal = async (goalText: string) => {
   try {
-    // 1️⃣ создаём цель
+    // 1) создаём цель
     const res = await fetch('/api/goals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -107,9 +107,8 @@ export default function ClientPage() {
     const data = await res.json().catch(() => null);
     const goalId = data?.id ? String(data.id) : undefined;
 
-    // 2️⃣ авто-создание привычки (ПОСЛЕ цели)
+    // 2) авто-создание привычки из цели
     const lower = goalText.toLowerCase();
-
     if (lower.includes('зал') || lower.includes('трен')) {
       await fetch('/api/habits', {
         method: 'POST',
@@ -122,14 +121,15 @@ export default function ClientPage() {
       }).catch(() => {});
     }
 
-    // 3️⃣ создаём дневник цели (чат внутри цели)
+    // 3) дневник цели (чат внутри цели)
     if (goalId) {
       const diaryId = `goal:${goalId}`;
+      const now = Date.now();
 
       setSessions((prev) => {
-        if (prev.find((s) => s.id === diaryId)) return prev;
+        // если уже есть — не создаём второй раз
+        if (prev.some((s) => s.id === diaryId)) return prev;
 
-        const now = Date.now();
         const diary: ChatSession = {
           id: diaryId,
           title: goalText.length > 40 ? goalText.slice(0, 40) + '…' : goalText,
@@ -137,8 +137,9 @@ export default function ClientPage() {
           createdAt: now,
           updatedAt: now,
           feature: 'goals',
+          // если в типе ChatSession нет поля goalId — либо добавь, либо оставь как any
           goalId,
-        };
+        } as any;
 
         return [diary, ...prev];
       });
@@ -146,9 +147,8 @@ export default function ClientPage() {
       setActiveFeature('goals');
       setCurrentId(diaryId);
     }
-
-    setLastGoalSuggestion(null);
-  } catch {
+  } finally {
+    // скрываем кнопку после клика
     setLastGoalSuggestion(null);
   }
 };
