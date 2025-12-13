@@ -9,6 +9,17 @@ import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/s
 
 /* ----------------------------- helpers ----------------------------- */
 
+function getOrCreateWebUid() {
+  if (typeof window === 'undefined') return 'web';
+  const key = 'mindra_uid';
+  let uid = localStorage.getItem(key);
+  if (!uid) {
+    uid = `web_${crypto?.randomUUID?.() ?? String(Date.now())}`;
+    localStorage.setItem(key, uid);
+  }
+  return uid;
+}
+
 function createEmptySession(feature: ChatFeature = 'default'): ChatSession {
   const now = Date.now();
   const id =
@@ -70,7 +81,7 @@ function detectGoalCategory(goalText: string): GoalCategory {
   return 'default';
 }
 
-// ✅ Partial — языкам можно иметь только default
+// ✅ Partial — у языков может быть только default
 const GOAL_TEMPLATES: Record<Lang, Partial<Record<GoalCategory, (t: string) => string>>> = {
   en: {
     gym: (t) => `Nice! ✅ I saved your goal: "${t}".
@@ -228,6 +239,38 @@ function buildSavedGoalCoachMessage(goalText: string, locale?: string) {
   return fn(goalText.trim());
 }
 
+function buildGoalDoneMessage(locale: string, points: number) {
+  const lang = (locale || 'en').toLowerCase();
+
+  const pick = (m: Record<string, string>) => {
+    if (lang.startsWith('ru')) return m.ru;
+    if (lang.startsWith('uk')) return m.uk;
+    if (lang.startsWith('ka')) return m.ka;
+    if (lang.startsWith('hy')) return m.hy;
+    if (lang.startsWith('kk')) return m.kk;
+    if (lang.startsWith('ro')) return m.ro;
+    if (lang.startsWith('pl')) return m.pl;
+    if (lang.startsWith('de')) return m.de;
+    if (lang.startsWith('fr')) return m.fr;
+    if (lang.startsWith('es')) return m.es;
+    return m.en;
+  };
+
+  return pick({
+    ru: `Готово ✅ Цель отмечена выполненной! +5 очков. Теперь у тебя: ${points} ⭐`,
+    uk: `Готово ✅ Ціль виконано! +5 очок. Тепер у тебе: ${points} ⭐`,
+    ka: `მზადაა ✅ მიზანი შესრულებულია! +5 ქულა. ახლა გაქვს: ${points} ⭐`,
+    hy: `Պատրաստ է ✅ Նպատակը կատարված է։ +5 միավոր։ Հիմա ունես՝ ${points} ⭐`,
+    kk: `Дайын ✅ Мақсат орындалды! +5 ұпай. Қазір сенде: ${points} ⭐`,
+    ro: `Gata ✅ Obiectiv îndeplinit! +5 puncte. Acum ai: ${points} ⭐`,
+    pl: `Gotowe ✅ Cel ukończony! +5 punktów. Masz teraz: ${points} ⭐`,
+    de: `Erledigt ✅ Ziel abgeschlossen! +5 Punkte. Jetzt hast du: ${points} ⭐`,
+    fr: `C’est fait ✅ Objectif validé ! +5 points. Tu as maintenant : ${points} ⭐`,
+    es: `Hecho ✅ ¡Objetivo completado! +5 puntos. Ahora tienes: ${points} ⭐`,
+    en: `Done ✅ Goal marked as completed! +5 points. You now have: ${points} ⭐`,
+  });
+}
+
 /* ----------------------------- component ----------------------------- */
 
 export default function ClientPage() {
@@ -296,12 +339,58 @@ export default function ClientPage() {
     });
   };
 
+  async function markGoalDone(goalId: string) {
+    const uid = getOrCreateWebUid();
+    const res = await fetch(
+      `/api/goals/${encodeURIComponent(goalId)}/done?user_id=${encodeURIComponent(uid)}`,
+      { method: 'POST' },
+    );
+    return await res.json().catch(() => null);
+  }
+
+  const handleMarkGoalDone = async (goalId: string) => {
+    try {
+      const data = await markGoalDone(goalId);
+      const locale = getLocaleFromPath();
+
+      if (data?.ok) {
+        updateCurrentSession((prev) => ({
+          ...prev,
+          messages: [
+            ...prev.messages,
+            {
+              role: 'assistant',
+              content: buildGoalDoneMessage(locale, Number(data.points ?? 0)),
+              ts: Date.now(),
+            },
+          ],
+          updatedAt: Date.now(),
+        }));
+      }
+    } catch {
+      updateCurrentSession((prev) => ({
+        ...prev,
+        messages: [
+          ...prev.messages,
+          {
+            role: 'assistant',
+            content: 'Ошибка сервера 😕 Попробуй ещё раз чуть позже.',
+            ts: Date.now(),
+          },
+        ],
+        updatedAt: Date.now(),
+      }));
+    }
+  };
+
   const saveAsGoal = async (goalText: string) => {
     try {
+      const uid = getOrCreateWebUid();
+
       const res = await fetch('/api/goals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: goalText }),
+        body: JSON.stringify({ text: goalText, user_id: uid }),
       });
 
       const data = await res.json().catch(() => null);
@@ -317,6 +406,7 @@ export default function ClientPage() {
             title: 'Тренировка',
             cadence: 'weekly',
             targetPerWeek: 3,
+            user_id: uid, // если habits API не принимает user_id — можешь убрать
           }),
         }).catch(() => {});
       }
@@ -357,109 +447,95 @@ export default function ClientPage() {
       setLastGoalSuggestion(null);
     }
   };
-const handleSend = async (text: string) => {
-  const trimmed = text.trim();
-  if (!trimmed) return;
 
-  if (!current) {
-    const fresh = createEmptySession(activeFeature);
-    setSessions([fresh]);
-    setCurrentId(fresh.id);
-    setLastGoalSuggestion(null);
-    return;
-  }
+  const handleSend = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
-  // 👇 ВАЖНО: определяем, что мы внутри дневника цели
-  const isGoalDiary = Boolean(current.id?.startsWith('goal:'));
-
-  setLastGoalSuggestion(null);
-
-  const ts = Date.now();
-  const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
-
-  updateCurrentSession((prev) => ({
-    ...prev,
-    feature: prev.feature ?? activeFeature,
-    messages: [...prev.messages, userMsg],
-    title:
-      prev.title === 'New chat'
-        ? newSessionTitle([...prev.messages, userMsg])
-        : prev.title,
-    updatedAt: Date.now(),
-  }));
-
-  setSending(true);
-
-  try {
-    const res = await fetch('/api/web-chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input: trimmed,
-        sessionId: current.id,
-        feature: activeFeature,
-      }),
-    });
-
-    let replyText = 'Извини, сервер сейчас недоступен.';
-    let suggestion: { text: string } | null = null;
-
-    try {
-      const data = await res.json();
-
-      if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
-        replyText = data.reply.trim();
-      }
-
-      // ✅ ПОКАЗЫВАЕМ кнопку ТОЛЬКО если:
-      // - не дневник цели
-      // - режим goals
-      // - сервер реально прислал предложение
-      if (
-        !isGoalDiary &&
-        activeFeature === 'goals' &&
-        data?.goal_suggestion?.text
-      ) {
-        suggestion = { text: String(data.goal_suggestion.text) };
-      } else {
-        suggestion = null;
-      }
-    } catch {
-      // ignore parse errors
+    if (!current) {
+      const fresh = createEmptySession(activeFeature);
+      setSessions([fresh]);
+      setCurrentId(fresh.id);
+      setLastGoalSuggestion(null);
+      return;
     }
 
-    setLastGoalSuggestion(suggestion);
+    const uid = getOrCreateWebUid();
+    const isGoalDiary = Boolean(current.id?.startsWith('goal:'));
 
-    const botMsg: ChatMessage = {
-      role: 'assistant',
-      content: replyText,
-      ts: Date.now(),
-    };
+    setLastGoalSuggestion(null);
 
-    updateCurrentSession((prev) => ({
-      ...prev,
-      feature: prev.feature ?? activeFeature,
-      messages: [...prev.messages, botMsg],
-      updatedAt: Date.now(),
-    }));
-  } catch {
-    const errMsg: ChatMessage = {
-      role: 'assistant',
-      content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
-      ts: Date.now(),
-    };
+    const ts = Date.now();
+    const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
 
     updateCurrentSession((prev) => ({
       ...prev,
       feature: prev.feature ?? activeFeature,
-      messages: [...prev.messages, errMsg],
+      messages: [...prev.messages, userMsg],
+      title: prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
       updatedAt: Date.now(),
     }));
-  } finally {
-    setSending(false);
-  }
-};
 
+    setSending(true);
+
+    try {
+      const res = await fetch('/api/web-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: trimmed,
+          sessionId: current.id,
+          feature: activeFeature,
+          user_id: uid,
+        }),
+      });
+
+      let replyText = 'Извини, сервер сейчас недоступен.';
+      let suggestion: { text: string } | null = null;
+
+      try {
+        const data = await res.json();
+
+        if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
+          replyText = data.reply.trim();
+        }
+
+        if (!isGoalDiary && activeFeature === 'goals' && data?.goal_suggestion?.text) {
+          suggestion = { text: String(data.goal_suggestion.text) };
+        } else {
+          suggestion = null;
+        }
+      } catch {
+        // ignore parse errors
+      }
+
+      setLastGoalSuggestion(suggestion);
+
+      const botMsg: ChatMessage = { role: 'assistant', content: replyText, ts: Date.now() };
+
+      updateCurrentSession((prev) => ({
+        ...prev,
+        feature: prev.feature ?? activeFeature,
+        messages: [...prev.messages, botMsg],
+        updatedAt: Date.now(),
+      }));
+    } catch {
+      const errMsg: ChatMessage = {
+        role: 'assistant',
+        content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
+        ts: Date.now(),
+      };
+
+      updateCurrentSession((prev) => ({
+        ...prev,
+        feature: prev.feature ?? activeFeature,
+        messages: [...prev.messages, errMsg],
+        updatedAt: Date.now(),
+      }));
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="flex h-[calc(100vh-4.5rem)] bg-zinc-950">
@@ -478,6 +554,9 @@ const handleSend = async (text: string) => {
           activeFeature={activeFeature}
           goalSuggestion={lastGoalSuggestion}
           onSaveGoal={saveAsGoal}
+          // ✅ новые пропсы (нужно добавить в ChatWindow.tsx)
+          onMarkGoalDone={handleMarkGoalDone}
+          currentSessionId={current?.id}
         />
         <Composer onSend={handleSend} disabled={sending} />
       </main>
