@@ -8,10 +8,12 @@ type Props = {
   messages: ChatMessage[];
   activeFeature: ChatFeature;
 
+  // goals
   goalSuggestion: { text: string } | null;
   onSaveGoal: (text: string) => Promise<void>;
   onMarkGoalDone?: (goalId: string) => Promise<void>;
 
+  // habits
   habitSuggestion?: { text: string } | null;
   onSaveHabit?: (text: string) => Promise<void>;
   onMarkHabitDone?: (habitId: string) => Promise<void>;
@@ -19,6 +21,52 @@ type Props = {
   currentSessionId?: string;
   locale: string;
 };
+
+const intentWords = [
+  // RU
+  'хочу', 'надо', 'нужно', 'план', 'цель', 'мечта', 'решил', 'начать', 'перестать',
+  'привычк', 'каждый день', 'ежедневно', 'регулярно',
+
+  // UK
+  'хочу', 'треба', 'потрібно', 'план', 'ціль', 'мрія', 'вирішив', 'почати', 'перестати',
+  'звичк', 'щодня', 'кожен день', 'регулярно',
+
+  // EN
+  'i want', 'i need', 'plan', 'goal', 'dream', 'decided', 'start', 'stop',
+  'habit', 'every day', 'daily', 'regularly',
+
+  // ES
+  'quiero', 'necesito', 'plan', 'meta', 'objetivo', 'sueño', 'empezar', 'dejar',
+  'hábito', 'cada día', 'diario', 'regularmente',
+
+  // FR
+  'je veux', 'j’ai besoin', 'plan', 'objectif', 'rêve', 'commencer', 'arrêter',
+  'habitude', 'chaque jour', 'quotidien', 'régulièrement',
+
+  // DE
+  'ich will', 'ich muss', 'brauche', 'plan', 'ziel', 'traum', 'anfangen', 'aufhören',
+  'gewohnheit', 'jeden tag', 'täglich', 'regelmäßig',
+
+  // PL
+  'chcę', 'muszę', 'potrzebuję', 'plan', 'cel', 'marzenie', 'zacząć', 'przestać',
+  'nawyk', 'codziennie', 'każdego dnia', 'regularnie',
+
+  // RO
+  'vreau', 'trebuie', 'am nevoie', 'plan', 'scop', 'vis', 'încep', 'renunț',
+  'obicei', 'în fiecare zi', 'zilnic', 'regulat',
+
+  // KK
+  'қалаймын', 'керек', 'қажет', 'жоспар', 'мақсат', 'арман', 'бастау', 'тоқтату',
+  'әдет', 'күнде', 'әр күні', 'күн сайын', 'тұрақты',
+
+  // KA
+  'მინდა', 'მჭირდება', 'გეგმა', 'მიზანი', 'ოცნება', 'დავიწყო', 'შევწყვიტო',
+  'ჩვევა', 'ყოველ დღე', 'ყოველდღე', 'რეგულარულად',
+
+  // HY
+  'ուզում եմ', 'պետք է', 'կարիք ունեմ', 'պլան', 'նպատակ', 'երազանք', 'սկսել', 'դադարեցնել',
+  'սովորություն', 'ամեն օր', 'ամենօրյա', 'կանոնավոր',
+];
 
 function ui(locale: string) {
   const l = (locale || 'en').toLowerCase();
@@ -93,106 +141,15 @@ function ui(locale: string) {
   };
 }
 
-/**
- * Простая эвристика, чтобы кнопка "save" не появлялась на "привет"
- * (можно усилить на бэке, но это спасает UI прямо сейчас).
- */
-function looksLikeGoalOrHabit(text: string) {
-  const t = (text || '').trim().toLowerCase();
-  if (!t) return false;
-
-  // 1️⃣ слишком короткие сообщения — не намерение
-  if (t.length < 8) return false;
-
-  // 2️⃣ чистые приветствия — отсекаем
-  const greetings = [
-    // ru / ua
-    'привет', 'здарова', 'хай', 'добрый день', 'добрый вечер',
-    // en
-    'hi', 'hello', 'hey', 'yo',
-    // es
-    'hola',
-    // fr
-    'bonjour', 'salut',
-    // de
-    'hallo',
-    // pl
-    'cześć',
-    // ro
-    'salut',
-    // kk
-    'сәлем',
-    // ka
-    'გამარჯობა',
-    // hy
-    'բարեւ',
-  ];
-
-  if (greetings.some((g) => t === g || t.startsWith(g + ' '))) {
-    return false;
-  }
-
-  // 3️⃣ маркеры намерения (цель / привычка / план)
-  const intentWords = [
-    // 🇷🇺 RU
-    'хочу', 'план', 'цель', 'мечта', 'начать', 'перестать',
-    'привычк', 'каждый день', 'ежедневно', 'собираюсь',
-
-    // 🇺🇦 UK
-    'хочу', 'план', 'ціль', 'звичк', 'почати', 'перестати',
-    'кожен день', 'щодня', 'збираюся',
-
-    // 🇬🇧 EN
-    'i want', 'i need', 'my goal', 'my plan', 'start', 'stop',
-    'habit', 'goal', 'every day', 'daily', 'i am going to',
-
-    // 🇪🇸 ES
-    'quiero', 'mi objetivo', 'mi meta', 'empezar', 'dejar',
-    'hábito', 'cada día', 'diario',
-
-    // 🇫🇷 FR
-    'je veux', 'mon objectif', 'mon but', 'commencer', 'arrêter',
-    'habitude', 'chaque jour', 'quotidien',
-
-    // 🇩🇪 DE
-    'ich will', 'mein ziel', 'mein plan', 'anfangen', 'aufhören',
-    'gewohnheit', 'jeden tag', 'täglich',
-
-    // 🇵🇱 PL
-    'chcę', 'mój cel', 'mój plan', 'zacząć', 'przestać',
-    'nawyk', 'codziennie', 'każdego dnia',
-
-    // 🇷🇴 RO
-    'vreau', 'obiectivul meu', 'scopul meu', 'încep', 'renunț',
-    'obicei', 'în fiecare zi', 'zilnic',
-
-    // 🇰🇿 KK
-    'қалаймын', 'мақсат', 'жоспар', 'бастау', 'тоқтату',
-    'әдет', 'күнде', 'әр күн',
-
-    // 🇬🇪 KA
-    'მინდა', 'ჩემი მიზანი', 'გეგმა', 'დაწყება', 'შეწყვეტა',
-    'ჩვევა', 'ყოველ დღე',
-
-    // 🇦🇲 HY
-    'ուզում եմ', 'իմ նպատակը', 'իմ ծրագիրը', 'սկսել', 'դադարեցնել',
-    'սովորություն', 'ամեն օր',
-  ];
-
-  return intentWords.some((w) => t.includes(w));
-}
-
 export default function ChatWindow({
   messages,
   activeFeature,
   goalSuggestion,
   onSaveGoal,
   onMarkGoalDone,
-
   habitSuggestion = null,
   onSaveHabit,
   onMarkHabitDone,
-
   currentSessionId,
   locale,
 }: Props) {
@@ -202,20 +159,10 @@ export default function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  const labels = useMemo(() => ui(locale), [locale]);
-
   const isGoalDiary = Boolean(currentSessionId?.startsWith('goal:'));
   const isHabitDiary = Boolean(currentSessionId?.startsWith('habit:'));
 
-  // Последнее user-сообщение — для фильтрации "привет"
-  const lastUserText = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i]?.role === 'user') return String(messages[i]?.content || '');
-    }
-    return '';
-  }, [messages]);
-
-  const allowSuggestButton = looksLikeGoalOrHabit(lastUserText);
+  const labels = useMemo(() => ui(locale), [locale]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -241,12 +188,11 @@ export default function ChatWindow({
                 >
                   {m.content}
 
-                  {/* Save as goal (только goals, не diary, и только если текст реально похож на намерение) */}
+                  {/* Save as goal */}
                   {!isUser &&
                   isLast &&
                   activeFeature === 'goals' &&
                   !isGoalDiary &&
-                  allowSuggestButton &&
                   goalSuggestion?.text ? (
                     <div className="mt-3 flex gap-2">
                       <button
@@ -259,12 +205,11 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* Add as habit (только habits, не diary, и только если пришёл habitSuggestion) */}
+                  {/* Save as habit */}
                   {!isUser &&
                   isLast &&
                   activeFeature === 'habits' &&
                   !isHabitDiary &&
-                  allowSuggestButton &&
                   habitSuggestion?.text &&
                   onSaveHabit ? (
                     <div className="mt-3 flex gap-2">
@@ -278,7 +223,7 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* Mark goal done (только goal diary) */}
+                  {/* Mark goal done (goal diary only) */}
                   {!isUser && isLast && isGoalDiary && onMarkGoalDone ? (
                     <div className="mt-3 flex gap-2">
                       <button
@@ -294,7 +239,7 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* Mark habit done (только habit diary) */}
+                  {/* Mark habit done (habit diary only) */}
                   {!isUser && isLast && isHabitDiary && onMarkHabitDone ? (
                     <div className="mt-3 flex gap-2">
                       <button
