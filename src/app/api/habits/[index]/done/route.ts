@@ -1,54 +1,31 @@
-// src/app/api/habits/[index]/done/route.ts
+// src/app/api/habits/[habitId]/done/route.ts
+import { NextResponse } from 'next/server';
 
-async function fetchWithTimeout(
-  input: RequestInfo,
-  init: RequestInit = {},
-  ms = 15000,
-) {
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), ms);
-  try {
-    return await fetch(input, { ...init, signal: ac.signal });
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-function getDoneUrl(index: string) {
+function getBase() {
   const base = process.env.RENDER_BOT_URL;
   if (!base) throw new Error('RENDER_BOT_URL is not set');
-  return new URL(`/api/habits/${index}/done`, base).toString();
+  return base;
 }
 
 export async function POST(
-  _req: Request,
-  { params }: { params: { index: string } },
+  req: Request,
+  { params }: { params: { habitId: string } }
 ) {
   try {
-    const url = getDoneUrl(params.index);
+    const { searchParams } = new URL(req.url);
+    const user_id = searchParams.get('user_id') || 'web';
 
-    const upstream = await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const url = new URL(`/api/habits/${encodeURIComponent(params.habitId)}/done`, getBase());
+    url.searchParams.set('user_id', user_id);
 
-    const text = await upstream.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { error: 'Invalid upstream response' };
-    }
+    const r = await fetch(url.toString(), { method: 'POST' });
+    const data = await r.json().catch(() => null);
 
-    return new Response(JSON.stringify(data), {
-      status: upstream.ok ? upstream.status : upstream.status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (e) {
-    console.error('POST /api/habits/[index]/done error:', e);
-    return new Response(JSON.stringify({ error: 'Server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(data ?? { ok: false }, { status: r.status });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || 'route error' },
+      { status: 500 },
+    );
   }
 }

@@ -9,6 +9,38 @@ import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/s
 
 /* ----------------------------- helpers ----------------------------- */
 
+function buildHabitDoneMessage(locale: string, points: number) {
+  const lang = (locale || 'en').toLowerCase();
+
+  const pick = (m: Record<string, string>) => {
+    if (lang.startsWith('ru')) return m.ru;
+    if (lang.startsWith('uk')) return m.uk;
+    if (lang.startsWith('ka')) return m.ka;
+    if (lang.startsWith('hy')) return m.hy;
+    if (lang.startsWith('kk')) return m.kk;
+    if (lang.startsWith('ro')) return m.ro;
+    if (lang.startsWith('pl')) return m.pl;
+    if (lang.startsWith('de')) return m.de;
+    if (lang.startsWith('fr')) return m.fr;
+    if (lang.startsWith('es')) return m.es;
+    return m.en;
+  };
+
+  return pick({
+    ru: `Привычка выполнена 🔁 +${points} очка. Отличный ритм! ⭐`,
+    uk: `Звичка виконана 🔁 +${points} очка. Крутий темп! ⭐`,
+    ka: `ჩვევა შესრულებულია 🔁 +${points} ქულა. მაგარი ტემპია! ⭐`,
+    hy: `Սովորությունը կատարված է 🔁 +${points} միավոր։ Շարունակիր նույն կերպ! ⭐`,
+    kk: `Әдет орындалды 🔁 +${points} ұпай. Тамаша қарқын! ⭐`,
+    ro: `Obicei îndeplinit 🔁 +${points} puncte. Ritm excelent! ⭐`,
+    pl: `Nawyk wykonany 🔁 +${points} punktów. Świetne tempo! ⭐`,
+    de: `Gewohnheit erledigt 🔁 +${points} Punkte. Starkes Tempo! ⭐`,
+    fr: `Habitude validée 🔁 +${points} points. Super rythme ! ⭐`,
+    es: `Hábito completado 🔁 +${points} puntos. ¡Buen ritmo! ⭐`,
+    en: `Habit completed 🔁 +${points} points. Keep the streak! ⭐`,
+  });
+}
+
 function getOrCreateWebUid() {
   if (typeof window === 'undefined') return 'web';
   const key = 'mindra_uid';
