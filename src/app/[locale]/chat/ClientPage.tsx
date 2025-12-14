@@ -677,7 +677,7 @@ const saveAsHabit = async (habitText: string) => {
   }
 };
 
-  
+  const locale = getLocaleFromPath();
 
   return (
     <div className="flex h-[calc(100vh-4.5rem)] bg-zinc-950">
@@ -692,21 +692,20 @@ const saveAsHabit = async (habitText: string) => {
 
       <main className="flex-1 flex flex-col">
         <ChatWindow
-  messages={current ? current.messages : []}
-  activeFeature={activeFeature}
-  goalSuggestion={lastGoalSuggestion}
-  habitSuggestion={lastHabitSuggestion}
-  onSaveGoal={saveAsGoal}
-  onSaveHabit={saveAsHabit}
-  onMarkGoalDone={markGoalDone}
-  onMarkHabitDone={markHabitDone}
-  currentSessionId={current?.id}
-  locale={getLocaleFromPath()}   // ✅ ОБЯЗАТЕЛЬНО
-/>
-
+          messages={current ? current.messages : []}
+          activeFeature={activeFeature}
+          goalSuggestion={lastGoalSuggestion}
+          habitSuggestion={lastHabitSuggestion}
+          onSaveGoal={saveAsGoal}
+          onSaveHabit={saveAsHabit}
+          onMarkGoalDone={markGoalDone}
+          onMarkHabitDone={markHabitDone}
+          currentSessionId={current?.id}
+          locale={locale}
+        />
 
         <Composer onSend={handleSend} disabled={sending} />
       </main>
     </div>
   );
-    }
+}

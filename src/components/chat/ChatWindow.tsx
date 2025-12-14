@@ -1,7 +1,7 @@
 // src/components/chat/ChatWindow.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ChatMessage, ChatFeature } from './types';
 
 type Props = {
@@ -10,18 +10,14 @@ type Props = {
 
   goalSuggestion: { text: string } | null;
   onSaveGoal: (text: string) => Promise<void>;
-
-  // ✅ goals done
   onMarkGoalDone?: (goalId: string) => Promise<void>;
 
-  // ✅ habits suggestion + done
   habitSuggestion?: { text: string } | null;
   onSaveHabit?: (text: string) => Promise<void>;
   onMarkHabitDone?: (habitId: string) => Promise<void>;
 
   currentSessionId?: string;
   locale: string;
-
 };
 
 function ui(locale: string) {
@@ -42,13 +38,149 @@ function ui(locale: string) {
   };
 
   return {
-    saveGoal: pick({ ru: '➕ Сохранить как цель', uk: '➕ Зберегти як ціль', en: '➕ Save as goal', es:'➕ Guardar como meta', fr:'➕ Enregistrer comme objectif', de:'➕ Als Ziel speichern', pl:'➕ Zapisz jako cel', ro:'➕ Salvează ca obiectiv', kk:'➕ Мақсат ретінде сақтау', ka:'➕ მიზნად შენახვა', hy:'➕ Պահպանել որպես նպատակ' }),
-    saveHabit: pick({ ru: '➕ Добавить как привычку', uk: '➕ Додати як звичку', en: '➕ Add as habit', es:'➕ Añadir como hábito', fr:'➕ Ajouter comme habitude', de:'➕ Als Gewohnheit hinzufügen', pl:'➕ Dodaj jako nawyk', ro:'➕ Adaugă ca obicei', kk:'➕ Әдет ретінде қосу', ka:'➕ ჩვევად დამატება', hy:'➕ Ավելացնել որպես սովորություն' }),
-    doneGoal: pick({ ru: '✅ Отметить выполненной', uk: '✅ Позначити виконаною', en: '✅ Mark done', es:'✅ Marcar como hecho', fr:'✅ Marquer comme fait', de:'✅ Als erledigt markieren', pl:'✅ Oznacz jako zrobione', ro:'✅ Marchează ca făcut', kk:'✅ Орындалды деп белгілеу', ka:'✅ შესრულებულად მონიშვნა', hy:'✅ Նշել որպես կատարված' }),
-    doneHabit: pick({ ru: '🔁 Отметить привычку', uk: '🔁 Позначити звичку', en: '🔁 Mark habit', es:'🔁 Marcar hábito', fr:'🔁 Valider l’habitude', de:'🔁 Gewohnheit markieren', pl:'🔁 Oznacz nawyk', ro:'🔁 Marchează obiceiul', kk:'🔁 Әдетті белгілеу', ka:'🔁 ჩვევის მონიშვნა', hy:'🔁 Նշել սովորությունը' }),
+    saveGoal: pick({
+      ru: '➕ Сохранить как цель',
+      uk: '➕ Зберегти як ціль',
+      en: '➕ Save as goal',
+      es: '➕ Guardar como meta',
+      fr: '➕ Enregistrer comme objectif',
+      de: '➕ Als Ziel speichern',
+      pl: '➕ Zapisz jako cel',
+      ro: '➕ Salvează ca obiectiv',
+      kk: '➕ Мақсат ретінде сақтау',
+      ka: '➕ მიზნად შენახვა',
+      hy: '➕ Պահպանել որպես նպատակ',
+    }),
+    saveHabit: pick({
+      ru: '➕ Добавить как привычку',
+      uk: '➕ Додати як звичку',
+      en: '➕ Add as habit',
+      es: '➕ Añadir como hábito',
+      fr: '➕ Ajouter comme habitude',
+      de: '➕ Als Gewohnheit hinzufügen',
+      pl: '➕ Dodaj jako nawyk',
+      ro: '➕ Adaugă ca obicei',
+      kk: '➕ Әдет ретінде қосу',
+      ka: '➕ ჩვევად დამატება',
+      hy: '➕ Ավելացնել որպես սովորություն',
+    }),
+    doneGoal: pick({
+      ru: '✅ Отметить выполненной',
+      uk: '✅ Позначити виконаною',
+      en: '✅ Mark done',
+      es: '✅ Marcar como hecho',
+      fr: '✅ Marquer comme fait',
+      de: '✅ Als erledigt markieren',
+      pl: '✅ Oznacz jako zrobione',
+      ro: '✅ Marchează ca făcut',
+      kk: '✅ Орындалды деп белгілеу',
+      ka: '✅ შესრულებულად მონიშვნა',
+      hy: '✅ Նշել որպես կատարված',
+    }),
+    doneHabit: pick({
+      ru: '🔁 Отметить привычку',
+      uk: '🔁 Позначити звичку',
+      en: '🔁 Mark habit',
+      es: '🔁 Marcar hábito',
+      fr: '🔁 Valider l’habitude',
+      de: '🔁 Gewohnheit markieren',
+      pl: '🔁 Oznacz nawyk',
+      ro: '🔁 Marchează obiceiul',
+      kk: '🔁 Әдетті белгілеу',
+      ka: '🔁 ჩვევის მონიშვნა',
+      hy: '🔁 Նշել սովորությունը',
+    }),
   };
 }
 
+/**
+ * Простая эвристика, чтобы кнопка "save" не появлялась на "привет"
+ * (можно усилить на бэке, но это спасает UI прямо сейчас).
+ */
+function looksLikeGoalOrHabit(text: string) {
+  const t = (text || '').trim().toLowerCase();
+  if (!t) return false;
+
+  // 1️⃣ слишком короткие сообщения — не намерение
+  if (t.length < 8) return false;
+
+  // 2️⃣ чистые приветствия — отсекаем
+  const greetings = [
+    // ru / ua
+    'привет', 'здарова', 'хай', 'добрый день', 'добрый вечер',
+    // en
+    'hi', 'hello', 'hey', 'yo',
+    // es
+    'hola',
+    // fr
+    'bonjour', 'salut',
+    // de
+    'hallo',
+    // pl
+    'cześć',
+    // ro
+    'salut',
+    // kk
+    'сәлем',
+    // ka
+    'გამარჯობა',
+    // hy
+    'բարեւ',
+  ];
+
+  if (greetings.some((g) => t === g || t.startsWith(g + ' '))) {
+    return false;
+  }
+
+  // 3️⃣ маркеры намерения (цель / привычка / план)
+  const intentWords = [
+    // 🇷🇺 RU
+    'хочу', 'план', 'цель', 'мечта', 'начать', 'перестать',
+    'привычк', 'каждый день', 'ежедневно', 'собираюсь',
+
+    // 🇺🇦 UK
+    'хочу', 'план', 'ціль', 'звичк', 'почати', 'перестати',
+    'кожен день', 'щодня', 'збираюся',
+
+    // 🇬🇧 EN
+    'i want', 'i need', 'my goal', 'my plan', 'start', 'stop',
+    'habit', 'goal', 'every day', 'daily', 'i am going to',
+
+    // 🇪🇸 ES
+    'quiero', 'mi objetivo', 'mi meta', 'empezar', 'dejar',
+    'hábito', 'cada día', 'diario',
+
+    // 🇫🇷 FR
+    'je veux', 'mon objectif', 'mon but', 'commencer', 'arrêter',
+    'habitude', 'chaque jour', 'quotidien',
+
+    // 🇩🇪 DE
+    'ich will', 'mein ziel', 'mein plan', 'anfangen', 'aufhören',
+    'gewohnheit', 'jeden tag', 'täglich',
+
+    // 🇵🇱 PL
+    'chcę', 'mój cel', 'mój plan', 'zacząć', 'przestać',
+    'nawyk', 'codziennie', 'każdego dnia',
+
+    // 🇷🇴 RO
+    'vreau', 'obiectivul meu', 'scopul meu', 'încep', 'renunț',
+    'obicei', 'în fiecare zi', 'zilnic',
+
+    // 🇰🇿 KK
+    'қалаймын', 'мақсат', 'жоспар', 'бастау', 'тоқтату',
+    'әдет', 'күнде', 'әр күн',
+
+    // 🇬🇪 KA
+    'მინდა', 'ჩემი მიზანი', 'გეგმა', 'დაწყება', 'შეწყვეტა',
+    'ჩვევა', 'ყოველ დღე',
+
+    // 🇦🇲 HY
+    'ուզում եմ', 'իմ նպատակը', 'իմ ծրագիրը', 'սկսել', 'դադարեցնել',
+    'սովորություն', 'ամեն օր',
+  ];
+
+  return intentWords.some((w) => t.includes(w));
+}
 
 export default function ChatWindow({
   messages,
@@ -70,11 +202,21 @@ export default function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
+  const labels = useMemo(() => ui(locale), [locale]);
+
   const isGoalDiary = Boolean(currentSessionId?.startsWith('goal:'));
   const isHabitDiary = Boolean(currentSessionId?.startsWith('habit:'));
 
-    const labels = ui(locale);
-    
+  // Последнее user-сообщение — для фильтрации "привет"
+  const lastUserText = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i]?.role === 'user') return String(messages[i]?.content || '');
+    }
+    return '';
+  }, [messages]);
+
+  const allowSuggestButton = looksLikeGoalOrHabit(lastUserText);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -99,11 +241,12 @@ export default function ChatWindow({
                 >
                   {m.content}
 
-                  {/* ✅ Кнопка "Сохранить как цель" — только в goals и НЕ внутри дневника цели */}
+                  {/* Save as goal (только goals, не diary, и только если текст реально похож на намерение) */}
                   {!isUser &&
                   isLast &&
                   activeFeature === 'goals' &&
                   !isGoalDiary &&
+                  allowSuggestButton &&
                   goalSuggestion?.text ? (
                     <div className="mt-3 flex gap-2">
                       <button
@@ -116,11 +259,12 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* ✅ Кнопка "Добавить как привычку" — только в habits и НЕ внутри дневника привычки */}
+                  {/* Add as habit (только habits, не diary, и только если пришёл habitSuggestion) */}
                   {!isUser &&
                   isLast &&
                   activeFeature === 'habits' &&
                   !isHabitDiary &&
+                  allowSuggestButton &&
                   habitSuggestion?.text &&
                   onSaveHabit ? (
                     <div className="mt-3 flex gap-2">
@@ -134,10 +278,8 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* ✅ Кнопка "Отметить выполненной" — только в goal-дневнике */}
+                  {/* Mark goal done (только goal diary) */}
                   {!isUser && isLast && isGoalDiary && onMarkGoalDone ? (
-                    
-
                     <div className="mt-3 flex gap-2">
                       <button
                         type="button"
@@ -152,7 +294,7 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* ✅ Кнопка "Привычка выполнена" — только в habit-дневнике */}
+                  {/* Mark habit done (только habit diary) */}
                   {!isUser && isLast && isHabitDiary && onMarkHabitDone ? (
                     <div className="mt-3 flex gap-2">
                       <button
