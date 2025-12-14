@@ -340,30 +340,60 @@ export default function ClientPage() {
   };
 
   const markGoalDone = async (goalId: string) => {
-  const uid = getOrCreateWebUid();
+  try {
+    const uid = getOrCreateWebUid();
 
-  const res = await fetch(
-    `/api/goals/${encodeURIComponent(goalId)}/done?user_id=${encodeURIComponent(uid)}`,
-    { method: 'POST' },
-  );
+    const res = await fetch(
+      `/api/goals/${encodeURIComponent(goalId)}/done?user_id=${encodeURIComponent(uid)}`,
+      { method: 'POST' },
+    );
 
-  const data = await res.json().catch(() => null);
-  if (!data?.ok) return;
+    const data = await res.json().catch(() => null);
 
-  const locale = getLocaleFromPath();
+    if (!data?.ok) {
+      updateCurrentSession((prev) => ({
+        ...prev,
+        messages: [
+          ...prev.messages,
+          {
+            role: 'assistant',
+            content: 'Не получилось отметить цель 😕 (ошибка API). Проверь /api/goals/*/done route.',
+            ts: Date.now(),
+          },
+        ],
+        updatedAt: Date.now(),
+      }));
+      return;
+    }
 
-  updateCurrentSession((prev) => ({
-    ...prev,
-    messages: [
-      ...prev.messages,
-      {
-        role: 'assistant',
-        content: buildGoalDoneMessage(locale, Number(data.points ?? 0)),
-        ts: Date.now(),
-      },
-    ],
-    updatedAt: Date.now(),
-  }));
+    const locale = getLocaleFromPath();
+
+    updateCurrentSession((prev) => ({
+      ...prev,
+      messages: [
+        ...prev.messages,
+        {
+          role: 'assistant',
+          content: buildGoalDoneMessage(locale, Number(data.points ?? 0)),
+          ts: Date.now(),
+        },
+      ],
+      updatedAt: Date.now(),
+    }));
+  } catch {
+    updateCurrentSession((prev) => ({
+      ...prev,
+      messages: [
+        ...prev.messages,
+        {
+          role: 'assistant',
+          content: 'Ошибка сети 😕 Попробуй ещё раз.',
+          ts: Date.now(),
+        },
+      ],
+      updatedAt: Date.now(),
+    }));
+  }
 };
 
 
