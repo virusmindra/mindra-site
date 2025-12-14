@@ -8,6 +8,60 @@ import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/ty
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 
 /* ----------------------------- helpers ----------------------------- */
+function isIntentText(text: string): boolean {
+  const t = (text || '').trim().toLowerCase();
+  if (!t) return false;
+
+  const intentWords = [
+    // RU
+    'хочу', 'надо', 'нужно', 'план', 'цель', 'мечта', 'решил', 'начать', 'перестать',
+    'привычк', 'каждый день', 'ежедневно', 'регулярно',
+
+    // UK
+    'треба', 'потрібно', 'ціль', 'мрія', 'вирішив', 'почати', 'перестати',
+    'звичк', 'щодня', 'кожен день',
+
+    // EN
+    'i want', 'i need', 'plan', 'goal', 'dream', 'decided', 'start', 'stop',
+    'habit', 'every day', 'daily', 'regularly',
+
+    // ES
+    'quiero', 'necesito', 'plan', 'meta', 'objetivo', 'sueño', 'empezar', 'dejar',
+    'hábito', 'habito', 'cada día', 'diario', 'regularmente',
+
+    // FR
+    'je veux', "j’ai besoin", "j'ai besoin", 'plan', 'objectif', 'rêve', 'reve',
+    'commencer', 'arrêter', 'arreter', 'habitude', 'chaque jour', 'quotidien', 'régulièrement',
+
+    // DE
+    'ich will', 'ich muss', 'brauche', 'plan', 'ziel', 'traum',
+    'anfangen', 'aufhören', 'aufhoeren', 'gewohnheit', 'jeden tag', 'täglich', 'taeglich', 'regelmäßig',
+
+    // PL
+    'chcę', 'chce', 'muszę', 'musze', 'potrzebuję', 'potrzebuje',
+    'plan', 'cel', 'marzenie', 'zacząć', 'zaczac', 'przestać', 'przestac',
+    'nawyk', 'codziennie', 'każdego dnia', 'kazdego dnia', 'regularnie',
+
+    // RO
+    'vreau', 'trebuie', 'am nevoie', 'plan', 'scop', 'vis',
+    'încep', 'incep', 'renunț', 'renunt',
+    'obicei', 'în fiecare zi', 'in fiecare zi', 'zilnic', 'regulat',
+
+    // KK
+    'қалаймын', 'керек', 'қажет', 'жоспар', 'мақсат', 'арман', 'бастау', 'тоқтату',
+    'әдет', 'күнде', 'әр күні', 'күн сайын', 'тұрақты',
+
+    // KA
+    'მინდა', 'მჭირდება', 'გეგმა', 'მიზანი', 'ოცნება', 'დავიწყო', 'შევწყვიტო',
+    'ჩვევა', 'ყოველ დღე', 'ყოველდღე', 'რეგულარულად',
+
+    // HY
+    'ուզում եմ', 'պետք է', 'կարիք ունեմ', 'պլան', 'նպատակ', 'երազանք', 'սկսել', 'դադարեցնել',
+    'սովորություն', 'ամեն օր', 'ամենօրյա', 'կանոնավոր',
+  ];
+
+  return intentWords.some((w) => t.includes(w));
+}
 
 function buildHabitDoneMessage(locale: string, points: number) {
   const lang = (locale || 'en').toLowerCase();
@@ -640,13 +694,24 @@ const saveAsHabit = async (habitText: string) => {
       replyText = data.reply.trim();
     }
 
-    if (!isGoalDiary && activeFeature === 'goals' && data?.goal_suggestion?.text) {
-      goalSuggestion = { text: String(data.goal_suggestion.text) };
-    }
+    const locale = getLocaleFromPath();
+const intent = isIntentText(trimmed);
 
-    if (!isHabitDiary && activeFeature === 'habits' && data?.habit_suggestion?.text) {
-      habitSuggestion = { text: String(data.habit_suggestion.text) };
-    }
+// goals suggestion (только если это реально намерение)
+if (!isGoalDiary && activeFeature === 'goals' && intent) {
+  const s = data?.goal_suggestion?.text;
+  goalSuggestion = s ? { text: String(s) } : { text: trimmed }; // fallback на текст пользователя
+} else {
+  goalSuggestion = null;
+}
+
+// habits suggestion (только если это реально намерение)
+if (!isHabitDiary && activeFeature === 'habits' && intent) {
+  const s = data?.habit_suggestion?.text;
+  habitSuggestion = s ? { text: String(s) } : { text: trimmed }; // fallback на текст пользователя
+} else {
+  habitSuggestion = null;
+}
 
     setLastGoalSuggestion(goalSuggestion);
     setLastHabitSuggestion(habitSuggestion);

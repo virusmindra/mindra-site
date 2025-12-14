@@ -4,10 +4,22 @@
 import { useEffect, useState } from 'react';
 
 type Habit = {
-  index: number;
+  id: string;
   text: string;
-  done: boolean;
+  doneToday: boolean;
+  lastDoneAt?: number | null;
 };
+
+function getOrCreateWebUid() {
+  if (typeof window === 'undefined') return 'web';
+  const key = 'mindra_uid';
+  let uid = localStorage.getItem(key);
+  if (!uid) {
+    uid = `web_${crypto?.randomUUID?.() ?? String(Date.now())}`;
+    localStorage.setItem(key, uid);
+  }
+  return uid;
+}
 
 export default function HabitsPanel() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -19,10 +31,15 @@ export default function HabitsPanel() {
   const loadHabits = async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const res = await fetch('/api/habits', { cache: 'no-store' });
-      const data = await res.json();
-      setHabits(data.habits ?? []);
+      const uid = getOrCreateWebUid();
+      const res = await fetch(`/api/habits?user_id=${encodeURIComponent(uid)}`, {
+        cache: 'no-store',
+      });
+
+      const data = await res.json().catch(() => ({}));
+      setHabits(Array.isArray(data.habits) ? data.habits : []);
     } catch (e) {
       console.error(e);
       setError('Не удалось загрузить привычки.');
@@ -36,25 +53,30 @@ export default function HabitsPanel() {
   }, []);
 
   const handleCreate = async () => {
-    if (!newText.trim()) return;
+    const text = newText.trim();
+    if (!text) return;
+
     setCreating(true);
     setError(null);
+
     try {
+      const uid = getOrCreateWebUid();
+
       const res = await fetch('/api/habits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: newText.trim() }),
+        body: JSON.stringify({ text, user_id: uid }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (res.status === 403) {
-        const data = await res.json();
         setError(data.detail || 'Достигнут лимит привычек.');
       } else if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         setError(data.detail || 'Не удалось добавить привычку.');
       } else {
         setNewText('');
-        await loadHabits();
+        setHabits(Array.isArray(data.habits) ? data.habits : []);
       }
     } catch (e) {
       console.error(e);
@@ -66,15 +88,21 @@ export default function HabitsPanel() {
 
   const handleDone = async (habit: Habit) => {
     setError(null);
+
     try {
-      const res = await fetch(`/api/habits/${habit.index}/done`, {
-        method: 'POST',
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+      const uid = getOrCreateWebUid();
+
+      const res = await fetch(
+        `/api/habits/${encodeURIComponent(habit.id)}/done?user_id=${encodeURIComponent(uid)}`,
+        { method: 'POST' },
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.ok) {
         setError(data.detail || 'Не удалось отметить привычку выполненной.');
       } else {
-        await loadHabits();
+        setHabits(Array.isArray(data.habits) ? data.habits : []);
       }
     } catch (e) {
       console.error(e);
@@ -84,15 +112,21 @@ export default function HabitsPanel() {
 
   const handleDelete = async (habit: Habit) => {
     setError(null);
+
     try {
-      const res = await fetch(`/api/habits/${habit.index}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+      const uid = getOrCreateWebUid();
+
+      const res = await fetch(
+        `/api/habits/${encodeURIComponent(habit.id)}?user_id=${encodeURIComponent(uid)}`,
+        { method: 'DELETE' },
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.ok) {
         setError(data.detail || 'Не удалось удалить привычку.');
       } else {
-        await loadHabits();
+        setHabits(Array.isArray(data.habits) ? data.habits : []);
       }
     } catch (e) {
       console.error(e);
@@ -138,23 +172,25 @@ export default function HabitsPanel() {
         ) : (
           habits.map((h) => (
             <div
-              key={h.index}
+              key={h.id}
               className="flex items-start justify-between gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2"
             >
               <div className="flex-1">
                 <span
                   className={`text-xs ${
-                    h.done ? 'line-through text-zinc-500' : 'text-zinc-100'
+                    h.doneToday ? 'line-through text-zinc-500' : 'text-zinc-100'
                   }`}
                 >
                   {h.text}
                 </span>
-                {h.done && (
+
+                {h.doneToday && (
                   <div className="mt-1 text-[11px] text-emerald-400">✅ выполнена сегодня</div>
                 )}
               </div>
+
               <div className="flex flex-col gap-1">
-                {!h.done && (
+                {!h.doneToday && (
                   <button
                     onClick={() => handleDone(h)}
                     className="text-[11px] px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500"
