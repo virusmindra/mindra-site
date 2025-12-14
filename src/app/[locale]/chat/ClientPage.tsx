@@ -312,6 +312,7 @@ export default function ClientPage() {
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
   const [lastGoalSuggestion, setLastGoalSuggestion] = useState<{ text: string } | null>(null);
+  const [lastHabitSuggestion, setLastHabitSuggestion] = useState<{ text: string } | null>(null);
 
   useEffect(() => {
     const stored = loadSessions();
@@ -345,6 +346,7 @@ export default function ClientPage() {
     const found = sessions.find((s) => s.id === id);
     if (found) setActiveFeature(found.feature ?? 'default');
     setLastGoalSuggestion(null);
+    setLastHabitSuggestion(null);
   };
 
   const handleNewChat = () => {
@@ -352,11 +354,13 @@ export default function ClientPage() {
     setSessions((prev) => [fresh, ...prev]);
     setCurrentId(fresh.id);
     setLastGoalSuggestion(null);
+    setLastHabitSuggestion(null);
   };
 
   const handleChangeFeature = (feature: ChatFeature) => {
     setActiveFeature(feature);
     setLastGoalSuggestion(null);
+    setLastHabitSuggestion(null);
 
     setSessions((prev) => {
       const existing = prev.find((s) => (s.feature ?? 'default') === feature);
@@ -370,6 +374,93 @@ export default function ClientPage() {
       return [fresh, ...prev];
     });
   };
+
+  const markHabitDone = async (habitId: string) => {
+  try {
+    const uid = getOrCreateWebUid();
+
+    const res = await fetch(
+      `/api/habits/${encodeURIComponent(habitId)}/done?user_id=${encodeURIComponent(uid)}`,
+      { method: 'POST' },
+    );
+
+    const data = await res.json().catch(() => null);
+    if (!data?.ok) return;
+
+    const locale = getLocaleFromPath();
+
+    updateCurrentSession((prev) => ({
+      ...prev,
+      messages: [
+        ...prev.messages,
+        {
+          role: 'assistant',
+          content: buildHabitDoneMessage(locale, Number(data.points ?? 0)),
+          ts: Date.now(),
+        },
+      ],
+      updatedAt: Date.now(),
+    }));
+  } catch {
+    updateCurrentSession((prev) => ({
+      ...prev,
+      messages: [
+        ...prev.messages,
+        { role: 'assistant', content: 'Ошибка сети 😕 Попробуй ещё раз.', ts: Date.now() },
+      ],
+      updatedAt: Date.now(),
+    }));
+  }
+};
+
+const saveAsHabit = async (habitText: string) => {
+  try {
+    const uid = getOrCreateWebUid();
+
+    const res = await fetch('/api/habits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: habitText, user_id: uid }),
+    });
+
+    const data = await res.json().catch(() => null);
+    const habitId = data?.id ? String(data.id) : undefined;
+
+    // если хочешь дневник привычки как у целей:
+    if (habitId) {
+      const diaryId = `habit:${habitId}`;
+      const now = Date.now();
+
+      setSessions((prev) => {
+        if (prev.some((s) => s.id === diaryId)) return prev;
+
+        const diary: ChatSession = {
+          id: diaryId,
+          title: habitText.length > 40 ? habitText.slice(0, 40) + '…' : habitText,
+          messages: [
+            {
+              role: 'assistant',
+              content: `Ок ✅ Привычка добавлена: "${habitText}".\nХочешь, сделаем её удобной по времени? 🙂`,
+              ts: now + 1,
+            },
+          ],
+          createdAt: now,
+          updatedAt: now,
+          feature: 'habits',
+          habitId,
+        } as any;
+
+        return [diary, ...prev];
+      });
+
+      setActiveFeature('habits');
+      setCurrentId(diaryId);
+    }
+  } finally {
+    setLastHabitSuggestion(null);
+  }
+};
+
 
   const markGoalDone = async (goalId: string) => {
   try {
@@ -495,93 +586,98 @@ export default function ClientPage() {
   };
 
   const handleSend = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  const trimmed = text.trim();
+  if (!trimmed) return;
 
-    if (!current) {
-      const fresh = createEmptySession(activeFeature);
-      setSessions([fresh]);
-      setCurrentId(fresh.id);
-      setLastGoalSuggestion(null);
-      return;
+  if (!current) {
+    const fresh = createEmptySession(activeFeature);
+    setSessions([fresh]);
+    setCurrentId(fresh.id);
+    setLastGoalSuggestion(null);
+    setLastHabitSuggestion(null);
+    return;
+  }
+
+  const uid = getOrCreateWebUid();
+  const isGoalDiary = Boolean(current.id?.startsWith('goal:'));
+  const isHabitDiary = Boolean(current.id?.startsWith('habit:'));
+
+  setLastGoalSuggestion(null);
+  setLastHabitSuggestion(null);
+
+  const ts = Date.now();
+  const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
+
+  updateCurrentSession((prev) => ({
+    ...prev,
+    feature: prev.feature ?? activeFeature,
+    messages: [...prev.messages, userMsg],
+    title: prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
+    updatedAt: Date.now(),
+  }));
+
+  setSending(true);
+
+  try {
+    const res = await fetch('/api/web-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input: trimmed,
+        sessionId: current.id,
+        feature: activeFeature,
+        user_id: uid,
+      }),
+    });
+
+    let replyText = 'Извини, сервер сейчас недоступен.';
+    let goalSuggestion: { text: string } | null = null;
+    let habitSuggestion: { text: string } | null = null;
+
+    const data = await res.json().catch(() => null);
+
+    if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
+      replyText = data.reply.trim();
     }
 
-    const uid = getOrCreateWebUid();
-    const isGoalDiary = Boolean(current.id?.startsWith('goal:'));
+    if (!isGoalDiary && activeFeature === 'goals' && data?.goal_suggestion?.text) {
+      goalSuggestion = { text: String(data.goal_suggestion.text) };
+    }
 
-    setLastGoalSuggestion(null);
+    if (!isHabitDiary && activeFeature === 'habits' && data?.habit_suggestion?.text) {
+      habitSuggestion = { text: String(data.habit_suggestion.text) };
+    }
 
-    const ts = Date.now();
-    const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
+    setLastGoalSuggestion(goalSuggestion);
+    setLastHabitSuggestion(habitSuggestion);
+
+    const botMsg: ChatMessage = { role: 'assistant', content: replyText, ts: Date.now() };
 
     updateCurrentSession((prev) => ({
       ...prev,
       feature: prev.feature ?? activeFeature,
-      messages: [...prev.messages, userMsg],
-      title: prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
+      messages: [...prev.messages, botMsg],
       updatedAt: Date.now(),
     }));
+  } catch {
+    const errMsg: ChatMessage = {
+      role: 'assistant',
+      content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
+      ts: Date.now(),
+    };
 
-    setSending(true);
+    updateCurrentSession((prev) => ({
+      ...prev,
+      feature: prev.feature ?? activeFeature,
+      messages: [...prev.messages, errMsg],
+      updatedAt: Date.now(),
+    }));
+  } finally {
+    setSending(false);
+  }
+};
 
-    try {
-      const res = await fetch('/api/web-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: trimmed,
-          sessionId: current.id,
-          feature: activeFeature,
-          user_id: uid,
-        }),
-      });
-
-      let replyText = 'Извини, сервер сейчас недоступен.';
-      let suggestion: { text: string } | null = null;
-
-      try {
-        const data = await res.json();
-
-        if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
-          replyText = data.reply.trim();
-        }
-
-        if (!isGoalDiary && activeFeature === 'goals' && data?.goal_suggestion?.text) {
-          suggestion = { text: String(data.goal_suggestion.text) };
-        } else {
-          suggestion = null;
-        }
-      } catch {
-        // ignore parse errors
-      }
-
-      setLastGoalSuggestion(suggestion);
-
-      const botMsg: ChatMessage = { role: 'assistant', content: replyText, ts: Date.now() };
-
-      updateCurrentSession((prev) => ({
-        ...prev,
-        feature: prev.feature ?? activeFeature,
-        messages: [...prev.messages, botMsg],
-        updatedAt: Date.now(),
-      }));
-    } catch {
-      const errMsg: ChatMessage = {
-        role: 'assistant',
-        content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
-        ts: Date.now(),
-      };
-
-      updateCurrentSession((prev) => ({
-        ...prev,
-        feature: prev.feature ?? activeFeature,
-        messages: [...prev.messages, errMsg],
-        updatedAt: Date.now(),
-      }));
-    } finally {
-      setSending(false);
-    }
-  };
+  
 
   return (
     <div className="flex h-[calc(100vh-4.5rem)] bg-zinc-950">
@@ -599,12 +695,18 @@ export default function ClientPage() {
   messages={current ? current.messages : []}
   activeFeature={activeFeature}
   goalSuggestion={lastGoalSuggestion}
+  habitSuggestion={lastHabitSuggestion}
   onSaveGoal={saveAsGoal}
-  onMarkGoalDone={markGoalDone}     // ✅ ВАЖНО
-  currentSessionId={current?.id}    // ✅ ВАЖНО
+  onSaveHabit={saveAsHabit}
+  onMarkGoalDone={markGoalDone}
+  onMarkHabitDone={markHabitDone}
+  currentSessionId={current?.id}
+  locale={getLocaleFromPath()}   // ✅ ОБЯЗАТЕЛЬНО
 />
+
+
         <Composer onSend={handleSend} disabled={sending} />
       </main>
     </div>
   );
-}
+    }

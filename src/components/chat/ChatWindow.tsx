@@ -7,11 +7,48 @@ import type { ChatMessage, ChatFeature } from './types';
 type Props = {
   messages: ChatMessage[];
   activeFeature: ChatFeature;
+
   goalSuggestion: { text: string } | null;
   onSaveGoal: (text: string) => Promise<void>;
-  onMarkGoalDone?: (goalId: string) => Promise<void>; // ✅ ДОБАВИЛИ
-  currentSessionId?: string; // ✅ чтобы понять, что это дневник цели
+
+  // ✅ goals done
+  onMarkGoalDone?: (goalId: string) => Promise<void>;
+
+  // ✅ habits suggestion + done
+  habitSuggestion?: { text: string } | null;
+  onSaveHabit?: (text: string) => Promise<void>;
+  onMarkHabitDone?: (habitId: string) => Promise<void>;
+
+  currentSessionId?: string;
+  locale: string;
+
 };
+
+function ui(locale: string) {
+  const l = (locale || 'en').toLowerCase();
+
+  const pick = (m: Record<string, string>) => {
+    if (l.startsWith('ru')) return m.ru;
+    if (l.startsWith('uk')) return m.uk;
+    if (l.startsWith('es')) return m.es;
+    if (l.startsWith('fr')) return m.fr;
+    if (l.startsWith('de')) return m.de;
+    if (l.startsWith('pl')) return m.pl;
+    if (l.startsWith('ro')) return m.ro;
+    if (l.startsWith('kk')) return m.kk;
+    if (l.startsWith('ka')) return m.ka;
+    if (l.startsWith('hy')) return m.hy;
+    return m.en;
+  };
+
+  return {
+    saveGoal: pick({ ru: '➕ Сохранить как цель', uk: '➕ Зберегти як ціль', en: '➕ Save as goal', es:'➕ Guardar como meta', fr:'➕ Enregistrer comme objectif', de:'➕ Als Ziel speichern', pl:'➕ Zapisz jako cel', ro:'➕ Salvează ca obiectiv', kk:'➕ Мақсат ретінде сақтау', ka:'➕ მიზნად შენახვა', hy:'➕ Պահպանել որպես նպատակ' }),
+    saveHabit: pick({ ru: '➕ Добавить как привычку', uk: '➕ Додати як звичку', en: '➕ Add as habit', es:'➕ Añadir como hábito', fr:'➕ Ajouter comme habitude', de:'➕ Als Gewohnheit hinzufügen', pl:'➕ Dodaj jako nawyk', ro:'➕ Adaugă ca obicei', kk:'➕ Әдет ретінде қосу', ka:'➕ ჩვევად დამატება', hy:'➕ Ավելացնել որպես սովորություն' }),
+    doneGoal: pick({ ru: '✅ Отметить выполненной', uk: '✅ Позначити виконаною', en: '✅ Mark done', es:'✅ Marcar como hecho', fr:'✅ Marquer comme fait', de:'✅ Als erledigt markieren', pl:'✅ Oznacz jako zrobione', ro:'✅ Marchează ca făcut', kk:'✅ Орындалды деп белгілеу', ka:'✅ შესრულებულად მონიშვნა', hy:'✅ Նշել որպես կատարված' }),
+    doneHabit: pick({ ru: '🔁 Отметить привычку', uk: '🔁 Позначити звичку', en: '🔁 Mark habit', es:'🔁 Marcar hábito', fr:'🔁 Valider l’habitude', de:'🔁 Gewohnheit markieren', pl:'🔁 Oznacz nawyk', ro:'🔁 Marchează obiceiul', kk:'🔁 Әдетті белгілеу', ka:'🔁 ჩვევის მონიშვნა', hy:'🔁 Նշել սովորությունը' }),
+  };
+}
+
 
 export default function ChatWindow({
   messages,
@@ -19,7 +56,13 @@ export default function ChatWindow({
   goalSuggestion,
   onSaveGoal,
   onMarkGoalDone,
+
+  habitSuggestion = null,
+  onSaveHabit,
+  onMarkHabitDone,
+
   currentSessionId,
+  locale,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -28,8 +71,10 @@ export default function ChatWindow({
   }, [messages.length]);
 
   const isGoalDiary = Boolean(currentSessionId?.startsWith('goal:'));
-  const goalId = isGoalDiary ? String(currentSessionId).slice('goal:'.length) : null;
+  const isHabitDiary = Boolean(currentSessionId?.startsWith('habit:'));
 
+    const labels = ui(locale);
+    
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -55,37 +100,73 @@ export default function ChatWindow({
                   {m.content}
 
                   {/* ✅ Кнопка "Сохранить как цель" — только в goals и НЕ внутри дневника цели */}
-                  {!isUser && isLast && activeFeature === 'goals' && !isGoalDiary && goalSuggestion?.text ? (
+                  {!isUser &&
+                  isLast &&
+                  activeFeature === 'goals' &&
+                  !isGoalDiary &&
+                  goalSuggestion?.text ? (
                     <div className="mt-3 flex gap-2">
                       <button
                         type="button"
                         onClick={() => onSaveGoal(goalSuggestion.text)}
                         className="text-xs px-3 py-1.5 rounded-lg bg-white text-zinc-900 hover:bg-zinc-200 transition"
                       >
-                        ➕ Сохранить как цель
+                        {labels.saveGoal}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {/* ✅ Кнопка "Добавить как привычку" — только в habits и НЕ внутри дневника привычки */}
+                  {!isUser &&
+                  isLast &&
+                  activeFeature === 'habits' &&
+                  !isHabitDiary &&
+                  habitSuggestion?.text &&
+                  onSaveHabit ? (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSaveHabit(habitSuggestion.text)}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-white text-zinc-900 hover:bg-zinc-200 transition"
+                      >
+                        {labels.saveHabit}
                       </button>
                     </div>
                   ) : null}
 
                   {/* ✅ Кнопка "Отметить выполненной" — только в goal-дневнике */}
-{!isUser &&
- isLast &&
- currentSessionId?.startsWith('goal:') &&
- onMarkGoalDone ? (
-  <div className="mt-3 flex gap-2">
-    <button
-      type="button"
-      onClick={() => {
-        const goalId = currentSessionId.replace('goal:', '');
-        onMarkGoalDone(goalId);
-      }}
-      className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition"
-    >
-      ✅ Отметить выполненной
-    </button>
-  </div>
-) : null}
+                  {!isUser && isLast && isGoalDiary && onMarkGoalDone ? (
+                    
 
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const goalId = String(currentSessionId).replace('goal:', '');
+                          onMarkGoalDone(goalId);
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                      >
+                        {labels.doneGoal}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {/* ✅ Кнопка "Привычка выполнена" — только в habit-дневнике */}
+                  {!isUser && isLast && isHabitDiary && onMarkHabitDone ? (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const habitId = String(currentSessionId).replace('habit:', '');
+                          onMarkHabitDone(habitId);
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                      >
+                        {labels.doneHabit}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );
