@@ -439,7 +439,22 @@ export default function ClientPage() {
     );
 
     const data = await res.json().catch(() => null);
-    if (!data?.ok) return;
+
+    if (!res.ok || !data?.ok) {
+      updateCurrentSession((prev) => ({
+        ...prev,
+        messages: [
+          ...prev.messages,
+          {
+            role: 'assistant',
+            content: `Не получилось отметить привычку 😕 (status ${res.status})`,
+            ts: Date.now(),
+          },
+        ],
+        updatedAt: Date.now(),
+      }));
+      return;
+    }
 
     const locale = getLocaleFromPath();
 
@@ -466,6 +481,7 @@ export default function ClientPage() {
     }));
   }
 };
+
 
 const saveAsHabit = async (habitText: string) => {
   try {
