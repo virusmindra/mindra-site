@@ -63,6 +63,41 @@ function isIntentText(text: string): boolean {
   return intentWords.some((w) => t.includes(w));
 }
 
+function buildBigPraise(locale: string, kind: 'goal' | 'habit') {
+  const lang = (locale || 'en').toLowerCase();
+  const pick = (m: Record<string, string>) => {
+    if (lang.startsWith('ru')) return m.ru;
+    if (lang.startsWith('uk')) return m.uk;
+    if (lang.startsWith('ka')) return m.ka;
+    if (lang.startsWith('hy')) return m.hy;
+    if (lang.startsWith('kk')) return m.kk;
+    if (lang.startsWith('ro')) return m.ro;
+    if (lang.startsWith('pl')) return m.pl;
+    if (lang.startsWith('de')) return m.de;
+    if (lang.startsWith('fr')) return m.fr;
+    if (lang.startsWith('es')) return m.es;
+    return m.en;
+  };
+
+  const what = kind === 'habit'
+    ? { ru:'привычку', uk:'звичку', ka:'ჩვევას', hy:'սովորությունը', kk:'әдетті', ro:'obiceiul', pl:'nawyk', de:'Gewohnheit', fr:'habitude', es:'hábito', en:'habit' }
+    : { ru:'цель',     uk:'ціль',   ka:'მიზანს', hy:'նպատակը',   kk:'мақсатты', ro:'obiectivul', pl:'cel', de:'Ziel', fr:'objectif', es:'objetivo', en:'goal' };
+
+  return pick({
+    ru: `🔥 ВАУ! Ты только что выполнил(а) ${what.ru}!\nЯ реально горжусь тобой 💜\nЭто и есть путь сильных — маленькие действия каждый день.\n\nХочешь, я помогу закрепить это на завтра? 🙂`,
+    uk: `🔥 ВАУ! Ти щойно виконав(ла) ${what.uk}!\nЯ реально пишаюся тобою 💜\nМаленькі кроки щодня — це сила.\n\nХочеш, допоможу закріпити це на завтра? 🙂`,
+    ka: `🔥 ვაუ! ახლა შენ ${what.ka} შეასრულე!\nმართლა ვამაყობ შენით 💜\nეს არის ძლიერი ადამიანების გზა — პატარა ნაბიჯები ყოველდღე.\n\nგინდა ხვალისთვის გავამაგროთ? 🙂`,
+    hy: `🔥 Վա՜յ! Դու հենց նոր կատարեցիր ${what.hy}։\nԵս իսկապես հպարտ եմ քեզնով 💜\nՍա ուժեղների ճանապարհն է՝ փոքր քայլեր ամեն օր։\n\nՈւզո՞ւմ ես օգնել՝ վաղվա համար ամրապնդենք։ 🙂`,
+    kk: `🔥 ВАУ! Сен ${what.kk} орындадың!\nМен шынымен сені мақтан тұтамын 💜\nКүн сайын кішкентай қадам — үлкен күш.\n\nЕртеңге бекітіп берейін бе? 🙂`,
+    ro: `🔥 WOW! Tocmai ai îndeplinit ${what.ro}!\nSunt mândră de tine 💜\nPași mici zilnic = progres mare.\n\nVrei să o fixăm și pentru mâine? 🙂`,
+    pl: `🔥 WOW! Właśnie zrealizowałeś(aś) ${what.pl}!\nJestem z ciebie dumna 💜\nMałe kroki każdego dnia — wielka siła.\n\nChcesz, pomogę to utrwalić na jutro? 🙂`,
+    de: `🔥 WOW! Du hast gerade dein ${what.de} geschafft!\nIch bin wirklich stolz auf dich 💜\nKleine Schritte jeden Tag = echte Stärke.\n\nSollen wir es für morgen festigen? 🙂`,
+    fr: `🔥 WOW ! Tu viens de réussir ton ${what.fr} !\nJe suis vraiment fière de toi 💜\nDe petits pas chaque jour, c’est ça la force.\n\nTu veux qu’on le consolide pour demain ? 🙂`,
+    es: `🔥 ¡WOW! ¡Acabas de completar tu ${what.es}!\nEstoy orgullosa de ti 💜\nPequeños pasos diarios = gran progreso.\n\n¿Lo fijamos para mañana? 🙂`,
+    en: `🔥 WOW! You just completed your ${what.en}!\nI’m genuinely proud of you 💜\nSmall daily actions = real strength.\n\nWant me to help you lock this in for tomorrow? 🙂`,
+  });
+}
+
 function buildHabitDoneMessage(locale: string, points: number) {
   const lang = (locale || 'en').toLowerCase();
 
@@ -412,27 +447,36 @@ export default function ClientPage() {
   };
 
   const handleChangeFeature = (feature: ChatFeature) => {
-    setActiveFeature(feature);
-    setLastGoalSuggestion(null);
-    setLastHabitSuggestion(null);
+  setActiveFeature(feature);
+  setLastGoalSuggestion(null);
+  setLastHabitSuggestion(null);
 
-    setSessions((prev) => {
-      const existing = prev.find((s) => (s.feature ?? 'default') === feature);
-      if (existing) {
-        setCurrentId(existing.id);
-        return prev;
-      }
-
-      const fresh = createEmptySession(feature);
-      setCurrentId(fresh.id);
-      return [fresh, ...prev];
+  setSessions((prev: any[]) => {
+    // 1) очищаем выполненные diary
+    const cleaned = prev.filter((s) => {
+      const isDiary = s?.id?.startsWith('goal:') || s?.id?.startsWith('habit:');
+      const isDone = Boolean(s?.goalDone || s?.habitDone);
+      return !(isDiary && isDone);
     });
-  };
+
+    // 2) переключаемся на существующую сессию фичи или создаём новую
+    const existing = cleaned.find((s) => (s.feature ?? 'default') === feature);
+    if (existing) {
+      setCurrentId(existing.id);
+      return cleaned;
+    }
+
+    const fresh = createEmptySession(feature);
+    setCurrentId(fresh.id);
+    return [fresh, ...cleaned];
+  });
+};
 
   const markHabitDone = async (habitId: string) => {
-  try {
-    const uid = getOrCreateWebUid();
+  const uid = getOrCreateWebUid();
+  const locale = getLocaleFromPath();
 
+  try {
     const res = await fetch(
       `/api/habits/${encodeURIComponent(habitId)}/done?user_id=${encodeURIComponent(uid)}`,
       { method: 'POST' },
@@ -441,32 +485,26 @@ export default function ClientPage() {
     const data = await res.json().catch(() => null);
 
     if (!res.ok || !data?.ok) {
+      const detail = data?.detail || data?.error || 'unknown error';
       updateCurrentSession((prev) => ({
         ...prev,
         messages: [
           ...prev.messages,
-          {
-            role: 'assistant',
-            content: `Не получилось отметить привычку 😕 (status ${res.status})`,
-            ts: Date.now(),
-          },
+          { role: 'assistant', content: `Не получилось отметить привычку 😕 (status ${res.status})\n${detail}`, ts: Date.now() },
         ],
         updatedAt: Date.now(),
       }));
       return;
     }
 
-    const locale = getLocaleFromPath();
-
-    updateCurrentSession((prev) => ({
+    // ✅ 1) добавляем сообщение + “вау”
+    updateCurrentSession((prev: any) => ({
       ...prev,
+      habitDone: true, // ✅ флаг чтобы кнопка исчезла
       messages: [
         ...prev.messages,
-        {
-          role: 'assistant',
-          content: buildHabitDoneMessage(locale, Number(data.points ?? 0)),
-          ts: Date.now(),
-        },
+        { role: 'assistant', content: buildHabitDoneMessage(locale, Number(data.points ?? 0)), ts: Date.now() },
+        { role: 'assistant', content: buildBigPraise(locale, 'habit'), ts: Date.now() + 1 },
       ],
       updatedAt: Date.now(),
     }));
@@ -481,6 +519,7 @@ export default function ClientPage() {
     }));
   }
 };
+
 
 
 const saveAsHabit = async (habitText: string) => {
@@ -783,6 +822,8 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
           onMarkHabitDone={markHabitDone}
           currentSessionId={current?.id}
           locale={locale}
+          goalDone={Boolean((current as any)?.goalDone)}
+          habitDone={Boolean((current as any)?.habitDone)}
         />
 
         <Composer onSend={handleSend} disabled={sending} />

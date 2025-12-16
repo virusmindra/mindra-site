@@ -1,5 +1,11 @@
 // src/app/api/habits/route.ts
-async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, ms = 15000) {
+import { NextResponse } from 'next/server';
+
+async function fetchWithTimeout(
+  input: RequestInfo,
+  init: RequestInit = {},
+  ms = 15000,
+) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
   try {
@@ -9,25 +15,28 @@ async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, ms =
   }
 }
 
-function getHabitsUrl(user_id?: string) {
+function getBase() {
   const base = process.env.RENDER_BOT_URL;
   if (!base) throw new Error('RENDER_BOT_URL is not set');
-  const url = new URL('/api/habits', base);
-  if (user_id) url.searchParams.set('user_id', user_id); // ✅ важно
-  return url.toString();
+  return base;
 }
 
+function getHabitsUrl() {
+  return new URL('/api/habits', getBase()).toString();
+}
+
+// GET /api/habits?user_id=...
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const user_id = searchParams.get('user_id') || 'web';
 
-    const url = getHabitsUrl(user_id);
+    const url = new URL(getHabitsUrl());
+    url.searchParams.set('user_id', user_id);
 
-    const upstream = await fetchWithTimeout(url, {
+    const upstream = await fetchWithTimeout(url.toString(), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
     });
 
     const text = await upstream.text();
@@ -38,25 +47,26 @@ export async function GET(req: Request) {
       data = { ok: false, habits: [], error: 'Invalid upstream response', raw: text };
     }
 
-    return new Response(JSON.stringify(data), {
-      status: upstream.status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (e) {
+    return NextResponse.json(data, { status: upstream.ok ? 200 : upstream.status });
+  } catch (e: any) {
     console.error('GET /api/habits error:', e);
-    return new Response(JSON.stringify({ ok: false, habits: [], error: 'Server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(
+      { ok: false, habits: [], error: e?.message || 'Server error' },
+      { status: 500 },
+    );
   }
 }
 
+// POST /api/habits  body: { text, user_id? }
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const url = getHabitsUrl(); // user_id лежит в body (как ты делаешь в ClientPage)
+    const body = await req.json().catch(() => ({}));
+    const user_id = body?.user_id || 'web';
 
-    const upstream = await fetchWithTimeout(url, {
+    const url = new URL(getHabitsUrl());
+    url.searchParams.set('user_id', String(user_id));
+
+    const upstream = await fetchWithTimeout(url.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -70,15 +80,12 @@ export async function POST(req: Request) {
       data = { ok: false, error: 'Invalid upstream response', raw: text };
     }
 
-    return new Response(JSON.stringify(data), {
-      status: upstream.status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (e) {
+    return NextResponse.json(data, { status: upstream.status });
+  } catch (e: any) {
     console.error('POST /api/habits error:', e);
-    return new Response(JSON.stringify({ ok: false, error: 'Server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(
+      { ok: false, error: e?.message || 'Server error' },
+      { status: 500 },
+    );
   }
 }

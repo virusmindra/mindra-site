@@ -12,11 +12,13 @@ type Props = {
   goalSuggestion: { text: string } | null;
   onSaveGoal: (text: string) => Promise<void>;
   onMarkGoalDone?: (goalId: string) => Promise<void>;
+  goalDone?: boolean;
 
   // habits
   habitSuggestion?: { text: string } | null;
   onSaveHabit?: (text: string) => Promise<void>;
   onMarkHabitDone?: (habitId: string) => Promise<void>;
+  habitDone?: boolean;
 
   currentSessionId?: string;
   locale: string;
@@ -152,6 +154,8 @@ export default function ChatWindow({
   onMarkHabitDone,
   currentSessionId,
   locale,
+  goalDone = false,
+  habitDone = false,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
