@@ -130,6 +130,41 @@ function buildHabitDoneMessage(locale: string, points: number) {
   });
 }
 
+const pointsKey = (uid: string) => `mindra_points_total:${uid}`;
+
+function getTotalPoints(uid: string) {
+  if (typeof window === 'undefined') return 0;
+  const raw = localStorage.getItem(pointsKey(uid));
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function addTotalPoints(uid: string, delta: number) {
+  const next = getTotalPoints(uid) + (Number(delta) || 0);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(pointsKey(uid), String(next));
+  }
+  return next;
+}
+
+function buildGoalDoneCongrats(locale: string, added: number, total: number) {
+  const L: Record<string, (a: number, t: number) => string> = {
+    ru: (a, t) => `🔥 Вау! Я реально горжусь тобой.\n✅ Цель выполнена: +${a} очков.\n⭐ Всего: ${t} очков.\nХочешь закрепить успех и выбрать следующий маленький шаг?`,
+    en: (a, t) => `🔥 Wow! I’m genuinely proud of you.\n✅ Goal completed: +${a} points.\n⭐ Total: ${t} points.\nWant to lock it in with one small next step?`,
+    uk: (a, t) => `🔥 Вау! Я щиро пишаюся тобою.\n✅ Ціль виконано: +${a} балів.\n⭐ Всього: ${t} балів.\nХочеш закріпити результат маленьким наступним кроком?`,
+    pl: (a, t) => `🔥 Wow! Jestem z Ciebie dumna.\n✅ Cel zrobiony: +${a} punktów.\n⭐ Razem: ${t} punktów.\nChcesz zrobić mały kolejny krok, żeby to utrwalić?`,
+    ro: (a, t) => `🔥 Wow! Chiar sunt mândră de tine.\n✅ Obiectiv îndeplinit: +${a} puncte.\n⭐ Total: ${t} puncte.\nVrei să-l consolidăm cu un pas mic următor?`,
+    de: (a, t) => `🔥 Wow! Ich bin echt stolz auf dich.\n✅ Ziel geschafft: +${a} Punkte.\n⭐ Insgesamt: ${t} Punkte.\nWillst du es mit einem kleinen nächsten Schritt festigen?`,
+    fr: (a, t) => `🔥 Wow ! Je suis vraiment fière de toi.\n✅ Objectif atteint : +${a} points.\n⭐ Total : ${t} points.\nOn l’ancre avec une petite prochaine étape ?`,
+    es: (a, t) => `🔥 ¡Wow! De verdad estoy orgullosa de ti.\n✅ Meta cumplida: +${a} puntos.\n⭐ Total: ${t} puntos.\n¿La закрепим con un pequeño siguiente paso?`,
+    it: (a, t) => `🔥 Wow! Sono davvero orgogliosa di te.\n✅ Obiettivo completato: +${a} punti.\n⭐ Totale: ${t} punti.\nVuoi fissarlo con un piccolo prossimo passo?`,
+    tr: (a, t) => `🔥 Vay! Seninle gerçekten gurur duyuyorum.\n✅ Hedef tamamlandı: +${a} puan.\n⭐ Toplam: ${t} puan.\nBunu küçük bir sonraki adımla sağlamlaştıralım mı?`,
+    ar: (a, t) => `🔥 واو! أنا فخورة بك فعلًا.\n✅ تم إنجاز الهدف: +${a} نقطة.\n⭐ المجموع: ${t} نقطة.\nهل نثبّت النجاح بخطوة صغيرة تالية؟`,
+  };
+
+  return (L[locale] ?? L.en)(added, total);
+}
+
 function getOrCreateWebUid() {
   if (typeof window === 'undefined') return 'web';
   const key = 'mindra_uid';
@@ -571,7 +606,14 @@ const saveAsHabit = async (habitText: string) => {
 };
 
 
-  const markGoalDone = async (goalId: string) => {
+const markGoalDone = async (goalId: string) => {
+  // 1️⃣ СРАЗУ помечаем цель выполненной → кнопка исчезнет мгновенно
+  updateCurrentSession((prev) => ({
+    ...prev,
+    goalDone: true, // 🔥 ВАЖНО
+    updatedAt: Date.now(),
+  }));
+
   try {
     const uid = getOrCreateWebUid();
 
@@ -582,14 +624,16 @@ const saveAsHabit = async (habitText: string) => {
 
     const data = await res.json().catch(() => null);
 
+    // 2️⃣ Если API упал — откатываем состояние
     if (!data?.ok) {
       updateCurrentSession((prev) => ({
         ...prev,
+        goalDone: false, // ⬅️ откат
         messages: [
           ...prev.messages,
           {
             role: 'assistant',
-            content: 'Не получилось отметить цель 😕 (ошибка API). Проверь /api/goals/*/done route.',
+            content: 'Не получилось отметить цель 😕 (ошибка API).',
             ts: Date.now(),
           },
         ],
@@ -598,6 +642,7 @@ const saveAsHabit = async (habitText: string) => {
       return;
     }
 
+    // 3️⃣ Большое мотивирующее сообщение 🎉
     const locale = getLocaleFromPath();
 
     updateCurrentSession((prev) => ({
@@ -613,8 +658,10 @@ const saveAsHabit = async (habitText: string) => {
       updatedAt: Date.now(),
     }));
   } catch {
+    // 4️⃣ Если сеть умерла — тоже откат
     updateCurrentSession((prev) => ({
       ...prev,
+      goalDone: false,
       messages: [
         ...prev.messages,
         {
@@ -627,7 +674,6 @@ const saveAsHabit = async (habitText: string) => {
     }));
   }
 };
-
 
   const saveAsGoal = async (goalText: string) => {
     try {

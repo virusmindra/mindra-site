@@ -197,6 +197,7 @@ export default function ChatWindow({
                   isLast &&
                   activeFeature === 'goals' &&
                   !isGoalDiary &&
+                  !goalDone && // ✅ важно: не показывать если уже done
                   goalSuggestion?.text ? (
                     <div className="mt-3 flex gap-2">
                       <button
@@ -214,6 +215,7 @@ export default function ChatWindow({
                   isLast &&
                   activeFeature === 'habits' &&
                   !isHabitDiary &&
+                  !habitDone && // ✅ важно: не показывать если уже done
                   habitSuggestion?.text &&
                   onSaveHabit ? (
                     <div className="mt-3 flex gap-2">
@@ -228,7 +230,7 @@ export default function ChatWindow({
                   ) : null}
 
                   {/* Mark goal done (goal diary only) */}
-                  {!isUser && isLast && isGoalDiary && onMarkGoalDone ? (
+                  {!isUser && isLast && isGoalDiary && onMarkGoalDone && !goalDone ? (
                     <div className="mt-3 flex gap-2">
                       <button
                         type="button"
@@ -244,7 +246,7 @@ export default function ChatWindow({
                   ) : null}
 
                   {/* Mark habit done (habit diary only) */}
-                  {!isUser && isLast && isHabitDiary && onMarkHabitDone ? (
+                  {!isUser && isLast && isHabitDiary && onMarkHabitDone && !habitDone ? (
                     <div className="mt-3 flex gap-2">
                       <button
                         type="button"
