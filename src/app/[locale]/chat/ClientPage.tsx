@@ -6,6 +6,7 @@ import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
 import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
+import { getTotalPoints, addPoints } from '@/lib/points';
 
 /* ----------------------------- helpers ----------------------------- */
 function isIntentText(text: string): boolean {
@@ -130,13 +131,21 @@ function buildHabitDoneMessage(locale: string, points: number) {
   });
 }
 
-const pointsKey = (uid: string) => `mindra_points_total:${uid}`;
+const pointsKey = (uid: string) => `mindra_points:${uid}`;
 
 function getTotalPoints(uid: string) {
   if (typeof window === 'undefined') return 0;
+
   const raw = localStorage.getItem(pointsKey(uid));
   const n = Number(raw);
+
   return Number.isFinite(n) ? n : 0;
+}
+
+function addPoints(uid: string, delta: number) {
+  const total = getTotalPoints(uid) + delta;
+  localStorage.setItem(pointsKey(uid), String(total));
+  return total;
 }
 
 function addTotalPoints(uid: string, delta: number) {
@@ -607,10 +616,10 @@ const saveAsHabit = async (habitText: string) => {
 
 
 const markGoalDone = async (goalId: string) => {
-  // 1️⃣ СРАЗУ помечаем цель выполненной → кнопка исчезнет мгновенно
+  // 1) Сразу скрываем кнопку
   updateCurrentSession((prev) => ({
     ...prev,
-    goalDone: true, // 🔥 ВАЖНО
+    goalDone: true,
     updatedAt: Date.now(),
   }));
 
@@ -624,51 +633,40 @@ const markGoalDone = async (goalId: string) => {
 
     const data = await res.json().catch(() => null);
 
-    // 2️⃣ Если API упал — откатываем состояние
+    // 2) если API упал — откат
     if (!data?.ok) {
       updateCurrentSession((prev) => ({
         ...prev,
-        goalDone: false, // ⬅️ откат
+        goalDone: false,
         messages: [
           ...prev.messages,
-          {
-            role: 'assistant',
-            content: 'Не получилось отметить цель 😕 (ошибка API).',
-            ts: Date.now(),
-          },
+          { role: 'assistant', content: 'Не получилось отметить цель 😕 (ошибка API).', ts: Date.now() },
         ],
         updatedAt: Date.now(),
       }));
       return;
     }
 
-    // 3️⃣ Большое мотивирующее сообщение 🎉
     const locale = getLocaleFromPath();
+    const added = Number(data.points ?? 0);
+    const total = addPoints(uid, added);
 
+    // 3) Большое поздравление (как у привычек)
     updateCurrentSession((prev) => ({
       ...prev,
       messages: [
         ...prev.messages,
-        {
-          role: 'assistant',
-          content: buildGoalDoneMessage(locale, Number(data.points ?? 0)),
-          ts: Date.now(),
-        },
+        { role: 'assistant', content: buildGoalDoneCongrats(locale, added, total), ts: Date.now() },
       ],
       updatedAt: Date.now(),
     }));
   } catch {
-    // 4️⃣ Если сеть умерла — тоже откат
     updateCurrentSession((prev) => ({
       ...prev,
       goalDone: false,
       messages: [
         ...prev.messages,
-        {
-          role: 'assistant',
-          content: 'Ошибка сети 😕 Попробуй ещё раз.',
-          ts: Date.now(),
-        },
+        { role: 'assistant', content: 'Ошибка сети 😕 Попробуй ещё раз.', ts: Date.now() },
       ],
       updatedAt: Date.now(),
     }));
