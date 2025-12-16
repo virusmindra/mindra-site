@@ -7,6 +7,7 @@ import Composer from '@/components/chat/Composer';
 import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 import { getTotalPoints, addPoints } from '@/lib/points';
+import PointsPanel from '@/components/chat/PointsPanel'; // путь подстрой под свой
 
 /* ----------------------------- helpers ----------------------------- */
 function isIntentText(text: string): boolean {
@@ -132,21 +133,6 @@ function buildHabitDoneMessage(locale: string, points: number) {
 }
 
 const pointsKey = (uid: string) => `mindra_points:${uid}`;
-
-function getTotalPoints(uid: string) {
-  if (typeof window === 'undefined') return 0;
-
-  const raw = localStorage.getItem(pointsKey(uid));
-  const n = Number(raw);
-
-  return Number.isFinite(n) ? n : 0;
-}
-
-function addPoints(uid: string, delta: number) {
-  const total = getTotalPoints(uid) + delta;
-  localStorage.setItem(pointsKey(uid), String(total));
-  return total;
-}
 
 function addTotalPoints(uid: string, delta: number) {
   const next = getTotalPoints(uid) + (Number(delta) || 0);
@@ -855,23 +841,29 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
       />
 
       <main className="flex-1 flex flex-col">
-        <ChatWindow
-          messages={current ? current.messages : []}
-          activeFeature={activeFeature}
-          goalSuggestion={lastGoalSuggestion}
-          habitSuggestion={lastHabitSuggestion}
-          onSaveGoal={saveAsGoal}
-          onSaveHabit={saveAsHabit}
-          onMarkGoalDone={markGoalDone}
-          onMarkHabitDone={markHabitDone}
-          currentSessionId={current?.id}
-          locale={locale}
-          goalDone={Boolean((current as any)?.goalDone)}
-          habitDone={Boolean((current as any)?.habitDone)}
-        />
+  {activeFeature === 'points' ? (
+    <PointsPanel uid={getOrCreateWebUid()} locale={locale} />
+  ) : (
+    <>
+      <ChatWindow
+        messages={current ? current.messages : []}
+        activeFeature={activeFeature}
+        goalSuggestion={lastGoalSuggestion}
+        habitSuggestion={lastHabitSuggestion}
+        onSaveGoal={saveAsGoal}
+        onSaveHabit={saveAsHabit}
+        onMarkGoalDone={markGoalDone}
+        onMarkHabitDone={markHabitDone}
+        currentSessionId={current?.id}
+        locale={locale}
+        goalDone={Boolean((current as any)?.goalDone)}
+        habitDone={Boolean((current as any)?.habitDone)}
+      />
 
-        <Composer onSend={handleSend} disabled={sending} />
-      </main>
+      <Composer onSend={handleSend} disabled={sending} />
+    </>
+  )}
+</main>
     </div>
   );
 }

@@ -16,7 +16,7 @@
     // Алиасы
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@/components/*": ["src/components/*"],
       "@/app/*": ["src/app/*"],
       "next-intl/config": ["./next-intl.config.ts"]
