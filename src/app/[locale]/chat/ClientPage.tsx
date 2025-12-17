@@ -65,6 +65,80 @@ function isIntentText(text: string): boolean {
   return intentWords.some((w) => t.includes(w));
 }
 
+function buildNextStepAfterGoal(locale: string) {
+  const l = (locale || 'en').toLowerCase();
+
+  if (l.startsWith('ru'))
+    return 'Хочешь добавить небольшой следующий шаг, чтобы двигаться дальше?';
+
+  if (l.startsWith('uk'))
+    return 'Хочеш додати маленький наступний крок, щоб рухатися далі?';
+
+  if (l.startsWith('ro'))
+    return 'Vrei să adăugăm un mic pas următor ca să mergem mai departe?';
+
+  if (l.startsWith('fr'))
+    return 'Tu veux ajouter un petit pas suivant pour continuer à avancer ?';
+
+  if (l.startsWith('es'))
+    return '¿Quieres añadir un pequeño siguiente paso para seguir avanzando?';
+
+  if (l.startsWith('de'))
+    return 'Möchtest du einen kleinen nächsten Schritt hinzufügen, um weiterzukommen?';
+
+  if (l.startsWith('pl'))
+    return 'Chcesz dodać mały kolejny krok, żeby iść dalej?';
+
+  if (l.startsWith('hy'))
+    return 'Ցանկանու՞մ ես ավելացնել մի փոքր հաջորդ քայլ՝ առաջ գնալու համար։';
+
+  if (l.startsWith('ka'))
+    return 'გინდა დავამატოთ პატარა შემდეგი ნაბიჯი, რომ წინ წავიდეთ?';
+
+  if (l.startsWith('kk'))
+    return 'Алға жылжу үшін кішкентай келесі қадам қосқымыз келе ме?';
+
+  // en (default)
+  return 'Want to add one small next step to keep moving forward?';
+}
+
+function buildNextStepAfterHabit(locale: string) {
+  const l = (locale || 'en').toLowerCase();
+
+  if (l.startsWith('ru'))
+    return 'Хочешь добавить ещё один небольшой шаг, чтобы становиться лучше каждый день?';
+
+  if (l.startsWith('uk'))
+    return 'Хочеш додати ще один маленький крок, щоб ставати кращим щодня?';
+
+  if (l.startsWith('ro'))
+    return 'Vrei să adăugăm încă un mic pas pentru a deveni mai bun în fiecare zi?';
+
+  if (l.startsWith('fr'))
+    return 'Tu veux ajouter un petit pas de plus pour devenir meilleur chaque jour ?';
+
+  if (l.startsWith('es'))
+    return '¿Quieres añadir otro pequeño paso para mejorar cada día?';
+
+  if (l.startsWith('de'))
+    return 'Möchtest du noch einen kleinen Schritt hinzufügen, um jeden Tag besser zu werden?';
+
+  if (l.startsWith('pl'))
+    return 'Chcesz dodać jeszcze jeden mały krok, żeby stawać się lepszym każdego dnia?';
+
+  if (l.startsWith('hy'))
+    return 'Ցանկանու՞մ ես ավելացնել ևս մեկ փոքր քայլ՝ ամեն օր ավելի լավ դառնալու համար։';
+
+  if (l.startsWith('ka'))
+    return 'გინდა დავამატოთ კიდევ ერთი პატარა ნაბიჯი, რომ ყოველდღე უკეთესი გახდე?';
+
+  if (l.startsWith('kk'))
+    return 'Күн сайын жақсара түсу үшін тағы бір кішкентай қадам қосқымыз келе ме?';
+
+  // en (default)
+  return 'Want to add another small step to become better every day?';
+}
+
 function buildBigPraise(locale: string, kind: 'goal' | 'habit') {
   const lang = (locale || 'en').toLowerCase();
   const pick = (m: Record<string, string>) => {
@@ -86,17 +160,17 @@ function buildBigPraise(locale: string, kind: 'goal' | 'habit') {
     : { ru:'цель',     uk:'ціль',   ka:'მიზანს', hy:'նպատակը',   kk:'мақсатты', ro:'obiectivul', pl:'cel', de:'Ziel', fr:'objectif', es:'objetivo', en:'goal' };
 
   return pick({
-    ru: `🔥 ВАУ! Ты только что выполнил(а) ${what.ru}!\nЯ реально горжусь тобой 💜\nЭто и есть путь сильных — маленькие действия каждый день.\n\nХочешь, я помогу закрепить это на завтра? 🙂`,
-    uk: `🔥 ВАУ! Ти щойно виконав(ла) ${what.uk}!\nЯ реально пишаюся тобою 💜\nМаленькі кроки щодня — це сила.\n\nХочеш, допоможу закріпити це на завтра? 🙂`,
-    ka: `🔥 ვაუ! ახლა შენ ${what.ka} შეასრულე!\nმართლა ვამაყობ შენით 💜\nეს არის ძლიერი ადამიანების გზა — პატარა ნაბიჯები ყოველდღე.\n\nგინდა ხვალისთვის გავამაგროთ? 🙂`,
-    hy: `🔥 Վա՜յ! Դու հենց նոր կատարեցիր ${what.hy}։\nԵս իսկապես հպարտ եմ քեզնով 💜\nՍա ուժեղների ճանապարհն է՝ փոքր քայլեր ամեն օր։\n\nՈւզո՞ւմ ես օգնել՝ վաղվա համար ամրապնդենք։ 🙂`,
-    kk: `🔥 ВАУ! Сен ${what.kk} орындадың!\nМен шынымен сені мақтан тұтамын 💜\nКүн сайын кішкентай қадам — үлкен күш.\n\nЕртеңге бекітіп берейін бе? 🙂`,
-    ro: `🔥 WOW! Tocmai ai îndeplinit ${what.ro}!\nSunt mândră de tine 💜\nPași mici zilnic = progres mare.\n\nVrei să o fixăm și pentru mâine? 🙂`,
-    pl: `🔥 WOW! Właśnie zrealizowałeś(aś) ${what.pl}!\nJestem z ciebie dumna 💜\nMałe kroki każdego dnia — wielka siła.\n\nChcesz, pomogę to utrwalić na jutro? 🙂`,
-    de: `🔥 WOW! Du hast gerade dein ${what.de} geschafft!\nIch bin wirklich stolz auf dich 💜\nKleine Schritte jeden Tag = echte Stärke.\n\nSollen wir es für morgen festigen? 🙂`,
-    fr: `🔥 WOW ! Tu viens de réussir ton ${what.fr} !\nJe suis vraiment fière de toi 💜\nDe petits pas chaque jour, c’est ça la force.\n\nTu veux qu’on le consolide pour demain ? 🙂`,
-    es: `🔥 ¡WOW! ¡Acabas de completar tu ${what.es}!\nEstoy orgullosa de ti 💜\nPequeños pasos diarios = gran progreso.\n\n¿Lo fijamos para mañana? 🙂`,
-    en: `🔥 WOW! You just completed your ${what.en}!\nI’m genuinely proud of you 💜\nSmall daily actions = real strength.\n\nWant me to help you lock this in for tomorrow? 🙂`,
+    ru: `🔥 ВАУ! Ты только что выполнил(а) ${what.ru}!\nЯ реально горжусь тобой 💜\nЭто и есть путь сильных — маленькие действия каждый день.`,
+    uk: `🔥 ВАУ! Ти щойно виконав(ла) ${what.uk}!\nЯ реально пишаюся тобою 💜\nМаленькі кроки щодня — це сила.`,
+    ka: `🔥 ვაუ! ახლა შენ ${what.ka} შეასრულე!\nმართლა ვამაყობ შენით 💜\nეს არის ძლიერი ადამიანების გზა — პატარა ნაბიჯები ყოველდღე.`,
+    hy: `🔥 Վա՜յ! Դու հենց նոր կատարեցիր ${what.hy}։\nԵս իսկապես հպարտ եմ քեզնով 💜\nՍա ուժեղների ճանապարհն է՝ փոքր քայլեր ամեն օր։`,
+    kk: `🔥 ВАУ! Сен ${what.kk} орындадың!\nМен шынымен сені мақтан тұтамын 💜\nКүн сайын кішкентай қадам — үлкен күш.`,
+    ro: `🔥 WOW! Tocmai ai îndeplinit ${what.ro}!\nSunt mândră de tine 💜\nPași mici zilnic = progres mare.`,
+    pl: `🔥 WOW! Właśnie zrealizowałeś(aś) ${what.pl}!\nJestem z ciebie dumna 💜\nMałe kroki każdego dnia — wielka siła.`,
+    de: `🔥 WOW! Du hast gerade dein ${what.de} geschafft!\nIch bin wirklich stolz auf dich 💜\nKleine Schritte jeden Tag = echte Stärke.`,
+    fr: `🔥 WOW ! Tu viens de réussir ton ${what.fr} !\nJe suis vraiment fière de toi 💜\nDe petits pas chaque jour, c’est ça la force.`,
+    es: `🔥 ¡WOW! ¡Acabas de completar tu ${what.es}!\nEstoy orgullosa de ti 💜\nPequeños pasos diarios = gran progreso.`,
+    en: `🔥 WOW! You just completed your ${what.en}!\nI’m genuinely proud of you 💜\nSmall daily actions = real strength.`,
   });
 }
 
@@ -132,29 +206,19 @@ function buildHabitDoneMessage(locale: string, points: number) {
   });
 }
 
-const pointsKey = (uid: string) => `mindra_points:${uid}`;
-
-function addTotalPoints(uid: string, delta: number) {
-  const next = getTotalPoints(uid) + (Number(delta) || 0);
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(pointsKey(uid), String(next));
-  }
-  return next;
-}
-
 function buildGoalDoneCongrats(locale: string, added: number, total: number) {
   const L: Record<string, (a: number, t: number) => string> = {
-    ru: (a, t) => `🔥 Вау! Я реально горжусь тобой.\n✅ Цель выполнена: +${a} очков.\n⭐ Всего: ${t} очков.\nХочешь закрепить успех и выбрать следующий маленький шаг?`,
-    en: (a, t) => `🔥 Wow! I’m genuinely proud of you.\n✅ Goal completed: +${a} points.\n⭐ Total: ${t} points.\nWant to lock it in with one small next step?`,
-    uk: (a, t) => `🔥 Вау! Я щиро пишаюся тобою.\n✅ Ціль виконано: +${a} балів.\n⭐ Всього: ${t} балів.\nХочеш закріпити результат маленьким наступним кроком?`,
-    pl: (a, t) => `🔥 Wow! Jestem z Ciebie dumna.\n✅ Cel zrobiony: +${a} punktów.\n⭐ Razem: ${t} punktów.\nChcesz zrobić mały kolejny krok, żeby to utrwalić?`,
-    ro: (a, t) => `🔥 Wow! Chiar sunt mândră de tine.\n✅ Obiectiv îndeplinit: +${a} puncte.\n⭐ Total: ${t} puncte.\nVrei să-l consolidăm cu un pas mic următor?`,
-    de: (a, t) => `🔥 Wow! Ich bin echt stolz auf dich.\n✅ Ziel geschafft: +${a} Punkte.\n⭐ Insgesamt: ${t} Punkte.\nWillst du es mit einem kleinen nächsten Schritt festigen?`,
-    fr: (a, t) => `🔥 Wow ! Je suis vraiment fière de toi.\n✅ Objectif atteint : +${a} points.\n⭐ Total : ${t} points.\nOn l’ancre avec une petite prochaine étape ?`,
-    es: (a, t) => `🔥 ¡Wow! De verdad estoy orgullosa de ti.\n✅ Meta cumplida: +${a} puntos.\n⭐ Total: ${t} puntos.\n¿La закрепим con un pequeño siguiente paso?`,
-    it: (a, t) => `🔥 Wow! Sono davvero orgogliosa di te.\n✅ Obiettivo completato: +${a} punti.\n⭐ Totale: ${t} punti.\nVuoi fissarlo con un piccolo prossimo passo?`,
-    tr: (a, t) => `🔥 Vay! Seninle gerçekten gurur duyuyorum.\n✅ Hedef tamamlandı: +${a} puan.\n⭐ Toplam: ${t} puan.\nBunu küçük bir sonraki adımla sağlamlaştıralım mı?`,
-    ar: (a, t) => `🔥 واو! أنا فخورة بك فعلًا.\n✅ تم إنجاز الهدف: +${a} نقطة.\n⭐ المجموع: ${t} نقطة.\nهل نثبّت النجاح بخطوة صغيرة تالية؟`,
+      ru: (a, t) => `🔥 Вау! Я реально горжусь тобой.\n✅ Цель выполнена: +${a} очков.\n⭐ Всего: ${t} очков.`,
+  uk: (a, t) => `🔥 Вау! Я щиро пишаюся тобою.\n✅ Ціль виконано: +${a} балів.\n⭐ Всього: ${t} балів.`,
+  kk: (a, t) => `🔥 Вау! Мен сені шынымен мақтан тұтамын.\n✅ Мақсат орындалды: +${a} ұпай.\n⭐ Барлығы: ${t} ұпай.`,
+  hy: (a, t) => `🔥 Վա՜յ։ Ես իսկապես հպարտ եմ քեզանով։\n✅ Նպատակը կատարված է՝ +${a} միավոր։\n⭐ Ընդամենը՝ ${t} միավոր։`,
+  ka: (a, t) => `🔥 ვაუ! ნამდვილად ვამაყობ შენით.\n✅ მიზანი შესრულებულია: +${a} ქულა.\n⭐ სულ: ${t} ქულა.`,
+  fr: (a, t) => `🔥 Wow ! Je suis vraiment fière de toi.\n✅ Objectif atteint : +${a} points.\n⭐ Total : ${t} points.`,
+  es: (a, t) => `🔥 ¡Wow! De verdad estoy orgullosa de ti.\n✅ Objetivo completado: +${a} puntos.\n⭐ Total: ${t} puntos.`,
+  en: (a, t) => `🔥 Wow! I’m genuinely proud of you.\n✅ Goal completed: +${a} points.\n⭐ Total: ${t} points.`,
+  pl: (a, t) => `🔥 Wow! Jestem z Ciebie naprawdę dumna.\n✅ Cel wykonany: +${a} punktów.\n⭐ Razem: ${t} punktów.`,
+  de: (a, t) => `🔥 Wow! Ich bin wirklich stolz auf dich.\n✅ Ziel erreicht: +${a} Punkte.\n⭐ Gesamt: ${t} Punkte.`,
+  ro: (a, t) => `🔥 Wow! Sunt cu adevărat mândră de tine.\n✅ Obiectiv îndeplinit: +${a} puncte.\n⭐ Total: ${t} puncte.`,
   };
 
   return (L[locale] ?? L.en)(added, total);
@@ -475,6 +539,37 @@ export default function ClientPage() {
     setLastGoalSuggestion(null);
     setLastHabitSuggestion(null);
   };
+ 
+const pushToFeatureChat = (feature: ChatFeature, content: string) => {
+  const msg = { role: 'assistant' as const, content, ts: Date.now() };
+
+  setSessions((prev: any[]) => {
+    const list = [...prev];
+
+    const isDiary = (id: any) => {
+      const s = String(id || '');
+      return s.startsWith('goal:') || s.startsWith('habit:');
+    };
+
+    // ищем обычный чат фичи (не diary)
+    let idx = list.findIndex((s) => (s.feature ?? 'default') === feature && !isDiary(s.id));
+
+    if (idx === -1) {
+      const fresh = createEmptySession(feature);
+      fresh.messages = [...(fresh.messages || []), msg];
+      fresh.updatedAt = Date.now();
+      return [fresh, ...list];
+    }
+
+    list[idx] = {
+      ...list[idx],
+      messages: [...(list[idx].messages || []), msg],
+      updatedAt: Date.now(),
+    };
+
+    return list;
+  });
+};
 
   const handleChangeFeature = (feature: ChatFeature) => {
   setActiveFeature(feature);
@@ -502,7 +597,14 @@ export default function ClientPage() {
   });
 };
 
-  const markHabitDone = async (habitId: string) => {
+const markHabitDone = async (habitId: string) => {
+  // 1) мгновенно скрываем кнопку
+  updateCurrentSession((prev: any) => ({
+    ...prev,
+    habitDone: true,
+    updatedAt: Date.now(),
+  }));
+
   const uid = getOrCreateWebUid();
   const locale = getLocaleFromPath();
 
@@ -516,10 +618,11 @@ export default function ClientPage() {
 
     if (!res.ok || !data?.ok) {
       const detail = data?.detail || data?.error || 'unknown error';
-      updateCurrentSession((prev) => ({
+      updateCurrentSession((prev: any) => ({
         ...prev,
+        habitDone: false,
         messages: [
-          ...prev.messages,
+          ...(prev.messages || []),
           { role: 'assistant', content: `Не получилось отметить привычку 😕 (status ${res.status})\n${detail}`, ts: Date.now() },
         ],
         updatedAt: Date.now(),
@@ -527,22 +630,30 @@ export default function ClientPage() {
       return;
     }
 
-    // ✅ 1) добавляем сообщение + “вау”
+    const added = Number(data.points ?? 0);
+
+    // ✅ начисляем очки (вот тут и была причина что 9 не суммировались)
+    addPoints(uid, added);
+
+    // 2) diary: только похвала, БЕЗ вопросов
     updateCurrentSession((prev: any) => ({
       ...prev,
-      habitDone: true, // ✅ флаг чтобы кнопка исчезла
       messages: [
-        ...prev.messages,
-        { role: 'assistant', content: buildHabitDoneMessage(locale, Number(data.points ?? 0)), ts: Date.now() },
+        ...(prev.messages || []),
+        { role: 'assistant', content: buildHabitDoneMessage(locale, added), ts: Date.now() },
         { role: 'assistant', content: buildBigPraise(locale, 'habit'), ts: Date.now() + 1 },
       ],
       updatedAt: Date.now(),
     }));
+
+    // 3) вопрос/след.шаг — в общий чат "Привычки"
+    pushToFeatureChat('habits', buildNextStepAfterHabit(locale));
   } catch {
-    updateCurrentSession((prev) => ({
+    updateCurrentSession((prev: any) => ({
       ...prev,
+      habitDone: false,
       messages: [
-        ...prev.messages,
+        ...(prev.messages || []),
         { role: 'assistant', content: 'Ошибка сети 😕 Попробуй ещё раз.', ts: Date.now() },
       ],
       updatedAt: Date.now(),
@@ -601,9 +712,10 @@ const saveAsHabit = async (habitText: string) => {
 };
 
 
+
 const markGoalDone = async (goalId: string) => {
-  // 1) Сразу скрываем кнопку
-  updateCurrentSession((prev) => ({
+  // 1) мгновенно скрываем кнопку
+  updateCurrentSession((prev: any) => ({
     ...prev,
     goalDone: true,
     updatedAt: Date.now(),
@@ -611,6 +723,7 @@ const markGoalDone = async (goalId: string) => {
 
   try {
     const uid = getOrCreateWebUid();
+    const locale = getLocaleFromPath();
 
     const res = await fetch(
       `/api/goals/${encodeURIComponent(goalId)}/done?user_id=${encodeURIComponent(uid)}`,
@@ -620,38 +733,45 @@ const markGoalDone = async (goalId: string) => {
     const data = await res.json().catch(() => null);
 
     // 2) если API упал — откат
-    if (!data?.ok) {
-      updateCurrentSession((prev) => ({
+    if (!res.ok || !data?.ok) {
+      const detail = data?.detail || data?.error || 'unknown error';
+      updateCurrentSession((prev: any) => ({
         ...prev,
         goalDone: false,
         messages: [
-          ...prev.messages,
-          { role: 'assistant', content: 'Не получилось отметить цель 😕 (ошибка API).', ts: Date.now() },
+          ...(prev.messages || []),
+          {
+            role: 'assistant',
+            content: `Не получилось отметить цель 😕 (status ${res.status})\n${detail}`,
+            ts: Date.now(),
+          },
         ],
         updatedAt: Date.now(),
       }));
       return;
     }
 
-    const locale = getLocaleFromPath();
     const added = Number(data.points ?? 0);
     const total = addPoints(uid, added);
 
-    // 3) Большое поздравление (как у привычек)
-    updateCurrentSession((prev) => ({
+    // 3) в diary — только похвала БЕЗ вопроса
+    updateCurrentSession((prev: any) => ({
       ...prev,
       messages: [
-        ...prev.messages,
+        ...(prev.messages || []),
         { role: 'assistant', content: buildGoalDoneCongrats(locale, added, total), ts: Date.now() },
       ],
       updatedAt: Date.now(),
     }));
+
+    // 4) вопрос/след.шаг — в общий чат "Цели"
+    pushToFeatureChat('goals', buildNextStepAfterGoal(locale));
   } catch {
-    updateCurrentSession((prev) => ({
+    updateCurrentSession((prev: any) => ({
       ...prev,
       goalDone: false,
       messages: [
-        ...prev.messages,
+        ...(prev.messages || []),
         { role: 'assistant', content: 'Ошибка сети 😕 Попробуй ещё раз.', ts: Date.now() },
       ],
       updatedAt: Date.now(),

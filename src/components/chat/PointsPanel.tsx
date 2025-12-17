@@ -8,6 +8,47 @@ type Props = {
   locale: string;   // getLocaleFromPath()
 };
 
+function dayWord(locale: string, n: number) {
+  const L = normLocale(locale);
+
+  if (L === 'ru') {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'день';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
+    return 'дней';
+  }
+
+  if (L === 'uk') {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'день';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дні';
+    return 'днів';
+  }
+
+  // остальные языки — нейтрально
+  return n === 1 ? 'day' : 'days';
+}
+
+function ptsLabel(locale: string) {
+  const L = normLocale(locale);
+  const map: Record<string, string> = {
+    ru: 'очк.',
+    uk: 'бал.',
+    en: 'pts',
+    es: 'pts',
+    fr: 'pts',
+    de: 'Pkt',
+    pl: 'pkt',
+    ro: 'pct',
+    kk: 'ұпай',
+    ka: 'ქულა',
+    hy: 'միավոր',
+  };
+  return map[L] ?? 'pts';
+}
+
 function normLocale(locale: string) {
   const l = (locale || 'en').toLowerCase();
   if (l.startsWith('ru')) return 'ru';
