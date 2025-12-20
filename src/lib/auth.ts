@@ -1,9 +1,10 @@
-import { auth } from "@/server/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export type AuthedUser = { id: string; email?: string } | null;
 
 export async function getCurrentUser(): Promise<AuthedUser> {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
   if (!session?.user) return null;
 
   return {
