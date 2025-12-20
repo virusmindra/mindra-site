@@ -4,6 +4,19 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/server/db";
 
 export const authOptions: NextAuthOptions = {
+    debug: true,
+  logger: {
+    error(code, metadata) {
+      console.error("NEXTAUTH_ERROR", code, metadata);
+    },
+    warn(code) {
+      console.warn("NEXTAUTH_WARN", code);
+    },
+    debug(code, metadata) {
+      console.log("NEXTAUTH_DEBUG", code, metadata);
+    },
+  },
+  
   secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   providers: [
