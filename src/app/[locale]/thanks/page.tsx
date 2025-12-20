@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/server/auth-options";
 import { getTSync } from "@/lib/getT";
 import type { Locale } from "@/i18n";
 
