@@ -3,10 +3,7 @@ import { requireUserId } from "@/server/auth";
 import { prisma } from "@/server/prisma";
 import { looksRelativeHint } from "@/lib/reminders/time";
 
-const MAX_ACTIVE = 50;
-const MAX_DAYS_AHEAD = 365;
-
-function jsonSafe<T>(data: T): any {
+function jsonSafe<T>(data: T) {
   return JSON.parse(
     JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? v.toString() : v))
   );
@@ -38,7 +35,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "invalid due_utc" }, { status: 400 });
   }
 
-  const count = await prisma.reminder.count({ where: { userId, status: "scheduled" } });
+  const count = await prisma.reminder.count({
+    where: { userId, status: "scheduled" },
+  });
   if (count >= 50) {
     return NextResponse.json({ ok: false, error: "limit reached" }, { status: 429 });
   }
@@ -48,7 +47,13 @@ export async function POST(req: Request) {
   const urgent = Boolean(looksRelativeHint(String(text)) && deltaMin <= 30);
 
   const reminder = await prisma.reminder.create({
-    data: { userId, text: String(text), dueUtc, status: "scheduled", urgent },
+    data: {
+      userId,
+      text: String(text),
+      dueUtc,
+      status: "scheduled",
+      urgent,
+    },
   });
 
   return NextResponse.json({ ok: true, reminder: jsonSafe(reminder) });
