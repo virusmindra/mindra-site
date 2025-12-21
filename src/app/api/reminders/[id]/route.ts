@@ -1,18 +1,15 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { NextResponse } from "next/server";
+import { requireUserId } from "@/server/auth";
+import { prisma } from "@/server/prisma";
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const { searchParams } = new URL(req.url);
-  const uid = searchParams.get('uid');
-  const id = Number(params.id);
-  if (!uid || !id) return NextResponse.json({ ok: false }, { status: 400 });
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+  const userId = await requireUserId();
+  const id = BigInt(params.id);
 
-  const { error } = await supabaseAdmin
-    .from('reminders')
-    .update({ status: 'canceled' })
-    .eq('id', id)
-    .eq('uid', uid);
+  await prisma.reminder.updateMany({
+    where: { id, userId },
+    data: { status: "canceled" },
+  });
 
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

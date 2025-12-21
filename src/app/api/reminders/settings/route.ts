@@ -1,42 +1,34 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { NextResponse } from "next/server";
+import { requireUserId } from "@/server/auth";
+import { prisma } from "@/server/prisma";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const uid = searchParams.get('uid');
-  if (!uid) return NextResponse.json({ ok: false, error: 'uid required' }, { status: 400 });
+export async function GET() {
+  const userId = await requireUserId();
 
-  const { data, error } = await supabaseAdmin
-    .from('user_settings')
-    .select('*')
-    .eq('uid', uid)
-    .maybeSingle();
+  const settings = await prisma.userSettings.findUnique({ where: { userId } });
 
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-
-  // если нет — вернём дефолт (и можно сразу upsert сделать)
   return NextResponse.json({
     ok: true,
-    settings: data ?? { uid, tz: 'UTC', quiet_start: 22, quiet_end: 8, quiet_bypass_min: 30 },
+    settings: settings ?? { userId, tz: "UTC", quietStart: 22, quietEnd: 8, quietBypassMin: 30 },
   });
 }
 
 export async function POST(req: Request) {
+  const userId = await requireUserId();
   const body = await req.json().catch(() => null);
-  const { uid, tz, quiet_start, quiet_end, quiet_bypass_min } = body || {};
-  if (!uid) return NextResponse.json({ ok: false, error: 'uid required' }, { status: 400 });
 
   const payload = {
-    uid,
-    tz: String(tz || 'UTC'),
-    quiet_start: Number(quiet_start ?? 22),
-    quiet_end: Number(quiet_end ?? 8),
-    quiet_bypass_min: Number(quiet_bypass_min ?? 30),
-    updated_at: new Date().toISOString(),
+    tz: String(body?.tz || "UTC"),
+    quietStart: Number(body?.quiet_start ?? 22),
+    quietEnd: Number(body?.quiet_end ?? 8),
+    quietBypassMin: Number(body?.quiet_bypass_min ?? 30),
   };
 
-  const { error } = await supabaseAdmin.from('user_settings').upsert(payload);
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  await prisma.userSettings.upsert({
+    where: { userId },
+    create: { userId, ...payload },
+    update: payload,
+  });
 
   return NextResponse.json({ ok: true });
 }

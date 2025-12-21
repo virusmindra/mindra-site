@@ -1,43 +1,29 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { NextResponse } from "next/server";
+import { prisma } from "@/server/prisma";
 
 export async function GET(req: Request) {
-  // ✅ защита cron эндпоинта
-  const secret = req.headers.get('x-cron-secret');
+  const secret = req.headers.get("x-cron-secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
-  // достаём пачку due
-  const { data: due, error } = await supabaseAdmin
-    .from('reminders')
-    .select('*')
-    .eq('status', 'scheduled')
-    .lte('due_utc', now)
-    .limit(200);
+  // берём due
+  const due = await prisma.reminder.findMany({
+    where: { status: "scheduled", dueUtc: { lte: now } },
+    take: 200,
+    orderBy: { dueUtc: "asc" },
+  });
 
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-  }
-
-  if (!due?.length) {
-    return NextResponse.json({ ok: true, processed: 0 });
-  }
+  if (!due.length) return NextResponse.json({ ok: true, processed: 0 });
 
   // отмечаем sent
-  const ids = due.map((r: any) => r.id);
-  const { error: updErr } = await supabaseAdmin
-    .from('reminders')
-    .update({ status: 'sent', sent_at: now })
-    .in('id', ids);
+  await prisma.reminder.updateMany({
+    where: { id: { in: due.map(r => r.id) } },
+    data: { status: "sent", sentAt: now },
+  });
 
-  if (updErr) {
-    return NextResponse.json({ ok: false, error: updErr.message }, { status: 500 });
-  }
-
-  // TODO: тут позже отправка web-push по push_subscriptions
-
-  return NextResponse.json({ ok: true, processed: ids.length });
+  // TODO: delivery (web-push / email / in-app)
+  return NextResponse.json({ ok: true, processed: due.length });
 }
