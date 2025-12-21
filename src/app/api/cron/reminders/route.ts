@@ -1,8 +1,11 @@
+// src/app/api/cron/reminders/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/prisma";
 
 export async function GET(req: Request) {
-  const secret = req.headers.get("x-cron-secret");
+  const { searchParams } = new URL(req.url);
+  const secret = searchParams.get("secret");
+
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -13,17 +16,14 @@ export async function GET(req: Request) {
     where: { status: "scheduled", dueUtc: { lte: now } },
     take: 200,
     orderBy: { dueUtc: "asc" },
-    select: { id: true },
   });
 
   if (!due.length) return NextResponse.json({ ok: true, processed: 0 });
 
-  const ids = due.map((r) => r.id);
-
   await prisma.reminder.updateMany({
-    where: { id: { in: ids }, status: "scheduled" },
+    where: { id: { in: due.map(r => r.id) } },
     data: { status: "sent", sentAt: now },
   });
 
-  return NextResponse.json({ ok: true, processed: ids.length });
+  return NextResponse.json({ ok: true, processed: due.length });
 }
