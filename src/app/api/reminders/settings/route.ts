@@ -17,17 +17,20 @@ export async function POST(req: Request) {
   const userId = await requireUserId();
   const body = await req.json().catch(() => null);
 
-  const payload = {
-    tz: String(body?.tz || "UTC"),
-    quietStart: Number(body?.quiet_start ?? 22),
-    quietEnd: Number(body?.quiet_end ?? 8),
-    quietBypassMin: Number(body?.quiet_bypass_min ?? 30),
-  };
+  const tz = String(body?.tz || "UTC");
+
+  let quietStart = Number(body?.quietStart ?? body?.quiet_start ?? 22);
+  let quietEnd = Number(body?.quietEnd ?? body?.quiet_end ?? 8);
+  let quietBypassMin = Number(body?.quietBypassMin ?? body?.quiet_bypass_min ?? 30);
+
+  quietStart = Math.min(23, Math.max(0, quietStart));
+  quietEnd = Math.min(23, Math.max(0, quietEnd));
+  quietBypassMin = Math.min(180, Math.max(0, quietBypassMin));
 
   await prisma.userSettings.upsert({
     where: { userId },
-    create: { userId, ...payload },
-    update: payload,
+    create: { userId, tz, quietStart, quietEnd, quietBypassMin },
+    update: { tz, quietStart, quietEnd, quietBypassMin },
   });
 
   return NextResponse.json({ ok: true });

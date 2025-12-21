@@ -9,21 +9,21 @@ export async function GET(req: Request) {
 
   const now = new Date();
 
-  // берём due
   const due = await prisma.reminder.findMany({
     where: { status: "scheduled", dueUtc: { lte: now } },
     take: 200,
     orderBy: { dueUtc: "asc" },
+    select: { id: true },
   });
 
   if (!due.length) return NextResponse.json({ ok: true, processed: 0 });
 
-  // отмечаем sent
+  const ids = due.map((r) => r.id);
+
   await prisma.reminder.updateMany({
-    where: { id: { in: due.map(r => r.id) } },
+    where: { id: { in: ids }, status: "scheduled" },
     data: { status: "sent", sentAt: now },
   });
 
-  // TODO: delivery (web-push / email / in-app)
-  return NextResponse.json({ ok: true, processed: due.length });
+  return NextResponse.json({ ok: true, processed: ids.length });
 }
