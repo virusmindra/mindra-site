@@ -13,17 +13,28 @@ export async function GET(req: Request) {
   const now = new Date();
 
   const due = await prisma.reminder.findMany({
-    where: { status: "scheduled", dueUtc: { lte: now } },
+    where: {
+      status: "scheduled",
+      dueUtc: { lte: now },
+    },
     take: 200,
     orderBy: { dueUtc: "asc" },
   });
 
-  if (!due.length) return NextResponse.json({ ok: true, processed: 0 });
+  if (!due.length) {
+    return NextResponse.json({ ok: true, processed: 0 });
+  }
+
+  // ✅ BigInt id — всё ок, просто выносим
+  const ids = due.map(r => r.id);
 
   await prisma.reminder.updateMany({
-    where: { id: { in: due.map(r => r.id) } },
-    data: { status: "sent", sentAt: now },
+    where: { id: { in: ids } },
+    data: {
+      status: "sent",
+      sentAt: now,
+    },
   });
 
-  return NextResponse.json({ ok: true, processed: due.length });
+  return NextResponse.json({ ok: true, processed: ids.length });
 }
