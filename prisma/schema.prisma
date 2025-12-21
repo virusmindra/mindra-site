@@ -19,21 +19,27 @@ datasource db {
 
 model UserProfile {
   id          String   @id @default(uuid())
-  userId      String   @unique            // пока строковый, позже можно связать с User.id
+  userId      String   @unique
   displayName String?
   avatarUrl   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@schema("public")
 }
+
 
 model ChatSession {
   id        String    @id @default(uuid())
-  userId    String                         // пока строковый, позже сделаем FK на User.id
+  userId    String
   title     String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   messages  Message[]
+
+  @@schema("public")
 }
+
 
 model Message {
   id          String      @id @default(uuid())
@@ -43,39 +49,48 @@ model Message {
   audioUrl    String?
   createdAt   DateTime    @default(now())
   ChatSession ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
 }
+
 
 // === Billing ===
 model Subscription {
-  userId             String   @id           // пока строковый, позже свяжем с User.id
+  userId             String   @id
   stripeCustomer     String?  @unique
   stripeSubscription String?  @unique
-
-  plan               Plan     @default(FREE)     // FREE | PLUS | PRO
-  term               String?                      // '1M' | '3M' | '6M' | '12M' | 'LIFETIME'
-  status             String?                      // 'active' | 'trialing' | 'incomplete' | 'canceled' ...
-
+  plan               Plan     @default(FREE)
+  term               String?
+  status             String?
   currentPeriodEnd   DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@schema("public")
 }
 
+
 model Entitlement {
-  userId             String   @id           // пока строковый, позже свяжем с User.id
+  userId             String   @id
   plus               Boolean  @default(false)
   pro                Boolean  @default(false)
   tts                Boolean  @default(false)
   maxFaceTimeMinutes Int      @default(0)
-
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@schema("public")
 }
+
 
 enum Plan {
   FREE
   PLUS
   PRO
+
+  @@schema("public")
 }
+
 
 /* =========================
    ДОБАВЛЯЕМ МОДЕЛИ ДЛЯ NEXTAUTH
@@ -88,13 +103,14 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-
   accounts      Account[]
   sessions      Session[]
-
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@schema("public")
 }
+
 
 model Account {
   id                String  @id @default(cuid())
@@ -109,23 +125,25 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+  @@schema("public")
 }
+
 
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
+
 
 model VerificationToken {
   identifier String
@@ -133,4 +151,5 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@schema("public")
 }
