@@ -170,8 +170,6 @@ model UserSettings {
   quietStart     Int    @default(22) @map("quiet_start")
   quietEnd       Int    @default(8)  @map("quiet_end")
   quietBypassMin Int    @default(30) @map("quiet_bypass_min")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
 
     // ✅ каналы
   notifyInApp    Boolean @default(true)  @map("notify_inapp")
