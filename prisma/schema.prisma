@@ -172,6 +172,63 @@ model UserSettings {
   quietBypassMin Int    @default(30) @map("quiet_bypass_min")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+
+    // ✅ каналы
+  notifyInApp    Boolean @default(true)  @map("notify_inapp")
+  notifyPush     Boolean @default(true)  @map("notify_push")
+  notifyEmail    Boolean @default(false) @map("notify_email")
+  notifyTelegram Boolean @default(false) @map("notify_telegram")
+
+  // ✅ “не беспокоить” / лимиты
+  pauseAll       Boolean @default(false) @map("pause_all")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
   @@map("user_settings")
+  @@schema("mindra")
+}
+
+model Notification {
+  id        BigInt   @id @default(autoincrement())
+  userId    String
+  type      String   @default("reminder") // reminder|system|promo
+  title     String?
+  body      String
+  data      Json?
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+  @@schema("mindra")
+}
+
+model PushSubscription {
+  id        BigInt   @id @default(autoincrement())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("push_subscriptions")
+  @@schema("mindra")
+}
+
+model DeliveryLog {
+  id          BigInt   @id @default(autoincrement())
+  userId      String
+  reminderId  BigInt?
+  channel     String   // inapp|push|email|telegram
+  status      String   // ok|fail|skipped
+  error       String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, channel, createdAt])
+  @@index([reminderId, createdAt])
+  @@map("delivery_logs")
   @@schema("mindra")
 }
