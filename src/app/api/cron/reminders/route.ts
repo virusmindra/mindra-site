@@ -1,12 +1,43 @@
+// src/app/api/cron/reminders/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/prisma";
-const webpush = require("web-push");
+import webpush from "web-push";
 
-// web-push требует VAPID
+function mustEnv(name: string) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env: ${name}`);
+  return v;
+}
+
+function getHourInTz(date: Date, timeZone: string) {
+  // безопасно: вернёт "00".."23"
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const hour = parts.find(p => p.type === "hour")?.value ?? "00";
+  return Number(hour);
+}
+
+function isQuietNow(now: Date, tz: string, quietStart: number, quietEnd: number) {
+  const h = getHourInTz(now, tz);
+
+  // Пример: quietStart=22 quietEnd=8
+  // Тишина: [22..23] + [0..7]
+  if (quietStart === quietEnd) return false; // нет quiet режима
+
+  if (quietStart < quietEnd) {
+    return h >= quietStart && h < quietEnd; // обычный интервал
+  } else {
+    return h >= quietStart || h < quietEnd; // интервал через полночь
+  }
+}
+
 webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
+  mustEnv("VAPID_SUBJECT"),       // например: "mailto:support@mindra.group"
+  mustEnv("VAPID_PUBLIC_KEY"),    // серверный public (НЕ next_public)
+  mustEnv("VAPID_PRIVATE_KEY")
 );
 
 export async function GET(req: Request) {
@@ -19,6 +50,7 @@ export async function GET(req: Request) {
 
   const now = new Date();
 
+  // 1) берём due reminders
   const due = await prisma.reminder.findMany({
     where: { status: "scheduled", dueUtc: { lte: now } },
     take: 200,
@@ -27,7 +59,7 @@ export async function GET(req: Request) {
 
   if (!due.length) return NextResponse.json({ ok: true, processed: 0 });
 
-  // группируем по userId, чтобы меньше запросов
+  // 2) группируем по userId
   const byUser = new Map<string, typeof due>();
   for (const r of due) {
     byUser.set(r.userId, [...(byUser.get(r.userId) ?? []), r]);
@@ -38,56 +70,58 @@ export async function GET(req: Request) {
   for (const [userId, items] of byUser.entries()) {
     const settings = await prisma.userSettings.findUnique({ where: { userId } });
 
+    const tz = settings?.tz ?? "UTC";
     const pauseAll = settings?.pauseAll ?? false;
-    const notifyPush = settings?.notifyPush ?? true;
     const notifyInApp = settings?.notifyInApp ?? true;
+    const notifyPush = settings?.notifyPush ?? true;
+    const quietStart = settings?.quietStart ?? 22;
+    const quietEnd = settings?.quietEnd ?? 8;
 
-    // если пауза — логируем skipped и просто помечаем sent (чтобы не зависали)
-    if (pauseAll) {
-      for (const r of items) {
-        await prisma.deliveryLog.create({
-          data: {
-            userId,
-            reminderId: r.id,
-            channel: "inapp",
-            status: "skipped",
-            meta: { reason: "pauseAll" },
-          },
-        });
-      }
+    const quiet = isQuietNow(now, tz, quietStart, quietEnd);
 
-      await prisma.reminder.updateMany({
-        where: { id: { in: items.map((i) => i.id) } },
-        data: { status: "sent", sentAt: now },
+    // Если пауза или quiet-hours: ничего не шлём, но и не отмечаем sent.
+    // (иначе пользователь потеряет уведомления)
+    if (pauseAll || quiet) {
+      await prisma.deliveryLog.createMany({
+        data: items.map(r => ({
+          userId,
+          reminderId: r.id,
+          channel: quiet ? "push" : "inapp",
+          status: "skipped",
+          error: pauseAll ? "pauseAll=true" : "quietHours",
+          meta: { reason: pauseAll ? "pauseAll" : "quietHours", tz, quietStart, quietEnd },
+        })),
       });
-
-      processed += items.length;
       continue;
     }
 
+    // подтягиваем пуш-подписки
     const subs = notifyPush
       ? await prisma.pushSubscription.findMany({ where: { userId } })
       : [];
 
     for (const r of items) {
-      // 1) IN-APP notification
+      // 3) создаём In-App notification
+      let notificationId: bigint | null = null;
+
       if (notifyInApp) {
-        await prisma.notification.create({
+        const notif = await prisma.notification.create({
           data: {
             userId,
             type: "reminder",
             title: "Напоминание от Mindra",
             body: r.text,
-            data: { reminderId: r.id.toString(), dueUtc: r.dueUtc.toISOString() },
+            data: { reminderId: r.id.toString() },
           },
         });
-
+        notificationId = notif.id;
         await prisma.deliveryLog.create({
           data: {
             userId,
             reminderId: r.id,
             channel: "inapp",
             status: "ok",
+            meta: { notificationId: notif.id.toString() },
           },
         });
       } else {
@@ -97,12 +131,12 @@ export async function GET(req: Request) {
             reminderId: r.id,
             channel: "inapp",
             status: "skipped",
-            meta: { reason: "notifyInApp=false" },
+            error: "notifyInApp=false",
           },
         });
       }
 
-      // 2) WEB PUSH
+      // 4) PUSH
       if (notifyPush && subs.length) {
         for (const sub of subs) {
           try {
@@ -124,7 +158,10 @@ export async function GET(req: Request) {
                 reminderId: r.id,
                 channel: "push",
                 status: "ok",
-                meta: { endpoint: sub.endpoint },
+                meta: {
+                  endpoint: sub.endpoint,
+                  notificationId: notificationId ? notificationId.toString() : null,
+                },
               },
             });
           } catch (e: any) {
@@ -135,7 +172,10 @@ export async function GET(req: Request) {
                 channel: "push",
                 status: "fail",
                 error: String(e?.message ?? e),
-                meta: { endpoint: sub.endpoint },
+                meta: {
+                  endpoint: sub.endpoint,
+                  notificationId: notificationId ? notificationId.toString() : null,
+                },
               },
             });
           }
@@ -147,12 +187,12 @@ export async function GET(req: Request) {
             reminderId: r.id,
             channel: "push",
             status: "skipped",
-            meta: { reason: notifyPush ? "no_subscriptions" : "notifyPush=false" },
+            error: notifyPush ? "no subscriptions" : "notifyPush=false",
           },
         });
       }
 
-      // 3) reminder -> sent
+      // 5) отмечаем reminder -> sent
       await prisma.reminder.update({
         where: { id: r.id },
         data: { status: "sent", sentAt: now },
