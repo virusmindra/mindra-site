@@ -1,11 +1,15 @@
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch {}
+
   const title = data.title || "Mindra";
   const options = {
     body: data.body || "",
-    icon: "/icon.png",
-    data: data.url ? { url: data.url } : {},
+    data: { url: data.url || "/" },
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
