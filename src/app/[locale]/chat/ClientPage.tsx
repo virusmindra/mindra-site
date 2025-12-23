@@ -10,6 +10,47 @@ import { getTotalPoints, addPoints } from '@/lib/points';
 import PointsPanel from '@/components/chat/PointsPanel'; // путь подстрой под свой
 
 /* ----------------------------- helpers ----------------------------- */
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function enablePush() {
+  const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapid) {
+    alert("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.register("/sw.js");
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    alert("Push denied");
+    return;
+  }
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapid),
+  });
+
+  const r = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sub),
+  });
+
+  const t = await r.text();
+  console.log("subscribe status", r.status, t);
+
+  alert("Push enabled 🚀");
+}
+
 function isIntentText(text: string): boolean {
   const t = (text || '').trim().toLowerCase();
   if (!t) return false;
