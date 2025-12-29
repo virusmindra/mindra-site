@@ -195,17 +195,18 @@ export async function GET(req: Request) {
         for (const sub of subs) {
           try {
             await webpush.sendNotification(
-              {
-                endpoint: sub.endpoint,
-                keys: { p256dh: sub.p256dh, auth: sub.auth },
-              } as any,
-              JSON.stringify({
-                title,            // ✅ локализованный title
-                body: r.text,
-                url: "/${normalizeLang(lang)}/chat",  // можешь поменять на `/${normalizeLang(lang)}/chat` если у тебя i18n роутинг
-                data: { reminderId: r.id.toString(), userId },
-              })
-            );
+  {
+    endpoint: sub.endpoint,
+    keys: { p256dh: sub.p256dh, auth: sub.auth },
+  } as any,
+  JSON.stringify({
+    title,                 // ✅ локализованный title
+    body: r.text,
+    url: `/${normalizeLang(lang)}/chat`,   // ✅ ВОТ ТУТ ФИКС
+    data: { reminderId: r.id.toString(), userId },
+  })
+);
+
 
             await prisma.deliveryLog.create({
               data: {
