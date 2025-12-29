@@ -10,33 +10,33 @@ function mustEnv(name: string) {
 }
 
 function getHourInTz(date: Date, timeZone: string) {
-  // безопасно: вернёт "00".."23"
+  // вернёт число 0..23
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "2-digit",
     hour12: false,
   }).formatToParts(date);
-  const hour = parts.find(p => p.type === "hour")?.value ?? "00";
+
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
   return Number(hour);
 }
 
 function isQuietNow(now: Date, tz: string, quietStart: number, quietEnd: number) {
   const h = getHourInTz(now, tz);
 
-  // Пример: quietStart=22 quietEnd=8
-  // Тишина: [22..23] + [0..7]
-  if (quietStart === quietEnd) return false; // нет quiet режима
+  // quietStart=22 quietEnd=8 => тихо: [22..23] + [0..7]
+  if (quietStart === quietEnd) return false; // отключено
 
   if (quietStart < quietEnd) {
     return h >= quietStart && h < quietEnd; // обычный интервал
-  } else {
-    return h >= quietStart || h < quietEnd; // интервал через полночь
   }
+  return h >= quietStart || h < quietEnd; // через полночь
 }
 
+// WebPush (серверные env, НЕ NEXT_PUBLIC)
 webpush.setVapidDetails(
-  mustEnv("VAPID_SUBJECT"),       // например: "mailto:support@mindra.group"
-  mustEnv("VAPID_PUBLIC_KEY"),    // серверный public (НЕ next_public)
+  mustEnv("VAPID_SUBJECT"), // mailto:support@mindra.group
+  mustEnv("VAPID_PUBLIC_KEY"),
   mustEnv("VAPID_PRIVATE_KEY")
 );
 
@@ -57,7 +57,28 @@ export async function GET(req: Request) {
     orderBy: { dueUtc: "asc" },
   });
 
-  if (!due.length) return NextResponse.json({ ok: true, processed: 0 });
+  // Диагностика (чтоб ты видел что cron реально видит)
+  const scheduledCount = await prisma.reminder.count({
+    where: { status: "scheduled" },
+  });
+  const minScheduled = await prisma.reminder.findFirst({
+    where: { status: "scheduled" },
+    orderBy: { dueUtc: "asc" },
+    select: { id: true, dueUtc: true },
+  });
+
+  if (!due.length) {
+    return NextResponse.json({
+      ok: true,
+      processed: 0,
+      now: now.toISOString(),
+      scheduledCount,
+      minScheduled: minScheduled
+        ? { id: minScheduled.id.toString(), dueUtc: minScheduled.dueUtc.toISOString() }
+        : null,
+      dueCount: 0,
+    });
+  }
 
   // 2) группируем по userId
   const byUser = new Map<string, typeof due>();
@@ -79,29 +100,48 @@ export async function GET(req: Request) {
 
     const quiet = isQuietNow(now, tz, quietStart, quietEnd);
 
-    // Если пауза или quiet-hours: ничего не шлём, но и не отмечаем sent.
-    // (иначе пользователь потеряет уведомления)
-    if (pauseAll || quiet) {
+    // PAUSE: ничего не отправляем, но чтобы не “жечь” reminders бесконечно —
+    // пометим их как sent (иначе будет тот же вечный цикл, как quietHours)
+    if (pauseAll) {
       await prisma.deliveryLog.createMany({
-        data: items.map(r => ({
+        data: items.map((r) => ({
           userId,
           reminderId: r.id,
-          channel: quiet ? "push" : "inapp",
+          channel: "inapp",
           status: "skipped",
-          error: pauseAll ? "pauseAll=true" : "quietHours",
-          meta: { reason: pauseAll ? "pauseAll" : "quietHours", tz, quietStart, quietEnd },
+          error: "pauseAll=true",
+          meta: { reason: "pauseAll", tz, quietStart, quietEnd },
         })),
       });
+
+      await prisma.deliveryLog.createMany({
+        data: items.map((r) => ({
+          userId,
+          reminderId: r.id,
+          channel: "push",
+          status: "skipped",
+          error: "pauseAll=true",
+          meta: { reason: "pauseAll", tz, quietStart, quietEnd },
+        })),
+      });
+
+      await prisma.reminder.updateMany({
+        where: { id: { in: items.map((i) => i.id) } },
+        data: { status: "sent", sentAt: now },
+      });
+
+      processed += items.length;
       continue;
     }
 
-    // подтягиваем пуш-подписки
-    const subs = notifyPush
-      ? await prisma.pushSubscription.findMany({ where: { userId } })
-      : [];
+    // подтягиваем пуш-подписки один раз на юзера
+    const subs =
+      notifyPush && !quiet
+        ? await prisma.pushSubscription.findMany({ where: { userId } })
+        : [];
 
     for (const r of items) {
-      // 3) создаём In-App notification
+      // 3) In-App notification (делаем независимо от quietHours)
       let notificationId: bigint | null = null;
 
       if (notifyInApp) {
@@ -114,7 +154,9 @@ export async function GET(req: Request) {
             data: { reminderId: r.id.toString() },
           },
         });
+
         notificationId = notif.id;
+
         await prisma.deliveryLog.create({
           data: {
             userId,
@@ -136,8 +178,39 @@ export async function GET(req: Request) {
         });
       }
 
-      // 4) PUSH
-      if (notifyPush && subs.length) {
+      // 4) PUSH: если quietHours — НЕ шлём, но логируем причину (и без спама)
+      if (quiet) {
+        await prisma.deliveryLog.create({
+          data: {
+            userId,
+            reminderId: r.id,
+            channel: "push",
+            status: "skipped",
+            error: "quietHours",
+            meta: { tz, quietStart, quietEnd, notificationId: notificationId?.toString() ?? null },
+          },
+        });
+      } else if (!notifyPush) {
+        await prisma.deliveryLog.create({
+          data: {
+            userId,
+            reminderId: r.id,
+            channel: "push",
+            status: "skipped",
+            error: "notifyPush=false",
+          },
+        });
+      } else if (!subs.length) {
+        await prisma.deliveryLog.create({
+          data: {
+            userId,
+            reminderId: r.id,
+            channel: "push",
+            status: "skipped",
+            error: "no subscriptions",
+          },
+        });
+      } else {
         for (const sub of subs) {
           try {
             await webpush.sendNotification(
@@ -180,19 +253,9 @@ export async function GET(req: Request) {
             });
           }
         }
-      } else {
-        await prisma.deliveryLog.create({
-          data: {
-            userId,
-            reminderId: r.id,
-            channel: "push",
-            status: "skipped",
-            error: notifyPush ? "no subscriptions" : "notifyPush=false",
-          },
-        });
       }
 
-      // 5) отмечаем reminder -> sent
+      // 5) ВСЕГДА отмечаем reminder -> sent (иначе будет вечный повтор)
       await prisma.reminder.update({
         where: { id: r.id },
         data: { status: "sent", sentAt: now },
@@ -202,5 +265,14 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, processed });
+  return NextResponse.json({
+    ok: true,
+    processed,
+    now: now.toISOString(),
+    scheduledCount,
+    minScheduled: minScheduled
+      ? { id: minScheduled.id.toString(), dueUtc: minScheduled.dueUtc.toISOString() }
+      : null,
+    dueCount: due.length,
+  });
 }
