@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/prisma";
 import webpush from "web-push";
 
+export const runtime = "nodejs";
+
 function mustEnv(name: string) {
   const v = process.env[name];
   if (!v) throw new Error(`Missing env: ${name}`);
@@ -10,58 +12,81 @@ function mustEnv(name: string) {
 }
 
 function getHourInTz(date: Date, timeZone: string) {
-  // вернёт число 0..23
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "2-digit",
     hour12: false,
   }).formatToParts(date);
-
   const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
   return Number(hour);
 }
 
 function isQuietNow(now: Date, tz: string, quietStart: number, quietEnd: number) {
+  if (quietStart === quietEnd) return false;
   const h = getHourInTz(now, tz);
-
-  // quietStart=22 quietEnd=8 => тихо: [22..23] + [0..7]
-  if (quietStart === quietEnd) return false; // отключено
-
-  if (quietStart < quietEnd) {
-    return h >= quietStart && h < quietEnd; // обычный интервал
-  }
-  return h >= quietStart || h < quietEnd; // через полночь
+  if (quietStart < quietEnd) return h >= quietStart && h < quietEnd;
+  return h >= quietStart || h < quietEnd;
 }
 
-// WebPush (серверные env, НЕ NEXT_PUBLIC)
-webpush.setVapidDetails(
-  mustEnv("VAPID_SUBJECT"), // mailto:support@mindra.group
-  mustEnv("VAPID_PUBLIC_KEY"),
-  mustEnv("VAPID_PRIVATE_KEY")
-);
+function setupWebPushOnce() {
+  webpush.setVapidDetails(
+    mustEnv("VAPID_SUBJECT"),
+    mustEnv("VAPID_PUBLIC_KEY"),
+    mustEnv("VAPID_PRIVATE_KEY")
+  );
+}
+
+/** 11 языков: ru, uk, en, es, de, pl, fr, ro, hy, ka, kk */
+const REMINDER_TITLE_BY_LANG: Record<string, string> = {
+  ru: "Напоминание от Mindra",
+  uk: "Нагадування від Mindra",
+  en: "Reminder from Mindra",
+  es: "Recordatorio de Mindra",
+  de: "Erinnerung von Mindra",
+  pl: "Przypomnienie od Mindra",
+  fr: "Rappel de Mindra",
+  ro: "Memento de la Mindra",
+  hy: "Հիշեցում Mindra-ից",
+  ka: "შეხსენება Mindra-სგან",
+  kk: "Mindra-дан еске салу",
+};
+
+function normalizeLang(lang?: string | null) {
+  if (!lang) return "ru";
+  const s = String(lang).trim();
+  if (!s) return "ru";
+  // "ru-RU" -> "ru"
+  const base = s.split("-")[0].toLowerCase();
+  return REMINDER_TITLE_BY_LANG[base] ? base : "ru";
+}
+
+function getReminderTitle(lang?: string | null) {
+  const key = normalizeLang(lang);
+  return REMINDER_TITLE_BY_LANG[key] ?? REMINDER_TITLE_BY_LANG.ru;
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const secret = searchParams.get("secret");
+  const force = searchParams.get("force") === "1";
 
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  setupWebPushOnce();
+
   const now = new Date();
 
-  // 1) берём due reminders
+  const scheduledCount = await prisma.reminder.count({ where: { status: "scheduled" } });
+
   const due = await prisma.reminder.findMany({
     where: { status: "scheduled", dueUtc: { lte: now } },
     take: 200,
     orderBy: { dueUtc: "asc" },
   });
 
-  // Диагностика (чтоб ты видел что cron реально видит)
-  const scheduledCount = await prisma.reminder.count({
-    where: { status: "scheduled" },
-  });
-  const minScheduled = await prisma.reminder.findFirst({
+  const minDue = await prisma.reminder.findFirst({
     where: { status: "scheduled" },
     orderBy: { dueUtc: "asc" },
     select: { id: true, dueUtc: true },
@@ -73,14 +98,11 @@ export async function GET(req: Request) {
       processed: 0,
       now: now.toISOString(),
       scheduledCount,
-      minScheduled: minScheduled
-        ? { id: minScheduled.id.toString(), dueUtc: minScheduled.dueUtc.toISOString() }
-        : null,
+      minScheduled: minDue ? { id: minDue.id.toString(), dueUtc: minDue.dueUtc } : null,
       dueCount: 0,
     });
   }
 
-  // 2) группируем по userId
   const byUser = new Map<string, typeof due>();
   for (const r of due) {
     byUser.set(r.userId, [...(byUser.get(r.userId) ?? []), r]);
@@ -91,57 +113,49 @@ export async function GET(req: Request) {
   for (const [userId, items] of byUser.entries()) {
     const settings = await prisma.userSettings.findUnique({ where: { userId } });
 
-    const tz = settings?.tz ?? "UTC";
-    const pauseAll = settings?.pauseAll ?? false;
-    const notifyInApp = settings?.notifyInApp ?? true;
-    const notifyPush = settings?.notifyPush ?? true;
-    const quietStart = settings?.quietStart ?? 22;
-    const quietEnd = settings?.quietEnd ?? 8;
+    const tz = (settings as any)?.tz ?? "America/New_York";
+    const pauseAll = (settings as any)?.pauseAll ?? false;
+    const notifyInApp = (settings as any)?.notifyInApp ?? true;
+    const notifyPush = (settings as any)?.notifyPush ?? true;
+    const quietStart = (settings as any)?.quietStart ?? 22;
+    const quietEnd = (settings as any)?.quietEnd ?? 8;
+
+    // язык (подставь тут то поле, которое у тебя реально есть: lang / locale / language)
+    const lang = (settings as any)?.lang ?? (settings as any)?.locale ?? (settings as any)?.language ?? "ru";
+    const title = getReminderTitle(lang);
 
     const quiet = isQuietNow(now, tz, quietStart, quietEnd);
+    const hasUrgent = items.some((r) => (r as any).urgent === true);
 
-    // PAUSE: ничего не отправляем, но чтобы не “жечь” reminders бесконечно —
-    // пометим их как sent (иначе будет тот же вечный цикл, как quietHours)
-    if (pauseAll) {
+    if (!force && !hasUrgent && (pauseAll || quiet)) {
       await prisma.deliveryLog.createMany({
-        data: items.map((r) => ({
-          userId,
-          reminderId: r.id,
-          channel: "inapp",
-          status: "skipped",
-          error: "pauseAll=true",
-          meta: { reason: "pauseAll", tz, quietStart, quietEnd },
-        })),
+        data: items.flatMap((r) => ([
+          {
+            userId,
+            reminderId: r.id,
+            channel: "inapp",
+            status: "skipped",
+            error: pauseAll ? "pauseAll=true" : "quietHours",
+            meta: { reason: pauseAll ? "pauseAll" : "quietHours", tz, quietStart, quietEnd },
+          },
+          {
+            userId,
+            reminderId: r.id,
+            channel: "push",
+            status: "skipped",
+            error: pauseAll ? "pauseAll=true" : "quietHours",
+            meta: { reason: pauseAll ? "pauseAll" : "quietHours", tz, quietStart, quietEnd },
+          },
+        ])),
       });
-
-      await prisma.deliveryLog.createMany({
-        data: items.map((r) => ({
-          userId,
-          reminderId: r.id,
-          channel: "push",
-          status: "skipped",
-          error: "pauseAll=true",
-          meta: { reason: "pauseAll", tz, quietStart, quietEnd },
-        })),
-      });
-
-      await prisma.reminder.updateMany({
-        where: { id: { in: items.map((i) => i.id) } },
-        data: { status: "sent", sentAt: now },
-      });
-
-      processed += items.length;
       continue;
     }
 
-    // подтягиваем пуш-подписки один раз на юзера
-    const subs =
-      notifyPush && !quiet
-        ? await prisma.pushSubscription.findMany({ where: { userId } })
-        : [];
+    const subs = notifyPush
+      ? await prisma.pushSubscription.findMany({ where: { userId } })
+      : [];
 
     for (const r of items) {
-      // 3) In-App notification (делаем независимо от quietHours)
       let notificationId: bigint | null = null;
 
       if (notifyInApp) {
@@ -149,12 +163,11 @@ export async function GET(req: Request) {
           data: {
             userId,
             type: "reminder",
-            title: "Напоминание от Mindra",
+            title,              // ✅ локализованный title
             body: r.text,
             data: { reminderId: r.id.toString() },
           },
         });
-
         notificationId = notif.id;
 
         await prisma.deliveryLog.create({
@@ -178,39 +191,7 @@ export async function GET(req: Request) {
         });
       }
 
-      // 4) PUSH: если quietHours — НЕ шлём, но логируем причину (и без спама)
-      if (quiet) {
-        await prisma.deliveryLog.create({
-          data: {
-            userId,
-            reminderId: r.id,
-            channel: "push",
-            status: "skipped",
-            error: "quietHours",
-            meta: { tz, quietStart, quietEnd, notificationId: notificationId?.toString() ?? null },
-          },
-        });
-      } else if (!notifyPush) {
-        await prisma.deliveryLog.create({
-          data: {
-            userId,
-            reminderId: r.id,
-            channel: "push",
-            status: "skipped",
-            error: "notifyPush=false",
-          },
-        });
-      } else if (!subs.length) {
-        await prisma.deliveryLog.create({
-          data: {
-            userId,
-            reminderId: r.id,
-            channel: "push",
-            status: "skipped",
-            error: "no subscriptions",
-          },
-        });
-      } else {
+      if (notifyPush && subs.length) {
         for (const sub of subs) {
           try {
             await webpush.sendNotification(
@@ -219,9 +200,10 @@ export async function GET(req: Request) {
                 keys: { p256dh: sub.p256dh, auth: sub.auth },
               } as any,
               JSON.stringify({
-                title: "Mindra",
+                title,            // ✅ локализованный title
                 body: r.text,
-                url: "/en/chat",
+                url: "/${normalizeLang(lang)}/chat",  // можешь поменять на `/${normalizeLang(lang)}/chat` если у тебя i18n роутинг
+                data: { reminderId: r.id.toString(), userId },
               })
             );
 
@@ -245,17 +227,23 @@ export async function GET(req: Request) {
                 channel: "push",
                 status: "fail",
                 error: String(e?.message ?? e),
-                meta: {
-                  endpoint: sub.endpoint,
-                  notificationId: notificationId ? notificationId.toString() : null,
-                },
+                meta: { endpoint: sub.endpoint },
               },
             });
           }
         }
+      } else {
+        await prisma.deliveryLog.create({
+          data: {
+            userId,
+            reminderId: r.id,
+            channel: "push",
+            status: "skipped",
+            error: notifyPush ? "no subscriptions" : "notifyPush=false",
+          },
+        });
       }
 
-      // 5) ВСЕГДА отмечаем reminder -> sent (иначе будет вечный повтор)
       await prisma.reminder.update({
         where: { id: r.id },
         data: { status: "sent", sentAt: now },
@@ -270,9 +258,7 @@ export async function GET(req: Request) {
     processed,
     now: now.toISOString(),
     scheduledCount,
-    minScheduled: minScheduled
-      ? { id: minScheduled.id.toString(), dueUtc: minScheduled.dueUtc.toISOString() }
-      : null,
+    minScheduled: minDue ? { id: minDue.id.toString(), dueUtc: minDue.dueUtc } : null,
     dueCount: due.length,
   });
 }
