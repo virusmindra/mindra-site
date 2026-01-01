@@ -6,14 +6,17 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "Mindra";
 
-  const url = data.url || "/"; // может быть "/en/chat" и т.д.
   const options = {
-  body: data.body || "",
-  icon: data.icon || "/icons/icon-192.png",
-  badge: data.badge || "/icons/badge-72.png",
-  data: { url: data.url || "/" },
-};
-
+    body: data.body || "",
+    icon: data.icon || "/icons/icon-192.png",
+    badge: data.badge || "/icons/badge-72.png",
+    tag: data.tag || undefined,
+    renotify: Boolean(data.renotify),
+    data: {
+      url: data.url || "/",
+      ...((data.data && typeof data.data === "object") ? data.data : {}),
+    },
+  };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
@@ -24,17 +27,24 @@ self.addEventListener("notificationclick", (event) => {
   const rawUrl = event.notification?.data?.url || "/";
   const targetUrl = new URL(rawUrl, self.location.origin).href;
 
-  event.waitUntil(
-    (async () => {
-      // если вкладка уже открыта — сфокусируем её
-      const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
-      for (const client of allClients) {
-        if (client.url === targetUrl && "focus" in client) {
-          return client.focus();
+  event.waitUntil((async () => {
+    const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
+
+    // если уже открыта вкладка Mindra — фокус + навигация
+    for (const client of allClients) {
+      try {
+        const clientUrl = new URL(client.url);
+        const target = new URL(targetUrl);
+
+        if (clientUrl.origin === target.origin) {
+          if ("focus" in client) await client.focus();
+          if ("navigate" in client) await client.navigate(targetUrl);
+          return;
         }
-      }
-      // иначе откроем новую
-      if (clients.openWindow) return clients.openWindow(targetUrl);
-    })()
-  );
+      } catch {}
+    }
+
+    // иначе новая вкладка
+    if (clients.openWindow) return clients.openWindow(targetUrl);
+  })());
 });

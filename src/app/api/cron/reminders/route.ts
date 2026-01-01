@@ -192,59 +192,71 @@ export async function GET(req: Request) {
       }
 
       if (notifyPush && subs.length) {
-        for (const sub of subs) {
-          try {
-            await webpush.sendNotification(
-  {
-    endpoint: sub.endpoint,
-    keys: { p256dh: sub.p256dh, auth: sub.auth },
-  } as any,
-  JSON.stringify({
-    title,                 // ✅ локализованный title
-    body: r.text,
-    url: `/${normalizeLang(lang)}/chat`,   // ✅ ВОТ ТУТ ФИКС
-    data: { reminderId: r.id.toString(), userId },
-  })
-);
+  for (const sub of subs) {
+    try {
+      const langNorm = normalizeLang(lang);
 
+      const payload = {
+        title, // локализованный title
+        body: r.text,
+        url: `/${langNorm}/chat`,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/badge-72.png",
+        tag: `reminder-${r.id}`, // чтобы не плодились одинаковые
+        renotify: true, // если тот же tag — обновит
+        data: {
+          reminderId: r.id.toString(),
+          userId,
+          url: `/${langNorm}/chat`,
+        },
+      };
 
-            await prisma.deliveryLog.create({
-              data: {
-                userId,
-                reminderId: r.id,
-                channel: "push",
-                status: "ok",
-                meta: {
-                  endpoint: sub.endpoint,
-                  notificationId: notificationId ? notificationId.toString() : null,
-                },
-              },
-            });
-          } catch (e: any) {
-            await prisma.deliveryLog.create({
-              data: {
-                userId,
-                reminderId: r.id,
-                channel: "push",
-                status: "fail",
-                error: String(e?.message ?? e),
-                meta: { endpoint: sub.endpoint },
-              },
-            });
-          }
-        }
-      } else {
-        await prisma.deliveryLog.create({
-          data: {
-            userId,
-            reminderId: r.id,
-            channel: "push",
-            status: "skipped",
-            error: notifyPush ? "no subscriptions" : "notifyPush=false",
+      await webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        } as any,
+        JSON.stringify(payload)
+      );
+
+      await prisma.deliveryLog.create({
+        data: {
+          userId,
+          reminderId: r.id,
+          channel: "push",
+          status: "ok",
+          meta: {
+            endpoint: sub.endpoint,
+            notificationId: notificationId ? notificationId.toString() : null,
+            tag: payload.tag,
+            url: payload.url,
           },
-        });
-      }
-
+        },
+      });
+    } catch (e: any) {
+      await prisma.deliveryLog.create({
+        data: {
+          userId,
+          reminderId: r.id,
+          channel: "push",
+          status: "fail",
+          error: String(e?.message ?? e),
+          meta: { endpoint: sub.endpoint },
+        },
+      });
+    }
+  }
+} else {
+  await prisma.deliveryLog.create({
+    data: {
+      userId,
+      reminderId: r.id,
+      channel: "push",
+      status: "skipped",
+      error: notifyPush ? "no subscriptions" : "notifyPush=false",
+    },
+  });
+}
       await prisma.reminder.update({
         where: { id: r.id },
         data: { status: "sent", sentAt: now },
