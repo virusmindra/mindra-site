@@ -70,21 +70,20 @@ export async function GET(req: Request) {
 
   const force = searchParams.get("force") === "1";
 
-  // 🔔 heartbeat — видно в Vercel Logs
-  console.log("[CRON] tick", new Date().toISOString(), "force=", force);
-
-  // 🔐 авторизация ТОЛЬКО через header
-  const expected = process.env.CRON_SECRET;
+  const expected = process.env.CRON_SECRET || "";
+  const secret = searchParams.get("secret") || "";
   const auth = req.headers.get("authorization") || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 
-  if (!expected || bearer !== expected) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized" },
-      { status: 401 }
-    );
+  const ok = expected && (bearer === expected || secret === expected); // временно allow both
+
+  if (!ok) {
+    console.log("[CRON] unauthorized", { force, hasBearer: !!bearer, hasSecret: !!secret });
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  console.log("[CRON] tick", new Date().toISOString(), "force=", force);
+  
   setupWebPushOnce();
 
   const now = new Date();
