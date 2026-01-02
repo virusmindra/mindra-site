@@ -67,6 +67,8 @@ function getReminderTitle(lang?: string | null) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+  
+const force = searchParams.get("force") === "1";
 
 // временно можно оставить, но потом уберёшь
 const secret = searchParams.get("secret");
@@ -79,9 +81,6 @@ const ok = expected && (bearer === expected || secret === expected); // пока
 if (!ok) {
   return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 }
-
-const force = searchParams.get("force") === "1";
-
 
   setupWebPushOnce();
 
