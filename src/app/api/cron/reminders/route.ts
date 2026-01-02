@@ -67,12 +67,21 @@ function getReminderTitle(lang?: string | null) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
-  const force = searchParams.get("force") === "1";
 
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+// временно можно оставить, но потом уберёшь
+const secret = searchParams.get("secret");
+
+const expected = process.env.CRON_SECRET || "";
+const auth = req.headers.get("authorization") || "";
+const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+
+const ok = expected && (bearer === expected || secret === expected); // пока allow both
+if (!ok) {
+  return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+}
+
+const force = searchParams.get("force") === "1";
+
 
   setupWebPushOnce();
 
@@ -151,13 +160,15 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const subsCount = await prisma.pushSubscription.count({ where: { userId } });
+    const subsCount = notifyPush
+  ? await prisma.pushSubscription.count({ where: { userId } })
+  : 0;
+
 console.log("[CRON] user", userId, "subsCount", subsCount);
 
-const subs = notifyPush && subsCount > 0
+const subs = notifyPush
   ? await prisma.pushSubscription.findMany({ where: { userId } })
   : [];
-
 
     for (const r of items) {
       let notificationId: bigint | null = null;
