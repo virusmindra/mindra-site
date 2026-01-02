@@ -67,20 +67,23 @@ function getReminderTitle(lang?: string | null) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  
-const force = searchParams.get("force") === "1";
 
-// временно можно оставить, но потом уберёшь
-const secret = searchParams.get("secret");
+  const force = searchParams.get("force") === "1";
 
-const expected = process.env.CRON_SECRET || "";
-const auth = req.headers.get("authorization") || "";
-const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  // 🔔 heartbeat — видно в Vercel Logs
+  console.log("[CRON] tick", new Date().toISOString(), "force=", force);
 
-const ok = expected && (bearer === expected || secret === expected); // пока allow both
-if (!ok) {
-  return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-}
+  // 🔐 авторизация ТОЛЬКО через header
+  const expected = process.env.CRON_SECRET;
+  const auth = req.headers.get("authorization") || "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+
+  if (!expected || bearer !== expected) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
   setupWebPushOnce();
 
