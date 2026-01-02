@@ -151,9 +151,13 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const subs = notifyPush
-      ? await prisma.pushSubscription.findMany({ where: { userId } })
-      : [];
+    const subsCount = await prisma.pushSubscription.count({ where: { userId } });
+console.log("[CRON] user", userId, "subsCount", subsCount);
+
+const subs = notifyPush && subsCount > 0
+  ? await prisma.pushSubscription.findMany({ where: { userId } })
+  : [];
+
 
     for (const r of items) {
       let notificationId: bigint | null = null;
