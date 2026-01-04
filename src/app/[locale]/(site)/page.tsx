@@ -18,68 +18,68 @@ export default function Page({ params: { locale } }: Props) {
   ];
 
   return (
-    <section className="pt-16 md:pt-24 pb-12 md:pb-16 mx-auto max-w-6xl space-y-14">
-      {/* HERO */}
-      <header className="text-center space-y-6">
-        <p className="text-sm uppercase tracking-wider text-white/60">
-          {t('brand.tagline')}
-        </p>
+  <section className="pt-16 md:pt-24 pb-12 md:pb-16 mx-auto max-w-6xl space-y-14 px-4">
+    {/* HERO */}
+    <header className="text-center space-y-6">
+      <p className="text-sm uppercase tracking-wider text-[var(--muted)]">
+        {t('brand.tagline')}
+      </p>
 
-        <h1 className="text-3xl md:text-5xl font-semibold">
-          {t('hero.title')}
-        </h1>
+      <h1 className="text-3xl md:text-5xl font-semibold text-[var(--text)]">
+        {t('hero.title')}
+      </h1>
 
-        <p className="opacity-80 max-w-3xl mx-auto">
-          {t('hero.subtitle')}
-        </p>
+      <p className="max-w-3xl mx-auto text-[var(--muted)] text-base md:text-lg leading-relaxed">
+        {t('hero.subtitle')}
+      </p>
 
-        <div className="flex justify-center gap-3">
-          <Link
-            href="https://t.me/talktomindra_bot"
-            className="rounded-xl bg-white text-zinc-900 px-4 py-2 text-sm font-medium hover:opacity-90"
-            target="_blank"
-            rel="noopener"
-          >
-            {t('cta.launch')}
-          </Link>
-
-          <Link
-            href={`/${locale}/pricing`}
-            className="rounded-xl border border-white/15 px-4 py-2 text-sm hover:bg-white/10"
-          >
-            {t('cta.pricing')}
-          </Link>
-        </div>
-      </header>
-
-      {/* FEATURES */}
-      <section className="space-y-6">
-        <h2 className="text-2xl md:text-3xl font-semibold text-center">
-          {t('features.title')}
-        </h2>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featureItems.map((f, i) => (
-            <article
-              key={i}
-              className="rounded-2xl border border-white/10 p-5 hover:border-white/20 transition-colors"
-            >
-              <h3 className="font-medium">{f.title}</h3>
-              <p className="mt-2 text-sm opacity-80">{f.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="text-center">
+      <div className="flex justify-center gap-3">
         <Link
-          href={`/${locale}/support`}
-          className="inline-block rounded-xl border border-white/15 px-4 py-2 text-sm hover:bg-white/10"
+          href="https://t.me/talktomindra_bot"
+          className="rounded-xl bg-white text-zinc-900 px-4 py-2 text-sm font-medium hover:opacity-90"
+          target="_blank"
+          rel="noopener"
         >
-          {t('nav.donate')}
+          {t('cta.launch')}
         </Link>
-      </section>
+
+        <Link
+          href={`/${locale}/pricing`}
+          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10 transition"
+        >
+          {t('cta.pricing')}
+        </Link>
+      </div>
+    </header>
+
+    {/* FEATURES */}
+    <section className="space-y-6">
+      <h2 className="text-2xl md:text-3xl font-semibold text-center text-[var(--text)]">
+        {t('features.title')}
+      </h2>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {featureItems.map((f, i) => (
+          <article
+            key={i}
+            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 hover:border-black/20 dark:hover:border-white/20 transition-colors"
+          >
+            <h3 className="font-semibold text-[var(--text)]">{f.title}</h3>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-relaxed">{f.text}</p>
+          </article>
+        ))}
+      </div>
     </section>
-  );
+
+    {/* CTA */}
+    <section className="text-center">
+      <Link
+        href={`/${locale}/support`}
+        className="inline-block rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10 transition"
+      >
+        {t('nav.donate')}
+      </Link>
+    </section>
+  </section>
+);
 }

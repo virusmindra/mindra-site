@@ -28,32 +28,48 @@ export default function SiteHeader({ locale }: { locale: Locale }) {
   const isDonate = pathname?.startsWith(hrefDonate);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/85 backdrop-blur">
-      <div className="w-full px-6">
-        <div className="h-14 max-w-6xl mx-auto w-full flex items-center justify-between">
-          <Link href={hrefHome} className="font-semibold tracking-tight text-[var(--text)]">
-            Mindra
+    <header className="border-b border-[var(--border)] bg-[var(--bg)]">
+      <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
+        {/* LOGO — строго слева */}
+        <Link
+          href={`/${locale}`}
+          className="font-semibold text-[var(--text)] tracking-tight"
+        >
+          Mindra
+        </Link>
+
+        {/* NAV — строго справа */}
+        <nav className="flex items-center gap-6 text-sm text-[var(--muted)]">
+          <Link
+            href={`/${locale}`}
+            className="hover:text-[var(--text)] transition"
+          >
+            Home
           </Link>
 
-          <nav className="flex items-center gap-5">
-            <Link href={hrefHome} className={navLinkClass(isHome)}>
-              {t('nav.home')}
-            </Link>
-            <Link href={hrefPricing} className={navLinkClass(!!isPricing)}>
-              {t('nav.pricing')}
-            </Link>
-            <Link href={hrefChat} className={navLinkClass(!!isChat)}>
-              {t('nav.chat')}
-            </Link>
-            <Link href={hrefDonate} className={navLinkClass(!!isDonate)}>
-              {t('nav.donate')}
-            </Link>
+          <Link
+            href={`/${locale}/pricing`}
+            className="hover:text-[var(--text)] transition"
+          >
+            Pricing
+          </Link>
 
-            <div className="ml-2">
-              <LanguageSwitcher />
-            </div>
-          </nav>
-        </div>
+          <Link
+            href={`/${locale}/chat`}
+            className="hover:text-[var(--text)] transition"
+          >
+            Chat
+          </Link>
+
+          <Link
+            href={`/${locale}/support`}
+            className="hover:text-[var(--text)] transition"
+          >
+            Donate
+          </Link>
+
+          <LanguageSwitcher />
+        </nav>
       </div>
     </header>
   );

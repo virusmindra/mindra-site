@@ -3,29 +3,45 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f7f2ff;        /* нежный lavender */
-  --text: #1c1b22;
-  --muted: rgba(28, 27, 34, 0.65);
+  /* light */
+  --bg: #f7f2ff;
+  --text: #0b0b10;
+
+  --muted: rgba(11, 11, 16, 0.62);
+  --muted2: rgba(11, 11, 16, 0.48);
 
   --card: rgba(255, 255, 255, 0.75);
-  --border: rgba(28, 27, 34, 0.14);
+  --border: rgba(11, 11, 16, 0.14);
 
-  --accent: #7b5cff;    /* как оттенок логотипа */
+  --accent: #7b5cff;
   --accent-2: #9b7bff;
+
+  --highlight: rgba(124, 58, 237, 0.10);
+  --selection: rgba(124, 58, 237, 0.25);
 }
 
-
 html[data-theme='dark'] {
+  /* dark */
   --bg: #09090b;
-  --text: #f4f4f5;
-  --muted: rgba(244, 244, 245, 0.65);
+  --text: rgba(255, 255, 255, 0.92);
+
+  --muted: rgba(255, 255, 255, 0.62);
+  --muted2: rgba(255, 255, 255, 0.48);
 
   --card: rgba(255, 255, 255, 0.06);
   --border: rgba(255, 255, 255, 0.12);
 
   --accent: #7b5cff;
   --accent-2: #9b7bff;
+
+  --highlight: rgba(139, 92, 246, 0.14);
+  --selection: rgba(139, 92, 246, 0.35);
+}
+
+::selection {
+  background: var(--selection);
+  color: var(--text);
 }
 
 html, body { height: 100%; }
-body { margin: 0; }
+body { margin: 0; background: var(--bg); color: var(--text); }

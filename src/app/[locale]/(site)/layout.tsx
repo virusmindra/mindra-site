@@ -15,12 +15,17 @@ export default function SiteLayout({
 
   return (
     <div className="min-h-dvh flex flex-col bg-[var(--bg)] text-[var(--text)]">
+      {/* HEADER — full width */}
       <SiteHeader locale={locale} />
 
+      {/* CONTENT — centered */}
       <main className="flex-1">
-        <div className="mx-auto w-full max-w-6xl px-6 py-10">{children}</div>
+        <div className="mx-auto w-full max-w-6xl px-6 py-10">
+          {children}
+        </div>
       </main>
 
+      {/* FOOTER — full width */}
       <Footer locale={locale} />
     </div>
   );
