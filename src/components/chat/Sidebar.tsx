@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { useTheme } from '@/components/theme/ThemeProvider';
 
 import type { ChatSession, ChatFeature } from './types';
 
@@ -43,6 +44,8 @@ export default function Sidebar({
 
   const params = useParams();
   const locale = String((params as any)?.locale ?? 'en');
+
+  const { theme, setTheme } = useTheme();
 
   const displayedSessions = sessions.filter(
     (s) => (s.feature ?? 'default') === activeFeature,

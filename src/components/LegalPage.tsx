@@ -13,7 +13,7 @@ type Doc = {
 
 async function loadMessages(locale: string) {
   try {
-    const mod = await import(`@/app/[locale]/messages/${locale}.json`);
+    const mod = await import(`@/app/[locale]/(site)/messages/${locale}.json`);
     return mod.default as Record<string, unknown>;
   } catch {
     const mod = await import(`@/app/[locale]/(site)/messages/en.json`);

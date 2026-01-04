@@ -2,7 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+
+  /* ✅ Light (lavender, НЕ белый) */
+  --bg: #f6f1ff;          /* нежно-лавандовый фон */
+  --fg: #14121a;          /* почти чёрный текст */
+  --muted: rgba(20,18,26,.65);
+  --card: rgba(255,255,255,.70);
+  --card2: rgba(255,255,255,.55);
+  --border: rgba(20,18,26,.12);
+
+  /* ✅ Accent (под твой логотип) */
+  --accent: #7c4dff;      /* фиолетовый */
+  --accent-2: #a78bfa;    /* светлее */
+}
+
+html.dark {
+  color-scheme: dark;
+
+  /* ✅ Dark */
+  --bg: #09090b;
+  --fg: #f4f4f5;
+  --muted: rgba(244,244,245,.65);
+  --card: rgba(24,24,27,.72);
+  --card2: rgba(24,24,27,.55);
+  --border: rgba(244,244,245,.12);
+
+  --accent: #a78bfa;
+  --accent-2: #7c4dff;
+}
+
 html, body { height: 100%; }
 body { margin: 0; }
-
-/* НЕ делаем overflow:hidden глобально */
