@@ -1,34 +1,34 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-type Theme = 'light' | 'dark';
-type Ctx = { theme: Theme; setTheme: (t: Theme) => void; toggle: () => void };
+export type Theme = 'light' | 'dark';
 
-const ThemeContext = createContext<Ctx | null>(null);
+type ThemeCtx = {
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+};
 
-function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  root.classList.toggle('dark', theme === 'dark');
-}
+const ThemeContext = createContext<ThemeCtx | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
 
   useEffect(() => {
-    const saved = (localStorage.getItem('mindra-theme') as Theme | null) ?? 'light';
+    const saved = (localStorage.getItem('mindra_theme') as Theme | null) ?? 'light';
     setThemeState(saved);
-    applyTheme(saved);
   }, []);
 
-  const setTheme = (t: Theme) => {
-    setThemeState(t);
-    localStorage.setItem('mindra-theme', t);
-    applyTheme(t);
-  };
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('mindra_theme', theme);
+  }, [theme]);
 
   const value = useMemo(
-    () => ({ theme, setTheme, toggle: () => setTheme(theme === 'dark' ? 'light' : 'dark') }),
+    () => ({
+      theme,
+      setTheme: (t: Theme) => setThemeState(t),
+    }),
     [theme],
   );
 
