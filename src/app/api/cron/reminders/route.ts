@@ -69,16 +69,15 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   const force = searchParams.get("force") === "1";
+  console.log("[CRON] tick", new Date().toISOString(), "force=", force);
 
   const expected = process.env.CRON_SECRET || "";
-  const secret = searchParams.get("secret") || "";
   const auth = req.headers.get("authorization") || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 
-  const ok = expected && (bearer === expected || secret === expected); // временно allow both
-
-  if (!ok) {
-    console.log("[CRON] unauthorized", { force, hasBearer: !!bearer, hasSecret: !!secret });
+  // ✅ ТОЛЬКО Bearer, никаких ?secret=
+  if (!expected || bearer !== expected) {
+    console.log("[CRON] unauthorized", { hasBearer: !!bearer });
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
