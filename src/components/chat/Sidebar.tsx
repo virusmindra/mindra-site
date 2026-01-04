@@ -30,8 +30,6 @@ const featureList: { id: ChatFeature; label: string }[] = [
   { id: 'settings', label: 'Настройки' },
 ];
 
-const { theme, setTheme } = useTheme();
-
 export default function Sidebar({
   sessions,
   currentId,
@@ -43,6 +41,8 @@ export default function Sidebar({
   const { data: session, status } = useSession();
   const authed = !!session?.user;
 
+  const { theme, setTheme } = useTheme();
+  
   const params = useParams();
   const locale = String((params as any)?.locale ?? 'en');
 
