@@ -75,7 +75,7 @@ export async function GET(req: Request) {
   const auth = req.headers.get("authorization") || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 
-  // ✅ ТОЛЬКО Bearer, никаких ?secret=
+  // ✅ Только Bearer. Никаких ?secret=
   if (!expected || bearer !== expected) {
     console.log("[CRON] unauthorized", { hasBearer: !!bearer });
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

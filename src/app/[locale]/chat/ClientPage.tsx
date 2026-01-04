@@ -8,6 +8,7 @@ import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/ty
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 import { getTotalPoints, addPoints } from '@/lib/points';
 import PointsPanel from '@/components/chat/PointsPanel'; // путь подстрой под свой
+import SettingsPanel from "@/components/chat/SettingsPanel";
 
 /* ----------------------------- helpers ----------------------------- */
 function urlBase64ToUint8Array(base64String: string) {
@@ -990,41 +991,45 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
 
   const locale = getLocaleFromPath();
 
-  return (
-    <div className="flex h-[calc(100vh-4.5rem)] bg-zinc-950">
-      <Sidebar
-        sessions={sessions}
-        currentId={currentId}
-        onNewChat={handleNewChat}
-        onSelect={handleSelectSession}
-        activeFeature={activeFeature}
-        onChangeFeature={handleChangeFeature}
-      />
+ return (
+  <div className="h-full bg-zinc-950 overflow-hidden flex">
+    <Sidebar
+      sessions={sessions}
+      currentId={currentId}
+      onNewChat={handleNewChat}
+      onSelect={handleSelectSession}
+      activeFeature={activeFeature}
+      onChangeFeature={handleChangeFeature}
+    />
 
-      <main className="flex-1 flex flex-col">
-  {activeFeature === 'points' ? (
-    <PointsPanel uid={getOrCreateWebUid()} locale={locale} />
-  ) : (
-    <>
-      <ChatWindow
-        messages={current ? current.messages : []}
-        activeFeature={activeFeature}
-        goalSuggestion={lastGoalSuggestion}
-        habitSuggestion={lastHabitSuggestion}
-        onSaveGoal={saveAsGoal}
-        onSaveHabit={saveAsHabit}
-        onMarkGoalDone={markGoalDone}
-        onMarkHabitDone={markHabitDone}
-        currentSessionId={current?.id}
-        locale={locale}
-        goalDone={Boolean((current as any)?.goalDone)}
-        habitDone={Boolean((current as any)?.habitDone)}
-      />
+    <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      {activeFeature === 'settings' ? (
+        <SettingsPanel />
+      ) : activeFeature === 'points' ? (
+        <div className="flex-1 overflow-y-auto">
+          <PointsPanel uid={getOrCreateWebUid()} locale={locale} />
+        </div>
+      ) : (
+        <>
+          <ChatWindow
+            messages={current ? current.messages : []}
+            activeFeature={activeFeature}
+            goalSuggestion={lastGoalSuggestion}
+            habitSuggestion={lastHabitSuggestion}
+            onSaveGoal={saveAsGoal}
+            onSaveHabit={saveAsHabit}
+            onMarkGoalDone={markGoalDone}
+            onMarkHabitDone={markHabitDone}
+            currentSessionId={current?.id}
+            locale={locale}
+            goalDone={Boolean((current as any)?.goalDone)}
+            habitDone={Boolean((current as any)?.habitDone)}
+          />
 
-      <Composer onSend={handleSend} disabled={sending} />
-    </>
-  )}
-</main>
-    </div>
-  );
+          <Composer onSend={handleSend} disabled={sending} />
+        </>
+      )}
+    </main>
+  </div>
+);
 }

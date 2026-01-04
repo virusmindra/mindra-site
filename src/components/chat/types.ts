@@ -17,7 +17,8 @@ export type ChatFeature =
   | 'bedtime_stories'
   | 'daily_tasks'
   | 'modes'
-  | 'points';
+  | 'points'
+  | 'settings';
 
 export type ChatSession = {
   id: string;
