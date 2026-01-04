@@ -111,100 +111,101 @@ export default function GoalsPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full border-r border-white/10 bg-zinc-950/60">
-      <div className="px-4 py-3 border-b border-white/10">
-        <h2 className="text-sm font-semibold">Цели</h2>
-        <p className="text-xs text-zinc-400 mt-1">
-          Здесь твои долгосрочные и среднесрочные цели. Mindra помогает разбивать их на шаги.
-        </p>
-      </div>
+  <div className="flex flex-col h-full border-r border-[var(--border)] bg-[var(--card)]">
+    <div className="px-4 py-3 border-b border-[var(--border)]">
+      <h2 className="text-sm font-semibold text-[var(--text)]">Цели</h2>
+      <p className="text-xs text-[var(--muted)] mt-1">
+        Здесь твои долгосрочные и среднесрочные цели. Mindra помогает разбивать их на шаги.
+      </p>
+    </div>
 
-      {/* Форма создания */}
-      <div className="px-4 py-3 border-b border-white/5 space-y-2">
+    <div className="px-4 py-3 border-b border-[var(--border)] space-y-2">
+      <input
+        className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+        placeholder="Новая цель…"
+        value={newText}
+        onChange={(e) => setNewText(e.target.value)}
+      />
+      <div className="flex gap-2">
         <input
-          className="w-full rounded-xl bg-zinc-900 border border-white/10 px-3 py-2 text-xs outline-none focus:border-white/30"
-          placeholder="Новая цель…"
-          value={newText}
-          onChange={(e) => setNewText(e.target.value)}
+          type="date"
+          className="flex-1 rounded-xl bg-[var(--bg)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+          value={newDeadline}
+          onChange={(e) => setNewDeadline(e.target.value)}
         />
-        <div className="flex gap-2">
+        <label className="flex items-center gap-1 text-[11px] text-[var(--muted)]">
           <input
-            type="date"
-            className="flex-1 rounded-xl bg-zinc-900 border border-white/10 px-3 py-2 text-xs outline-none focus:border-white/30"
-            value={newDeadline}
-            onChange={(e) => setNewDeadline(e.target.value)}
+            type="checkbox"
+            checked={newRemind}
+            onChange={(e) => setNewRemind(e.target.checked)}
+            className="accent-[var(--accent)]"
           />
-          <label className="flex items-center gap-1 text-[11px] text-zinc-300">
-            <input
-              type="checkbox"
-              checked={newRemind}
-              onChange={(e) => setNewRemind(e.target.checked)}
-              className="accent-indigo-500"
-            />
-            Напоминать
-          </label>
-        </div>
-        <button
-          onClick={handleCreate}
-          disabled={creating || !newText.trim()}
-          className="w-full rounded-xl bg-indigo-600 text-xs py-2 hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {creating ? 'Добавляю…' : 'Добавить цель'}
-        </button>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
+          Напоминать
+        </label>
       </div>
 
-      {/* Список целей */}
-      <div className="flex-1 overflow-auto px-3 py-3 space-y-2">
-        {loading ? (
-          <p className="text-xs text-zinc-400">Загружаю цели…</p>
-        ) : goals.length === 0 ? (
-          <p className="text-xs text-zinc-400">
-            Пока у тебя нет целей. Добавь первую — Mindra поможет ей заняться 💜
-          </p>
-        ) : (
-          goals.map((g) => (
-            <div
-              key={g.index}
-              className="flex items-start justify-between gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs ${
-                      g.done ? 'line-through text-zinc-500' : 'text-zinc-100'
-                    }`}
-                  >
-                    {g.text}
-                  </span>
-                </div>
-                <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-zinc-400">
-                  {g.deadline && <span>⏳ {g.deadline}</span>}
-                  {g.remind && <span>🔔 напоминания включены</span>}
-                  {g.done && <span>✅ выполнена</span>}
-                </div>
+      <button
+        onClick={handleCreate}
+        disabled={creating || !newText.trim()}
+        className="w-full rounded-xl bg-[var(--accent)] text-white text-xs py-2 hover:opacity-90 disabled:opacity-50"
+      >
+        {creating ? 'Добавляю…' : 'Добавить цель'}
+      </button>
+
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
+    </div>
+
+    <div className="flex-1 overflow-auto px-3 py-3 space-y-2">
+      {loading ? (
+        <p className="text-xs text-[var(--muted)]">Загружаю цели…</p>
+      ) : goals.length === 0 ? (
+        <p className="text-xs text-[var(--muted)]">
+          Пока у тебя нет целей. Добавь первую — Mindra поможет ей заняться 💜
+        </p>
+      ) : (
+        goals.map((g) => (
+          <div
+            key={g.index}
+            className="flex items-start justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+          >
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs ${
+                    g.done ? 'line-through text-[var(--muted)]' : 'text-[var(--text)]'
+                  }`}
+                >
+                  {g.text}
+                </span>
               </div>
 
-              <div className="flex flex-col gap-1">
-                {!g.done && (
-                  <button
-                    onClick={() => handleDone(g)}
-                    className="text-[11px] px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500"
-                  >
-                    Готово
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDelete(g)}
-                  className="text-[11px] px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700"
-                >
-                  Удалить
-                </button>
+              <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-[var(--muted)]">
+                {g.deadline && <span>⏳ {g.deadline}</span>}
+                {g.remind && <span>🔔 напоминания включены</span>}
+                {g.done && <span>✅ выполнена</span>}
               </div>
             </div>
-          ))
-        )}
-      </div>
+
+            <div className="flex flex-col gap-1">
+              {!g.done && (
+                <button
+                  onClick={() => handleDone(g)}
+                  className="text-[11px] px-2 py-1 rounded-lg bg-emerald-600 text-white hover:opacity-90"
+                >
+                  Готово
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(g)}
+                className="text-[11px] px-2 py-1 rounded-lg border border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
-  );
+  </div>
+);
 }

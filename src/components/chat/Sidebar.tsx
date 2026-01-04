@@ -52,119 +52,119 @@ export default function Sidebar({
   );
 
   return (
-    <aside className="w-80 flex flex-col border-r border-white/10 bg-zinc-950 h-full overflow-hidden">
-      {/* TOP */}
-      <div className="p-3 border-b border-white/10 space-y-2">
-        <Link
-          href={`/${locale}`}
-          className="block w-full text-left text-xs text-zinc-400 hover:text-white transition"
-        >
-          ← На главную
-        </Link>
+  <aside className="w-80 flex flex-col border-r border-[var(--border)] bg-[var(--card)] h-full overflow-hidden">
+    {/* TOP */}
+    <div className="p-3 border-b border-[var(--border)] space-y-2">
+      <Link
+        href={`/${locale}`}
+        className="block w-full text-left text-xs text-[var(--muted)] hover:text-[var(--text)] transition"
+      >
+        ← На главную
+      </Link>
 
-        <button
-          type="button"
-          onClick={onNewChat}
-          className="w-full rounded-xl px-3 py-2 text-sm font-medium bg-white text-zinc-900 hover:bg-zinc-200 transition"
-        >
-          Новый чат
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onNewChat}
+        className="w-full rounded-xl px-3 py-2 text-sm font-medium bg-[var(--accent)] text-white hover:opacity-90 transition"
+      >
+        Новый чат
+      </button>
+    </div>
 
-      {/* MIDDLE */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* CHATS */}
-        <div className="w-1/2 flex flex-col border-r border-white/10 overflow-hidden">
-          <div className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wide text-zinc-500">
-            Чаты
-          </div>
-
-          <ul className="flex-1 px-2 pb-3 space-y-1 text-xs text-zinc-300 overflow-auto">
-            {displayedSessions.map((s) => (
-              <li key={s.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(s.id)}
-                  className={[
-                    'w-full text-left px-2 py-1.5 rounded-md transition',
-                    s.id === currentId
-                      ? 'bg-zinc-800 text-white'
-                      : 'hover:bg-zinc-800/60',
-                  ].join(' ')}
-                >
-                  {(s.feature ?? 'default') === 'goals' && '🎯 '}
-                  {s.title || 'Без названия'}
-                </button>
-              </li>
-            ))}
-          </ul>
+    {/* MIDDLE */}
+    <div className="flex-1 flex overflow-hidden">
+      {/* CHATS */}
+      <div className="w-1/2 flex flex-col border-r border-[var(--border)] overflow-hidden">
+        <div className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+          Чаты
         </div>
 
-        {/* MODES */}
-        <div className="w-1/2 flex flex-col overflow-hidden">
-          <div className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wide text-zinc-500">
-            Режимы
-          </div>
-
-          <ul className="flex-1 px-2 pb-3 space-y-1 text-xs text-zinc-300 overflow-auto">
-            {featureList.map((f) => (
-              <li key={f.id}>
-                <button
-                  type="button"
-                  onClick={() => onChangeFeature(f.id)}
-                  className={[
-                    'w-full text-left px-2 py-1.5 rounded-md transition',
-                    activeFeature === f.id
-                      ? 'bg-white text-zinc-900'
-                      : 'hover:bg-zinc-800/60',
-                  ].join(' ')}
-                >
-                  {f.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="flex-1 px-2 pb-3 space-y-1 text-xs overflow-auto">
+          {displayedSessions.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(s.id)}
+                className={[
+                  'w-full text-left px-2 py-1.5 rounded-md transition',
+                  s.id === currentId
+                    ? 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)]'
+                    : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
+                ].join(' ')}
+              >
+                {(s.feature ?? 'default') === 'goals' && '🎯 '}
+                {s.title || 'Без названия'}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* BOTTOM */}
-      <div className="border-t border-white/10 p-3 space-y-3 text-xs">
-        <button
-          type="button"
-          onClick={() => onChangeFeature('settings')}
-          className="w-full text-left px-3 py-2 rounded-xl border border-white/15 text-zinc-100 hover:bg-white/10 transition"
-        >
-          ⚙️ Настройки
-        </button>
-
-        <div className="pt-3 border-t border-white/10">
-          {authed ? (
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: `/${locale}/chat` })}
-              className="w-full border border-white/15 rounded-xl px-3 py-2 text-[11px] hover:bg-white/10 text-zinc-100"
-            >
-              Выйти из аккаунта
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => signIn('google', { callbackUrl: `/${locale}/chat` })}
-              className="w-full border border-white/15 rounded-xl px-3 py-2 text-[11px] hover:bg-white/10 text-zinc-100"
-            >
-              Войти через Google
-            </button>
-          )}
-
-          <p className="text-[11px] mt-2 text-zinc-500">
-            {status === 'loading'
-              ? 'Проверяем сессию...'
-              : authed
-              ? `Привет, ${session?.user?.name ?? 'пользователь'}`
-              : 'Войдёшь позже — будем синкать чаты и подписку.'}
-          </p>
+      {/* MODES */}
+      <div className="w-1/2 flex flex-col overflow-hidden">
+        <div className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+          Режимы
         </div>
+
+        <ul className="flex-1 px-2 pb-3 space-y-1 text-xs overflow-auto">
+          {featureList.map((f) => (
+            <li key={f.id}>
+              <button
+                type="button"
+                onClick={() => onChangeFeature(f.id)}
+                className={[
+                  'w-full text-left px-2 py-1.5 rounded-md transition',
+                  activeFeature === f.id
+                    ? 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)]'
+                    : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
+                ].join(' ')}
+              >
+                {f.label}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
-    </aside>
-  );
+    </div>
+
+    {/* BOTTOM */}
+    <div className="border-t border-[var(--border)] p-3 space-y-3 text-xs">
+      <button
+        type="button"
+        onClick={() => onChangeFeature('settings')}
+        className="w-full text-left px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10 transition"
+      >
+        ⚙️ Настройки
+      </button>
+
+      <div className="pt-3 border-t border-[var(--border)]">
+        {authed ? (
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: `/${locale}/chat` })}
+            className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-[11px] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text)]"
+          >
+            Выйти из аккаунта
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => signIn('google', { callbackUrl: `/${locale}/chat` })}
+            className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-[11px] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text)]"
+          >
+            Войти через Google
+          </button>
+        )}
+
+        <p className="text-[11px] mt-2 text-[var(--muted)]">
+          {status === 'loading'
+            ? 'Проверяем сессию...'
+            : authed
+            ? `Привет, ${session?.user?.name ?? 'пользователь'}`
+            : 'Войдёшь позже — будем синкать чаты и подписку.'}
+        </p>
+      </div>
+    </div>
+  </aside>
+);
 }

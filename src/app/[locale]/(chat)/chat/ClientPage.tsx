@@ -992,7 +992,7 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
   const locale = getLocaleFromPath();
 
 return (
-  <div className="h-[100dvh] overflow-hidden bg-zinc-950">
+  <div className="h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
     <div className="flex h-full">
       <Sidebar
         sessions={sessions}

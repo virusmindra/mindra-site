@@ -135,80 +135,80 @@ export default function HabitsPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full border-r border-white/10 bg-zinc-950/60">
-      <div className="px-4 py-3 border-b border-white/10">
-        <h2 className="text-sm font-semibold">Привычки</h2>
-        <p className="text-xs text-zinc-400 mt-1">
-          Здесь твои ежедневные действия. Mindra помогает отмечать выполненные и держать рутину.
-        </p>
-      </div>
-
-      {/* Форма создания */}
-      <div className="px-4 py-3 border-b border-white/5 space-y-2">
-        <input
-          className="w-full rounded-xl bg-zinc-900 border border-white/10 px-3 py-2 text-xs outline-none focus:border-white/30"
-          placeholder="Новая привычка…"
-          value={newText}
-          onChange={(e) => setNewText(e.target.value)}
-        />
-        <button
-          onClick={handleCreate}
-          disabled={creating || !newText.trim()}
-          className="w-full rounded-xl bg-indigo-600 text-xs py-2 hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {creating ? 'Добавляю…' : 'Добавить привычку'}
-        </button>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-      </div>
-
-      {/* Список привычек */}
-      <div className="flex-1 overflow-auto px-3 py-3 space-y-2">
-        {loading ? (
-          <p className="text-xs text-zinc-400">Загружаю привычки…</p>
-        ) : habits.length === 0 ? (
-          <p className="text-xs text-zinc-400">
-            Пока у тебя нет привычек. Добавь одну — Mindra поможет держать рутину 💜
-          </p>
-        ) : (
-          habits.map((h) => (
-            <div
-              key={h.id}
-              className="flex items-start justify-between gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2"
-            >
-              <div className="flex-1">
-                <span
-                  className={`text-xs ${
-                    h.doneToday ? 'line-through text-zinc-500' : 'text-zinc-100'
-                  }`}
-                >
-                  {h.text}
-                </span>
-
-                {h.doneToday && (
-                  <div className="mt-1 text-[11px] text-emerald-400">✅ выполнена сегодня</div>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1">
-                {!h.doneToday && (
-                  <button
-                    onClick={() => handleDone(h)}
-                    className="text-[11px] px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500"
-                  >
-                    Сделано
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDelete(h)}
-                  className="text-[11px] px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700"
-                >
-                  Удалить
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+  <div className="flex flex-col h-full border-r border-[var(--border)] bg-[var(--card)]">
+    <div className="px-4 py-3 border-b border-[var(--border)]">
+      <h2 className="text-sm font-semibold text-[var(--text)]">Привычки</h2>
+      <p className="text-xs text-[var(--muted)] mt-1">
+        Здесь твои ежедневные действия. Mindra помогает отмечать выполненные и держать рутину.
+      </p>
     </div>
-  );
+
+    <div className="px-4 py-3 border-b border-[var(--border)] space-y-2">
+      <input
+        className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+        placeholder="Новая привычка…"
+        value={newText}
+        onChange={(e) => setNewText(e.target.value)}
+      />
+      <button
+        onClick={handleCreate}
+        disabled={creating || !newText.trim()}
+        className="w-full rounded-xl bg-[var(--accent)] text-white text-xs py-2 hover:opacity-90 disabled:opacity-50"
+      >
+        {creating ? 'Добавляю…' : 'Добавить привычку'}
+      </button>
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
+    </div>
+
+    <div className="flex-1 overflow-auto px-3 py-3 space-y-2">
+      {loading ? (
+        <p className="text-xs text-[var(--muted)]">Загружаю привычки…</p>
+      ) : habits.length === 0 ? (
+        <p className="text-xs text-[var(--muted)]">
+          Пока у тебя нет привычек. Добавь одну — Mindra поможет держать рутину 💜
+        </p>
+      ) : (
+        habits.map((h) => (
+          <div
+            key={h.id}
+            className="flex items-start justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+          >
+            <div className="flex-1">
+              <span
+                className={`text-xs ${
+                  h.doneToday ? 'line-through text-[var(--muted)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {h.text}
+              </span>
+
+              {h.doneToday && (
+                <div className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+                  ✅ выполнена сегодня
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              {!h.doneToday && (
+                <button
+                  onClick={() => handleDone(h)}
+                  className="text-[11px] px-2 py-1 rounded-lg bg-emerald-600 text-white hover:opacity-90"
+                >
+                  Сделано
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(h)}
+                className="text-[11px] px-2 py-1 rounded-lg border border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+);
 }

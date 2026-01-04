@@ -284,41 +284,41 @@ export default function PointsPanel({ uid, locale }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full border-r border-white/10 bg-zinc-950/60">
-      <div className="px-4 py-3 border-b border-white/10">
-        <h2 className="text-sm font-semibold">{t.title}</h2>
-        <p className="text-xs text-zinc-400 mt-1">
-          {t.total}:{' '}
-          <span className="text-zinc-100 font-semibold">{total}</span>
-          <br />
-          {t.premiumUntil}:{' '}
-          <span className="text-zinc-100">{fmtDate(until, locale)}</span>
-        </p>
-        {msg && <p className="mt-2 text-xs text-emerald-300">{msg}</p>}
-      </div>
-
-      <div className="flex-1 overflow-auto px-3 py-3 space-y-2">
-        {OFFERS.map((o) => (
-          <div
-            key={o.id}
-            className="rounded-xl border border-white/10 bg-zinc-900 px-3 py-3 flex items-center justify-between gap-3"
-          >
-            <div className="flex-1">
-              <div className="text-sm text-zinc-100 font-medium">{o.title}</div>
-              <div className="text-xs text-zinc-400">
-                {o.days} {t.days} • {o.cost} {t.pts}
-              </div>
-            </div>
-
-            <button
-              onClick={() => redeem(o.cost, o.days)}
-              className="text-xs px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
-            >
-              {t.redeem}
-            </button>
-          </div>
-        ))}
-      </div>
+  <div className="flex flex-col h-full border-r border-[var(--border)] bg-[var(--card)]">
+    <div className="px-4 py-3 border-b border-[var(--border)]">
+      <h2 className="text-sm font-semibold text-[var(--text)]">{t.title}</h2>
+      <p className="text-xs text-[var(--muted)] mt-1">
+        {t.total}:{' '}
+        <span className="text-[var(--text)] font-semibold">{total}</span>
+        <br />
+        {t.premiumUntil}:{' '}
+        <span className="text-[var(--text)]">{fmtDate(until, locale)}</span>
+      </p>
+      {msg && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{msg}</p>}
     </div>
-  );
+
+    <div className="flex-1 overflow-auto px-3 py-3 space-y-2">
+      {OFFERS.map((o) => (
+        <div
+          key={o.id}
+          className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-3 flex items-center justify-between gap-3"
+        >
+          <div className="flex-1">
+            <div className="text-sm text-[var(--text)] font-medium">{o.title}</div>
+            <div className="text-xs text-[var(--muted)]">
+              {o.days} {t.days} • {o.cost} {t.pts}
+            </div>
+          </div>
+
+          <button
+            onClick={() => redeem(o.cost, o.days)}
+            className="text-xs px-3 py-2 rounded-lg bg-[var(--accent)] text-white hover:opacity-90"
+          >
+            {t.redeem}
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 }
