@@ -1,74 +1,76 @@
-'use client';
+// src/components/SiteHeader.tsx
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { getTSync } from '@/lib/getT'; // или '@/lib/getTSync' — как у тебя реально называется файл
-import type { Locale } from '@/i18n';
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
-function navLinkClass(isActive: boolean) {
-  return [
-    'text-sm transition-colors',
-    isActive ? 'text-[var(--accent)] font-medium' : 'text-[var(--muted)] hover:text-[var(--text)]',
-  ].join(' ');
+function stripLocale(pathname: string) {
+  // /ru/pricing -> /pricing
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 0) return "/";
+  // если первая часть - локаль
+  const maybeLocale = parts[0];
+  if (["en", "ru", "uk"].includes(maybeLocale)) {
+    const rest = parts.slice(1);
+    return "/" + rest.join("/");
+  }
+  return pathname;
 }
 
-export default function SiteHeader({ locale }: { locale: Locale }) {
-  const t = getTSync(locale);
+export default function SiteHeader({ locale }: { locale: string }) {
   const pathname = usePathname();
+  const router = useRouter();
 
-  const hrefHome = `/${locale}`;
-  const hrefPricing = `/${locale}/pricing`;
-  const hrefChat = `/${locale}/chat`;
-  const hrefDonate = `/${locale}/support`; // у тебя донат = support
+  const restPath = stripLocale(pathname || "/");
 
-  const isHome = pathname === hrefHome;
-  const isPricing = pathname?.startsWith(hrefPricing);
-  const isChat = pathname?.startsWith(hrefChat);
-  const isDonate = pathname?.startsWith(hrefDonate);
+  const nav = [
+    { href: `/${locale}`, label: "Home" },
+    { href: `/${locale}/pricing`, label: "Pricing" },
+    { href: `/${locale}/chat`, label: "Chat" },
+    { href: `/${locale}/support`, label: "Donate" },
+  ];
 
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--bg)]">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/85 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
-        {/* LOGO — строго слева */}
-        <Link
-          href={`/${locale}`}
-          className="font-semibold text-[var(--text)] tracking-tight"
-        >
+        <Link href={`/${locale}`} className="font-semibold text-[var(--text)]">
           Mindra
         </Link>
 
-        {/* NAV — строго справа */}
-        <nav className="flex items-center gap-6 text-sm text-[var(--muted)]">
-          <Link
-            href={`/${locale}`}
-            className="hover:text-[var(--text)] transition"
-          >
-            Home
-          </Link>
+        <nav className="flex items-center gap-6 text-sm">
+          {nav.map((i) => {
+            const active = pathname === i.href || (i.href !== `/${locale}` && pathname?.startsWith(i.href));
+            return (
+              <Link
+                key={i.href}
+                href={i.href}
+                className={[
+                  "transition",
+                  active
+                    ? "text-[var(--text)] font-medium"
+                    : "text-[var(--muted)] hover:text-[var(--text)]",
+                ].join(" ")}
+              >
+                {i.label}
+              </Link>
+            );
+          })}
 
-          <Link
-            href={`/${locale}/pricing`}
-            className="hover:text-[var(--text)] transition"
-          >
-            Pricing
-          </Link>
-
-          <Link
-            href={`/${locale}/chat`}
-            className="hover:text-[var(--text)] transition"
-          >
-            Chat
-          </Link>
-
-          <Link
-            href={`/${locale}/support`}
-            className="hover:text-[var(--text)] transition"
-          >
-            Donate
-          </Link>
-
-          <LanguageSwitcher />
+          {/* Locale switch */}
+          <div className="relative">
+            <select
+              value={locale}
+              onChange={(e) => {
+                const next = e.target.value;
+                router.replace(`/${next}${restPath === "/" ? "" : restPath}`);
+              }}
+              className="ml-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-[12px] text-[var(--text)] outline-none"
+            >
+              <option value="en">English</option>
+              <option value="ru">Русский</option>
+              <option value="uk">Українська</option>
+            </select>
+          </div>
         </nav>
       </div>
     </header>
