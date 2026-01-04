@@ -4,79 +4,82 @@ export type Locale = typeof locales[number];
 export const defaultLocale: Locale = 'en';
 
 // БАЗОВЫЕ
-import enBase from '@/app/[locale]/messages/en.json';
-import ruBase from '@/app/[locale]/messages/ru.json';
-import ukBase from '@/app/[locale]/messages/uk.json';
-import plBase from '@/app/[locale]/messages/pl.json';
-import esBase from '@/app/[locale]/messages/es.json';
-import frBase from '@/app/[locale]/messages/fr.json';
-import deBase from '@/app/[locale]/messages/de.json';
-import kkBase from '@/app/[locale]/messages/kk.json';
-import hyBase from '@/app/[locale]/messages/hy.json';
-import kaBase from '@/app/[locale]/messages/ka.json';
-import mdBase from '@/app/[locale]/messages/md.json';
+import enBase from '@/app/[locale]/(site)/messages/en.json';
+import ruBase from '@/app/[locale]/(site)/messages/ru.json';
+import ukBase from '@/app/[locale]/(site)/messages/uk.json';
+import plBase from '@/app/[locale]/(site)/messages/pl.json';
+import esBase from '@/app/[locale]/(site)/messages/es.json';
+import frBase from '@/app/[locale]/(site)/messages/fr.json';
+import deBase from '@/app/[locale]/(site)/messages/de.json';
+import kkBase from '@/app/[locale]/(site)/messages/kk.json';
+import hyBase from '@/app/[locale]/(site)/messages/hy.json';
+import kaBase from '@/app/[locale]/(site)/messages/ka.json';
+import mdBase from '@/app/[locale]/(site)/messages/md.json';
 
-import enChat from '@/app/[locale]/messages/en.chat.json';
-import ruChat from '@/app/[locale]/messages/ru.chat.json';
-import ukChat from '@/app/[locale]/messages/uk.chat.json';
-import plChat from '@/app/[locale]/messages/pl.chat.json';
-import esChat from '@/app/[locale]/messages/es.chat.json';
-import frChat from '@/app/[locale]/messages/fr.chat.json';
-import deChat from '@/app/[locale]/messages/de.chat.json';
-import kkChat from '@/app/[locale]/messages/kk.chat.json';
-import hyChat from '@/app/[locale]/messages/hy.chat.json';
-import kaChat from '@/app/[locale]/messages/ka.chat.json';
-import mdChat from '@/app/[locale]/messages/md.chat.json';
+import enChat from '@/app/[locale]/(site)/messages/en.chat.json';
+import ruChat from '@/app/[locale]/(site)/messages/ru.chat.json';
+import ukChat from '@/app/[locale]/(site)/messages/uk.chat.json';
+import plChat from '@/app/[locale]/(site)/messages/pl.chat.json';
+import esChat from '@/app/[locale]/(site)/messages/es.chat.json';
+import frChat from '@/app/[locale]/(site)/messages/fr.chat.json';
+import deChat from '@/app/[locale]/(site)/messages/de.chat.json';
+import kkChat from '@/app/[locale]/(site)/messages/kk.chat.json';
+import hyChat from '@/app/[locale]/(site)/messages/hy.chat.json';
+import kaChat from '@/app/[locale]/(site)/messages/ka.chat.json';
+import mdChat from '@/app/[locale]/(site)/messages/md.chat.json';
 
+// PRICING
+import enPricing from '@/app/[locale]/(site)/messages/en.pricing.json';
+import ruPricing from '@/app/[locale]/(site)/messages/ru.pricing.json';
+import ukPricing from '@/app/[locale]/(site)/messages/uk.pricing.json';
+import plPricing from '@/app/[locale]/(site)/messages/pl.pricing.json';
+import esPricing from '@/app/[locale]/(site)/messages/es.pricing.json';
+import frPricing from '@/app/[locale]/(site)/messages/fr.pricing.json';
+import dePricing from '@/app/[locale]/(site)/messages/de.pricing.json';
+import kkPricing from '@/app/[locale]/(site)/messages/kk.pricing.json';
+import hyPricing from '@/app/[locale]/(site)/messages/hy.pricing.json';
+import kaPricing from '@/app/[locale]/(site)/messages/ka.pricing.json';
+import mdPricing from '@/app/[locale]/(site)/messages/md.pricing.json';
 
-// СТРАНИЧНЫЕ (опционально)
-import enPricing from '@/app/[locale]/messages/en.pricing.json';
-import ruPricing from '@/app/[locale]/messages/ru.pricing.json';
-import ukPricing from '@/app/[locale]/messages/uk.pricing.json';
-import plPricing from '@/app/[locale]/messages/pl.pricing.json';
-import esPricing from '@/app/[locale]/messages/es.pricing.json';
-import frPricing from '@/app/[locale]/messages/fr.pricing.json';
-import dePricing from '@/app/[locale]/messages/de.pricing.json';
-import kkPricing from '@/app/[locale]/messages/kk.pricing.json';
-import hyPricing from '@/app/[locale]/messages/hy.pricing.json';
-import kaPricing from '@/app/[locale]/messages/ka.pricing.json';
-import mdPricing from '@/app/[locale]/messages/md.pricing.json';
+// DONATE
+import enDonate from '@/app/[locale]/(site)/messages/en.donate.json';
+import ruDonate from '@/app/[locale]/(site)/messages/ru.donate.json';
+import ukDonate from '@/app/[locale]/(site)/messages/uk.donate.json';
+import plDonate from '@/app/[locale]/(site)/messages/pl.donate.json';
+import esDonate from '@/app/[locale]/(site)/messages/es.donate.json';
+import frDonate from '@/app/[locale]/(site)/messages/fr.donate.json';
+import deDonate from '@/app/[locale]/(site)/messages/de.donate.json';
+import kkDonate from '@/app/[locale]/(site)/messages/kk.donate.json';
+import hyDonate from '@/app/[locale]/(site)/messages/hy.donate.json';
+import kaDonate from '@/app/[locale]/(site)/messages/ka.donate.json';
+import mdDonate from '@/app/[locale]/(site)/messages/md.donate.json';
 
-import enDonate from '@/app/[locale]/messages/en.donate.json';
-import ruDonate from '@/app/[locale]/messages/ru.donate.json';
-import ukDonate from '@/app/[locale]/messages/uk.donate.json';
-import plDonate from '@/app/[locale]/messages/pl.donate.json';
-import esDonate from '@/app/[locale]/messages/es.donate.json';
-import frDonate from '@/app/[locale]/messages/fr.donate.json';
-import deDonate from '@/app/[locale]/messages/de.donate.json';
-import kkDonate from '@/app/[locale]/messages/kk.donate.json';
-import hyDonate from '@/app/[locale]/messages/hy.donate.json';
-import kaDonate from '@/app/[locale]/messages/ka.donate.json';
-import mdDonate from '@/app/[locale]/messages/md.donate.json';
+// SUPPORT
+import enSupport from '@/app/[locale]/(site)/messages/en.supportPage.json';
+import ruSupport from '@/app/[locale]/(site)/messages/ru.supportPage.json';
+import ukSupport from '@/app/[locale]/(site)/messages/uk.supportPage.json';
+import plSupport from '@/app/[locale]/(site)/messages/pl.supportPage.json';
+import esSupport from '@/app/[locale]/(site)/messages/es.supportPage.json';
+import frSupport from '@/app/[locale]/(site)/messages/fr.supportPage.json';
+import deSupport from '@/app/[locale]/(site)/messages/de.supportPage.json';
+import kkSupport from '@/app/[locale]/(site)/messages/kk.supportPage.json';
+import hySupport from '@/app/[locale]/(site)/messages/hy.supportPage.json';
+import kaSupport from '@/app/[locale]/(site)/messages/ka.supportPage.json';
+import mdSupport from '@/app/[locale]/(site)/messages/md.supportPage.json';
 
-import enSupport from '@/app/[locale]/messages/en.supportPage.json';
-import ruSupport from '@/app/[locale]/messages/ru.supportPage.json';
-import ukSupport from '@/app/[locale]/messages/uk.supportPage.json';
-import plSupport from '@/app/[locale]/messages/pl.supportPage.json';
-import esSupport from '@/app/[locale]/messages/es.supportPage.json';
-import frSupport from '@/app/[locale]/messages/fr.supportPage.json';
-import deSupport from '@/app/[locale]/messages/de.supportPage.json';
-import kkSupport from '@/app/[locale]/messages/kk.supportPage.json';
-import hySupport from '@/app/[locale]/messages/hy.supportPage.json';
-import kaSupport from '@/app/[locale]/messages/ka.supportPage.json';
-import mdSupport from '@/app/[locale]/messages/md.supportPage.json';
+// THANKS
+import enThanks from '@/app/[locale]/(site)/messages/en.thanks.json';
+import ruThanks from '@/app/[locale]/(site)/messages/ru.thanks.json';
+import ukThanks from '@/app/[locale]/(site)/messages/uk.thanks.json';
+import plThanks from '@/app/[locale]/(site)/messages/pl.thanks.json';
+import esThanks from '@/app/[locale]/(site)/messages/es.thanks.json';
+import frThanks from '@/app/[locale]/(site)/messages/fr.thanks.json';
+import deThanks from '@/app/[locale]/(site)/messages/de.thanks.json';
+import kkThanks from '@/app/[locale]/(site)/messages/kk.thanks.json';
+import hyThanks from '@/app/[locale]/(site)/messages/hy.thanks.json';
+import kaThanks from '@/app/[locale]/(site)/messages/ka.thanks.json';
+import mdThanks from '@/app/[locale]/(site)/messages/md.thanks.json';
 
-import enThanks from '@/app/[locale]/messages/en.thanks.json';
-import ruThanks from '@/app/[locale]/messages/ru.thanks.json';
-import ukThanks from '@/app/[locale]/messages/uk.thanks.json';
-import plThanks from '@/app/[locale]/messages/pl.thanks.json';
-import esThanks from '@/app/[locale]/messages/es.thanks.json';
-import frThanks from '@/app/[locale]/messages/fr.thanks.json';
-import deThanks from '@/app/[locale]/messages/de.thanks.json';
-import kkThanks from '@/app/[locale]/messages/kk.thanks.json';
-import hyThanks from '@/app/[locale]/messages/hy.thanks.json';
-import kaThanks from '@/app/[locale]/messages/ka.thanks.json';
-import mdThanks from '@/app/[locale]/messages/md.thanks.json';
 
 // ❶ НЕ навязываем сложные типы содержимому словарей
 type Messages = Record<string, unknown>;
