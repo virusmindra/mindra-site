@@ -1,49 +1,24 @@
 // src/app/[locale]/(site)/layout.tsx
 import type { ReactNode } from 'react';
-import Link from 'next/link';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import type { Locale } from '@/i18n';
-import { getTSync } from '@/lib/getT';
+import SiteHeader from '@/components/SiteHeader';
 import Footer from '@/components/Footer';
 
-export default function SiteLayout({
-  children,
-  params: { locale },
-}: {
-  children: ReactNode;
-  params: { locale: Locale };
-}) {
-  const t = getTSync(locale);
+export default function SiteLayout(
+  { children, params }: { children: ReactNode; params: { locale: Locale } }
+) {
+  const { locale } = params;
 
   return (
-    <>
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href={`/${locale}`} className="font-semibold tracking-tight">
-            Mindra
-          </Link>
+    <div className="min-h-dvh flex flex-col">
+      <SiteHeader locale={locale} />
 
-          <nav className="flex items-center gap-3 text-sm">
-            <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">
-              {t('nav.home')}
-            </Link>
-            <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">
-              {t('nav.pricing')}
-            </Link>
-            <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">
-              {t('nav.chat')}
-            </Link>
-            <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">
-              {t('nav.donate')}
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-        </div>
-      </header>
-
-      <main className="px-4 py-8">{children}</main>
+      {/* сайт ДОЛЖЕН скроллиться */}
+      <main className="flex-1 px-6 py-10">
+        {children}
+      </main>
 
       <Footer locale={locale} />
-    </>
+    </div>
   );
 }

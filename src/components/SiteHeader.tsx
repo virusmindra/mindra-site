@@ -1,51 +1,33 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import {useLocale, useTranslations} from 'next-intl';
-import AuthButton from '@/components/AuthButton';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import type { Locale } from '@/i18n';
+import { getTSync } from '@/lib/getT'; // <-- проверь путь, где у тебя helper
 
-const nav = [
-  { slug: '', label: 'Home' },
-  { slug: 'chat', label: 'Chat' },
-  { slug: 'pricing', label: 'Pricing' },
-  { slug: 'donate', label: 'Donate' },
-];
-
-export default function SiteHeader() {
-  const locale = useLocale();
-  const pathname = usePathname();
+export default function SiteHeader({ locale }: { locale: Locale }) {
+  const t = getTSync(locale);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 backdrop-blur supports-[backdrop-filter]:bg-black/40">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
-        <Link href={`/${locale}`} className="text-lg font-semibold tracking-tight">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/85 backdrop-blur">
+      <div className="h-14 w-full flex items-center justify-between px-6">
+        <Link href={`/${locale}`} className="font-semibold tracking-tight">
           Mindra
         </Link>
 
-        <nav className="flex items-center gap-1">
-          {nav.map((item) => {
-            const href = `/${locale}/${item.slug}`.replace(/\/$/, '');
-            const active = pathname === href;
-            return (
-              <Link
-                key={item.slug || 'home'}
-                href={href}
-                className={`rounded-xl px-3 py-2 text-sm transition ${
-                  active ? 'bg-white/10' : 'hover:bg-white/5'
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="flex items-center gap-2">
+        <nav className="flex items-center gap-4 text-sm">
+          <Link href={`/${locale}`} className="opacity-90 hover:opacity-100">
+            {t('nav.home')}
+          </Link>
+          <Link href={`/${locale}/pricing`} className="opacity-90 hover:opacity-100">
+            {t('nav.pricing')}
+          </Link>
+          <Link href={`/${locale}/chat`} className="opacity-90 hover:opacity-100">
+            {t('nav.chat')}
+          </Link>
+          <Link href={`/${locale}/support`} className="opacity-90 hover:opacity-100">
+            {t('nav.donate')}
+          </Link>
           <LanguageSwitcher />
-          <AuthButton />
-        </div>
+        </nav>
       </div>
     </header>
   );

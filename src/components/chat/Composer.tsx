@@ -27,10 +27,8 @@ export default function Composer({
             }
           }}
           placeholder="Type a message…"
-          className="flex-1 rounded-xl bg-[var(--card)]
-                     border border-[var(--border)]
-                     px-4 py-3 text-sm outline-none
-                     focus:border-[var(--accent-2)]"
+          className="flex-1 rounded-xl bg-[var(--card)] border border-[var(--border)]
+                     px-4 py-3 text-sm outline-none focus:border-[var(--accent-2)]"
           disabled={disabled}
         />
 
@@ -42,10 +40,8 @@ export default function Composer({
             }
           }}
           className="rounded-xl px-4 py-3 text-sm font-medium
-                     bg-[var(--accent)] text-white
-                     hover:opacity-90
-                     disabled:opacity-40
-                     disabled:cursor-not-allowed"
+                     bg-[var(--accent)] text-white hover:opacity-90
+                     disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={disabled || !text.trim()}
         >
           Send
