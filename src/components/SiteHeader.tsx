@@ -1,33 +1,51 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Locale } from '@/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import type { Locale } from '@/i18n';
-import { getTSync } from '@/lib/getT'; // как у тебя
+import { getTSync } from '@/lib/getT';
 
 export default function SiteHeader({ locale }: { locale: Locale }) {
+  const pathname = usePathname();
   const t = getTSync(locale);
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + '/');
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/85 backdrop-blur">
-      <div className="mx-auto h-14 w-full max-w-6xl px-6 flex items-center justify-between">
-        <Link href={`/${locale}`} className="font-semibold tracking-tight">
+      <div className="mx-auto max-w-7xl h-14 px-6 flex items-center justify-between">
+        {/* LOGO — строго влево */}
+        <Link
+          href={`/${locale}`}
+          className="font-semibold tracking-tight text-lg"
+        >
           Mindra
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm text-[var(--text)]">
-          <Link href={`/${locale}`} className="opacity-80 hover:opacity-100">
-            {t('nav.home')}
-          </Link>
-          <Link href={`/${locale}/pricing`} className="opacity-80 hover:opacity-100">
-            {t('nav.pricing')}
-          </Link>
-          <Link href={`/${locale}/chat`} className="opacity-80 hover:opacity-100">
-            {t('nav.chat')}
-          </Link>
-          <Link href={`/${locale}/support`} className="opacity-80 hover:opacity-100">
-            {t('nav.donate')}
-          </Link>
+        {/* NAV — строго вправо */}
+        <nav className="flex items-center gap-6 text-sm">
+          {[
+            { href: `/${locale}`, label: t('nav.home') },
+            { href: `/${locale}/pricing`, label: t('nav.pricing') },
+            { href: `/${locale}/chat`, label: t('nav.chat') },
+            { href: `/${locale}/support`, label: t('nav.donate') },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={[
+                'transition-colors',
+                isActive(href)
+                  ? 'text-[var(--accent)] font-medium'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]',
+              ].join(' ')}
+            >
+              {label}
+            </Link>
+          ))}
+
           <LanguageSwitcher />
         </nav>
       </div>
