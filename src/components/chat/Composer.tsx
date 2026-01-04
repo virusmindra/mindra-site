@@ -39,8 +39,9 @@ export default function Composer({
               setText('');
             }
           }}
-          className="rounded-xl px-4 py-3 text-sm font-medium
-                     bg-[var(--accent)] text-white hover:opacity-90
+          className="rounded-xl px-4 py-3 text-sm font-medium text-white
+                     bg-[var(--accent)] hover:brightness-95
+                     focus:outline-none focus:ring-2 focus:ring-[var(--accent-2)]/40
                      disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={disabled || !text.trim()}
         >

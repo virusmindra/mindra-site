@@ -1,3 +1,4 @@
+// src/app/[locale]/layout.tsx
 import '../globals.css';
 import type { ReactNode } from 'react';
 import type { Locale } from '@/i18n';
