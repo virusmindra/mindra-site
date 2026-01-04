@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Locale } from '@/i18n';
 import AuthProvider from '@/components/AuthProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
-import SetHtmlLang from '@/components/SetHtmlLang';
+import SetHtmlLang from '../../components/SetHtmlLang';
 
 type Props = { children: ReactNode; params: { locale: Locale } };
 
