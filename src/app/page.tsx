@@ -1,7 +1,5 @@
-// src/app/page.tsx
-import {redirect} from 'next/navigation';
-import {defaultLocale} from '@/i18n';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
-  redirect(`/${defaultLocale}`);
+export default function Page() {
+  redirect('/en');
 }
