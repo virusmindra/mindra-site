@@ -2,22 +2,25 @@
 
 import { useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'dark' | 'light';
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>('dark');
 
+  // при загрузке
   useEffect(() => {
-    const saved = (localStorage.getItem('theme') as Theme | null) ?? 'dark';
-    setTheme(saved);
-    document.documentElement.classList.toggle('dark', saved === 'dark');
+    const saved = localStorage.getItem('theme') as Theme | null;
+    if (saved) {
+      setTheme(saved);
+      document.documentElement.classList.toggle('light', saved === 'light');
+    }
   }, []);
 
-  const apply = (t: Theme) => {
-    setTheme(t);
-    localStorage.setItem('theme', t);
-    document.documentElement.classList.toggle('dark', t === 'dark');
-  };
+  // при изменении
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.documentElement.classList.toggle('light', theme === 'light');
+  }, [theme]);
 
-  return { theme, setTheme: apply };
+  return { theme, setTheme };
 }

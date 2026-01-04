@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from '../theme/useTheme';
+import { useTheme } from '@/components/theme/useTheme';
 
 export default function SettingsPanel() {
   const { theme, setTheme } = useTheme();

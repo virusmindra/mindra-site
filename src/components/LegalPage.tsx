@@ -16,7 +16,7 @@ async function loadMessages(locale: string) {
     const mod = await import(`@/app/[locale]/messages/${locale}.json`);
     return mod.default as Record<string, unknown>;
   } catch {
-    const mod = await import(`@/app/[locale]/messages/en.json`);
+    const mod = await import(`@/app/[locale]/(site)/messages/en.json`);
     return mod.default as Record<string, unknown>;
   }
 }

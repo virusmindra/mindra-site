@@ -991,45 +991,49 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
 
   const locale = getLocaleFromPath();
 
- return (
-  <div className="h-full bg-zinc-950 overflow-hidden flex">
-    <Sidebar
-      sessions={sessions}
-      currentId={currentId}
-      onNewChat={handleNewChat}
-      onSelect={handleSelectSession}
-      activeFeature={activeFeature}
-      onChangeFeature={handleChangeFeature}
-    />
+return (
+  <div className="h-[100dvh] overflow-hidden bg-zinc-950">
+    <div className="flex h-full">
+      <Sidebar
+        sessions={sessions}
+        currentId={currentId}
+        onNewChat={handleNewChat}
+        onSelect={handleSelectSession}
+        activeFeature={activeFeature}
+        onChangeFeature={handleChangeFeature}
+      />
 
-    <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
-      {activeFeature === 'settings' ? (
-        <SettingsPanel />
-      ) : activeFeature === 'points' ? (
-        <div className="flex-1 overflow-y-auto">
-          <PointsPanel uid={getOrCreateWebUid()} locale={locale} />
-        </div>
-      ) : (
-        <>
-          <ChatWindow
-            messages={current ? current.messages : []}
-            activeFeature={activeFeature}
-            goalSuggestion={lastGoalSuggestion}
-            habitSuggestion={lastHabitSuggestion}
-            onSaveGoal={saveAsGoal}
-            onSaveHabit={saveAsHabit}
-            onMarkGoalDone={markGoalDone}
-            onMarkHabitDone={markHabitDone}
-            currentSessionId={current?.id}
-            locale={locale}
-            goalDone={Boolean((current as any)?.goalDone)}
-            habitDone={Boolean((current as any)?.habitDone)}
-          />
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {activeFeature === 'settings' ? (
+          <div className="flex-1 overflow-y-auto">
+            <SettingsPanel />
+          </div>
+        ) : activeFeature === 'points' ? (
+          <div className="flex-1 overflow-y-auto">
+            <PointsPanel uid={getOrCreateWebUid()} locale={locale} />
+          </div>
+        ) : (
+          <>
+            <ChatWindow
+              messages={current ? current.messages : []}
+              activeFeature={activeFeature}
+              goalSuggestion={lastGoalSuggestion}
+              habitSuggestion={lastHabitSuggestion}
+              onSaveGoal={saveAsGoal}
+              onSaveHabit={saveAsHabit}
+              onMarkGoalDone={markGoalDone}
+              onMarkHabitDone={markHabitDone}
+              currentSessionId={current?.id}
+              locale={locale}
+              goalDone={Boolean((current as any)?.goalDone)}
+              habitDone={Boolean((current as any)?.habitDone)}
+            />
 
-          <Composer onSend={handleSend} disabled={sending} />
-        </>
-      )}
-    </main>
+            <Composer onSend={handleSend} disabled={sending} />
+          </>
+        )}
+      </main>
+    </div>
   </div>
 );
 }
