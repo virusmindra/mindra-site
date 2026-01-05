@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import type { ChatMessage, ChatFeature } from './types';
+import ReminderConfirm from "@/components/chat/ReminderConfirm";
 
 type Props = {
   messages: ChatMessage[];
@@ -13,6 +14,12 @@ type Props = {
   onSaveGoal: (text: string) => Promise<void>;
   onMarkGoalDone?: (goalId: string) => Promise<void>;
   goalDone?: boolean;
+
+    // reminders
+  pendingReminder?: { text: string; dueUtc: string } | null;
+  onConfirmReminder?: () => void;
+  onCancelReminder?: () => void;
+  reminderBusy?: boolean;
 
   // habits
   habitSuggestion?: { text: string } | null;
@@ -156,6 +163,11 @@ export default function ChatWindow({
   locale,
   goalDone = false,
   habitDone = false,
+  pendingReminder = null,
+  onConfirmReminder,
+  onCancelReminder,
+  reminderBusy = false,
+
 }: Props) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -228,6 +240,21 @@ export default function ChatWindow({
                       </button>
                     </div>
                   ) : null}
+                {/* Reminder confirm (only last assistant message in reminders tab) */}
+{!isUser &&
+  isLast &&
+  activeFeature === "reminders" &&
+  pendingReminder &&
+  onConfirmReminder &&
+  onCancelReminder ? (
+    <ReminderConfirm
+      text={pendingReminder.text}
+      dueUtc={pendingReminder.dueUtc}
+      onYes={onConfirmReminder}
+      onNo={onCancelReminder}
+      busy={reminderBusy}
+    />
+  ) : null}
 
                   {/* Mark goal done (goal diary only) */}
                   {!isUser && isLast && isGoalDiary && onMarkGoalDone && !goalDone ? (

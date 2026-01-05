@@ -9,7 +9,7 @@ import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/s
 import { getTotalPoints, addPoints } from '@/lib/points';
 import PointsPanel from '@/components/chat/PointsPanel'; // путь подстрой под свой
 import SettingsPanel from "@/components/chat/SettingsPanel";
-import ReminderConfirm from "./_components/ReminderConfirm";
+import ReminderConfirm from "../../../../components/chat/ReminderConfirm";
 import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
 
 /* ----------------------------- helpers ----------------------------- */
@@ -1021,6 +1021,7 @@ try {
   // ✅ показываем confirm только в "Напоминания"
   if (activeFeature === "reminders" && isReminderIntent(trimmed)) {
     const locale = getLocaleFromPath();
+    console.log("FEATURE:", activeFeature);
     const parsed = parseNaturalTime(trimmed, normLocale(locale));
 
     if (parsed) {
@@ -1153,23 +1154,15 @@ return (
               onSaveHabit={saveAsHabit}
               onMarkGoalDone={markGoalDone}
               onMarkHabitDone={markHabitDone}
+              pendingReminder={pendingReminder}
+              onConfirmReminder={createPendingReminder}
+              onCancelReminder={() => setPendingReminder(null)}
+              reminderBusy={reminderBusy}
               currentSessionId={current?.id}
               locale={locale}
               goalDone={Boolean((current as any)?.goalDone)}
               habitDone={Boolean((current as any)?.habitDone)}
             />
-            {pendingReminder && (
-      <div className="px-6 pb-2">
-        <ReminderConfirm
-          text={pendingReminder.text}
-          dueUtc={pendingReminder.dueUtc}
-          onYes={createPendingReminder}
-          onNo={() => setPendingReminder(null)}
-          busy={reminderBusy}
-        />
-      </div>
-    )}
-
             <Composer onSend={handleSend} disabled={sending} />
           </>
         )}
