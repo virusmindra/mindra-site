@@ -25,58 +25,25 @@ function clampInt(v: any, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.floor(n)));
 }
 
-async function fetchSettings(): Promise<{ ok: true; settings: Settings } | { ok: false; error: string }> {
-  // ✅ пробуем оба пути (частая причина “вечной загрузки”)
-  const urls = ['/api/reminders/setting', '/api/reminders/settings'];
+async function fetchSettings(): Promise<{ ok: true; settings: any } | { ok: false; error: string }> {
+  const r = await fetch('/api/reminders/settings', { cache: 'no-store' });
+  const j = await r.json().catch(() => null);
 
-  for (const url of urls) {
-    try {
-      const r = await fetch(url, { cache: 'no-store' });
-      const j = await r.json().catch(() => null);
-
-      if (r.ok && j?.ok && j?.settings) {
-        return { ok: true, settings: j.settings as Settings };
-      }
-
-      // если 401/404/500 — вернем понятную ошибку
-      const msg =
-        j?.error ||
-        j?.message ||
-        `Request failed: ${r.status} ${r.statusText} (${url})`;
-      // не сразу сдаёмся — пробуем следующий url
-      if (url === urls[urls.length - 1]) return { ok: false, error: msg };
-    } catch (e: any) {
-      if (url === urls[urls.length - 1]) {
-        return { ok: false, error: String(e?.message ?? e) };
-      }
-    }
-  }
-
-  return { ok: false, error: 'Unknown error' };
+  if (r.ok && j?.ok) return { ok: true, settings: j.settings };
+  return { ok: false, error: j?.error || `Request failed: ${r.status}` };
 }
 
-async function saveSettings(payload: Partial<Settings>) {
-  const urls = ['/api/reminders/setting', '/api/reminders/settings'];
-
-  // сохраняем туда, где реально работает
-  for (const url of urls) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    const j = await r.json().catch(() => null);
-    if (r.ok && j?.ok) return { ok: true as const };
-
-    // если это последний url — вернем ошибку
-    if (url === urls[urls.length - 1]) {
-      return { ok: false as const, error: j?.error || `Save failed: ${r.status} (${url})` };
-    }
-  }
-
-  return { ok: false as const, error: 'Save failed' };
+async function saveSettings(payload: any) {
+  const r = await fetch('/api/reminders/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const j = await r.json().catch(() => null);
+  if (r.ok && j?.ok) return { ok: true as const };
+  return { ok: false as const, error: j?.error || `Save failed: ${r.status}` };
 }
+
 
 export default function QuietHoursCard() {
   const [s, setS] = useState<Settings | null>(null);
