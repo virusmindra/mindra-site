@@ -9,6 +9,8 @@ import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/s
 import { getTotalPoints, addPoints } from '@/lib/points';
 import PointsPanel from '@/components/chat/PointsPanel'; // путь подстрой под свой
 import SettingsPanel from "@/components/chat/SettingsPanel";
+import ReminderConfirm from "./_components/ReminderConfirm";
+import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
 
 /* ----------------------------- helpers ----------------------------- */
 function urlBase64ToUint8Array(base64String: string) {
@@ -539,6 +541,12 @@ export default function ClientPage() {
   const [lastGoalSuggestion, setLastGoalSuggestion] = useState<{ text: string } | null>(null);
   const [lastHabitSuggestion, setLastHabitSuggestion] = useState<{ text: string } | null>(null);
 
+  type PendingReminder = { text: string; dueUtc: string };
+
+  const [pendingReminder, setPendingReminder] = useState<PendingReminder | null>(null);
+  const [reminderBusy, setReminderBusy] = useState(false);
+
+
   useEffect(() => {
     const stored = loadSessions();
     if (stored.length > 0) {
@@ -703,6 +711,58 @@ const markHabitDone = async (habitId: string) => {
   }
 };
 
+const createPendingReminder = async () => {
+  if (!pendingReminder) return;
+  setReminderBusy(true);
+
+  try {
+    const r = await fetch("/api/reminders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: pendingReminder.text,
+        due_utc: pendingReminder.dueUtc,
+      }),
+    });
+
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j?.ok) {
+      const msg = j?.error || "create reminder failed";
+      throw new Error(msg);
+    }
+
+    // ✅ можно добавить сообщение от ассистента в чат:
+    updateCurrentSession((prev: any) => ({
+      ...prev,
+      messages: [
+        ...(prev.messages || []),
+        {
+          role: "assistant",
+          content: "Ок ✅ Я создала напоминание и пришлю пуш в нужное время 🙂",
+          ts: Date.now(),
+        },
+      ],
+      updatedAt: Date.now(),
+    }));
+
+    setPendingReminder(null);
+  } catch (e: any) {
+    updateCurrentSession((prev: any) => ({
+      ...prev,
+      messages: [
+        ...(prev.messages || []),
+        {
+          role: "assistant",
+          content: `Не получилось создать напоминание 😕\n${String(e?.message ?? e)}`,
+          ts: Date.now(),
+        },
+      ],
+      updatedAt: Date.now(),
+    }));
+  } finally {
+    setReminderBusy(false);
+  }
+};
 
 
 const saveAsHabit = async (habitText: string) => {
@@ -919,6 +979,33 @@ const markGoalDone = async (goalId: string) => {
 
   setSending(true);
 
+  // ✅ попытка распарсить "завтра 9:00" / "через 10 минут" и т.д.
+try {
+  const locale = getLocaleFromPath();
+  const parsed = parseNaturalTime(trimmed, normLocale(locale));
+
+  if (parsed) {
+    const now = new Date();
+    let due: Date | null = null;
+
+    if (parsed.kind === "relative") {
+      due = new Date(now.getTime() + parsed.minutes * 60_000);
+    } else if (parsed.kind === "tomorrow") {
+      due = new Date(now);
+      due.setDate(due.getDate() + 1);
+      due.setHours(parsed.hh, parsed.mm, 0, 0);
+    } else if (parsed.kind === "fixed") {
+      due = new Date(now);
+      due.setHours(parsed.hh, parsed.mm, 0, 0);
+      if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+    }
+
+    if (due) {
+      setPendingReminder({ text: trimmed, dueUtc: due.toISOString() });
+    }
+  }
+} catch {}
+
   try {
     const res = await fetch('/api/web-chat', {
       method: 'POST',
@@ -1028,6 +1115,17 @@ return (
               goalDone={Boolean((current as any)?.goalDone)}
               habitDone={Boolean((current as any)?.habitDone)}
             />
+            {pendingReminder && (
+      <div className="px-6 pb-2">
+        <ReminderConfirm
+          text={pendingReminder.text}
+          dueUtc={pendingReminder.dueUtc}
+          onYes={createPendingReminder}
+          onNo={() => setPendingReminder(null)}
+          busy={reminderBusy}
+        />
+      </div>
+    )}
 
             <Composer onSend={handleSend} disabled={sending} />
           </>

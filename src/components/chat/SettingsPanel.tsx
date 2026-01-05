@@ -1,6 +1,7 @@
 'use client';
 
 import { useTheme } from '@/components/theme/ThemeProvider';
+import QuietHoursCard from '@/app/[locale]/(chat)/chat/_components/QuietHoursCard';
 
 export default function SettingsPanel() {
   const { theme, setTheme } = useTheme();
@@ -13,6 +14,7 @@ export default function SettingsPanel() {
       </p>
 
       <div className="mt-6 space-y-4">
+        {/* THEME */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -47,12 +49,8 @@ export default function SettingsPanel() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-          <div className="text-sm font-medium text-[var(--text)]">Push уведомления</div>
-          <div className="text-xs text-[var(--muted)] mt-1">
-            (следующий шаг) Тут будет notifyPush + quiet hours.
-          </div>
-        </div>
+        {/* QUIET HOURS + PUSH SETTINGS */}
+        <QuietHoursCard />
       </div>
     </div>
   );
