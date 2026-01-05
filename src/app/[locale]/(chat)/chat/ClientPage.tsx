@@ -567,6 +567,49 @@ function computeDueInMin(dueUtcIso: string) {
   // минимум 1 минута, чтобы не улетело в 0
   return Math.max(1, Math.round(diffMs / 60000));
 }
+type ParsedReminder =
+  | { kind: "relative"; minutes: number }
+  | { kind: "tomorrow"; hh: number; mm: number }
+  | { kind: "fixed"; hh: number; mm: number };
+
+function parseReminderFallback(text: string): ParsedReminder | null {
+  const t = (text || "").trim().toLowerCase();
+
+  // через N минут
+  const m1 = t.match(/\b(?:через|in)\s*(\d+)\s*(?:мин|минут|минуты|minutes?|mins?)\b/iu);
+  // через N часов
+  const h1 = t.match(/\b(?:через|in)\s*(\d+)\s*(?:час|часа|часов|hours?|hrs?)\b/iu);
+
+  if (m1 || h1) {
+    const mins = m1 ? Number(m1[1]) : 0;
+    const hrs = h1 ? Number(h1[1]) : 0;
+
+    // поддержка "через 2 часа 15 минут"
+    const extraM = t.match(/\b(\d+)\s*(?:мин|минут|минуты|minutes?|mins?)\b/iu);
+    const extra = extraM ? Number(extraM[1]) : 0;
+
+    const total = hrs * 60 + (m1 ? mins : extra);
+    if (Number.isFinite(total) && total > 0) return { kind: "relative", minutes: total };
+  }
+
+  // завтра в 9:30
+  const tom = t.match(/\b(?:завтра|tomorrow)\b.*?\b(\d{1,2})(?::(\d{2}))?\b/iu);
+  if (tom) {
+    const hh = Number(tom[1]);
+    const mm = tom[2] ? Number(tom[2]) : 0;
+    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { kind: "tomorrow", hh, mm };
+  }
+
+  // в 18:00
+  const at = t.match(/\b(?:в|at|today|сегодня)\b.*?\b(\d{1,2})(?::(\d{2}))?\b/iu);
+  if (at) {
+    const hh = Number(at[1]);
+    const mm = at[2] ? Number(at[2]) : 0;
+    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { kind: "fixed", hh, mm };
+  }
+
+  return null;
+}
 
 /* ----------------------------- component ----------------------------- */
 
@@ -984,7 +1027,7 @@ const markGoalDone = async (goalId: string) => {
     }
   };
 
-  const handleSend = async (text: string) => {
+const handleSend = async (text: string) => {
   const trimmed = text.trim();
   if (!trimmed) return;
 
@@ -998,66 +1041,138 @@ const markGoalDone = async (goalId: string) => {
   }
 
   const uid = getOrCreateWebUid();
-  const isGoalDiary = Boolean(current.id?.startsWith('goal:'));
-  const isHabitDiary = Boolean(current.id?.startsWith('habit:'));
+  const isGoalDiary = Boolean(current.id?.startsWith("goal:"));
+  const isHabitDiary = Boolean(current.id?.startsWith("habit:"));
 
   setLastGoalSuggestion(null);
   setLastHabitSuggestion(null);
 
   const ts = Date.now();
-  const userMsg: ChatMessage = { role: 'user', content: trimmed, ts };
+  const userMsg: ChatMessage = { role: "user", content: trimmed, ts };
 
   updateCurrentSession((prev) => ({
     ...prev,
     feature: prev.feature ?? activeFeature,
     messages: [...prev.messages, userMsg],
-    title: prev.title === 'New chat' ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
+    title: prev.title === "New chat" ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
     updatedAt: Date.now(),
   }));
 
   setSending(true);
 
-// ✅ попытка распарсить "завтра 9:00" / "через 10 минут" и т.д.
-try {
-  const pageLocale = getLocaleFromPath(); // 'en' на /en/chat
-  const base = normLocale(pageLocale);
+  // -------------------- helpers INSIDE (чтобы вставить 1 функцией) --------------------
+  type ParsedReminder =
+    | { kind: "relative"; minutes: number }
+    | { kind: "tomorrow"; hh: number; mm: number }
+    | { kind: "fixed"; hh: number; mm: number };
 
-  const hasCyrillic = /[А-Яа-яЁёІіЇїЄє]/.test(trimmed);
-  const parseLocales = hasCyrillic ? ["ru", "uk", base] : [base, "ru", "uk"];
+  const parseReminderFallback = (raw: string): ParsedReminder | null => {
+    const t = (raw || "").trim().toLowerCase();
 
-  let parsed: any = null;
-  for (const loc of parseLocales) {
-    parsed = parseNaturalTime(trimmed, loc as any);
-    if (parsed) break;
-  }
+    // "через N минут"
+    const m = t.match(/\b(?:через|in)\s*(\d+)\s*(?:мин|минут|минуты|minutes?|mins?)\b/iu);
 
-  if (parsed) {
-    const now = new Date();
-    let due: Date | null = null;
+    // "через N часов"
+    const h = t.match(/\b(?:через|in)\s*(\d+)\s*(?:час|часа|часов|hours?|hrs?)\b/iu);
 
-    if (parsed.kind === "relative") {
-      due = new Date(now.getTime() + parsed.minutes * 60_000);
-    } else if (parsed.kind === "tomorrow") {
-      due = new Date(now);
-      due.setDate(due.getDate() + 1);
-      due.setHours(parsed.hh, parsed.mm, 0, 0);
-    } else if (parsed.kind === "fixed") {
-      due = new Date(now);
-      due.setHours(parsed.hh, parsed.mm, 0, 0);
-      if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+    if (m || h) {
+      const mins = m ? Number(m[1]) : 0;
+      const hrs = h ? Number(h[1]) : 0;
+
+      // поддержка "через 2 часа 15 минут"
+      const extraMin = !m
+        ? (() => {
+            const mm = t.match(/\b(\d+)\s*(?:мин|минут|минуты|minutes?|mins?)\b/iu);
+            return mm ? Number(mm[1]) : 0;
+          })()
+        : 0;
+
+      const total = hrs * 60 + (m ? mins : extraMin);
+      if (Number.isFinite(total) && total > 0) return { kind: "relative", minutes: total };
     }
 
-    if (due) {
-      setPendingReminder({ text: trimmed, dueUtc: due.toISOString() });
+    // "завтра в 9:30"
+    const tom = t.match(/\b(?:завтра|tomorrow)\b.*?\b(\d{1,2})(?::(\d{2}))?\b/iu);
+    if (tom) {
+      const hh = Number(tom[1]);
+      const mm = tom[2] ? Number(tom[2]) : 0;
+      if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { kind: "tomorrow", hh, mm };
     }
-  }
-} catch {}
 
+    // "в 18:00" / "today 18:00"
+    const at = t.match(/\b(?:в|at|today|сегодня)\b.*?\b(\d{1,2})(?::(\d{2}))?\b/iu);
+    if (at) {
+      const hh = Number(at[1]);
+      const mm = at[2] ? Number(at[2]) : 0;
+      if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { kind: "fixed", hh, mm };
+    }
 
+    return null;
+  };
+
+  const cleanReminderText = (raw: string): string => {
+    let t = (raw || "").trim();
+
+    // Убираем "напомни/напомнить/напомни мне/please remind me" и т.п.
+    t = t.replace(/^\s*(напомни(те)?(\s+мне)?|напомнить(\s+мне)?|remind(\s+me)?|please\s+remind(\s+me)?)\s*/iu, "");
+
+    // Убираем хвост "через N минут/часов"
+    t = t.replace(/\s*(через|in)\s*\d+\s*(мин|минут|минуты|minutes?|mins?)\s*$/iu, "");
+    t = t.replace(/\s*(через|in)\s*\d+\s*(час|часа|часов|hours?|hrs?)\s*(\d+\s*(мин|минут|minutes?|mins?))?\s*$/iu, "");
+
+    // Убираем "завтра в 9:00" / "в 18:00"
+    t = t.replace(/\s*(завтра|tomorrow)\s*(в|at)?\s*\d{1,2}(:\d{2})?\s*$/iu, "");
+    t = t.replace(/\s*(сегодня|today)?\s*(в|at)\s*\d{1,2}(:\d{2})?\s*$/iu, "");
+
+    // Убираем лишние "пожалуйста"
+    t = t.replace(/\b(пожалуйста|pls|please)\b/giu, "").trim();
+
+    // если получилось пусто — fallback на исходное
+    return t || raw.trim();
+  };
+
+  // -------------------- Reminder parse (ПОКАЗЫВАЕМ карточку только во вкладке reminders) --------------------
   try {
-    const res = await fetch('/api/web-chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // чтобы не мешало в обычном чате:
+    if (activeFeature === "reminders") {
+      const locale = getLocaleFromPath();
+      let parsed: any = null;
+
+      try {
+        parsed = parseNaturalTime(trimmed, normLocale(locale)) as any;
+      } catch {}
+
+      if (!parsed) parsed = parseReminderFallback(trimmed);
+
+      if (parsed) {
+        const now = new Date();
+        let due: Date | null = null;
+
+        if (parsed.kind === "relative") {
+          due = new Date(now.getTime() + parsed.minutes * 60_000);
+        } else if (parsed.kind === "tomorrow") {
+          due = new Date(now);
+          due.setDate(due.getDate() + 1);
+          due.setHours(parsed.hh, parsed.mm, 0, 0);
+        } else if (parsed.kind === "fixed") {
+          due = new Date(now);
+          due.setHours(parsed.hh, parsed.mm, 0, 0);
+          if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+        }
+
+        if (due) {
+          const cleanText = cleanReminderText(trimmed);
+          setPendingReminder({ text: cleanText, dueUtc: due.toISOString() });
+        }
+      }
+    }
+  } catch {}
+
+  // -------------------- main chat call --------------------
+  try {
+    const res = await fetch("/api/web-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: trimmed,
         sessionId: current.id,
@@ -1066,39 +1181,39 @@ try {
       }),
     });
 
-    let replyText = 'Извини, сервер сейчас недоступен.';
+    let replyText = "Извини, сервер сейчас недоступен.";
     let goalSuggestion: { text: string } | null = null;
     let habitSuggestion: { text: string } | null = null;
 
     const data = await res.json().catch(() => null);
 
-    if (data?.reply && typeof data.reply === 'string' && data.reply.trim()) {
+    if (data?.reply && typeof data.reply === "string" && data.reply.trim()) {
       replyText = data.reply.trim();
     }
 
     const locale = getLocaleFromPath();
-const intent = isIntentText(trimmed);
+    const intent = isIntentText(trimmed);
 
-// goals suggestion (только если это реально намерение)
-if (!isGoalDiary && activeFeature === 'goals' && intent) {
-  const s = data?.goal_suggestion?.text;
-  goalSuggestion = s ? { text: String(s) } : { text: trimmed }; // fallback на текст пользователя
-} else {
-  goalSuggestion = null;
-}
+    // goals suggestion (только если это реально намерение)
+    if (!isGoalDiary && activeFeature === "goals" && intent) {
+      const s = data?.goal_suggestion?.text;
+      goalSuggestion = s ? { text: String(s) } : { text: trimmed };
+    } else {
+      goalSuggestion = null;
+    }
 
-// habits suggestion (только если это реально намерение)
-if (!isHabitDiary && activeFeature === 'habits' && intent) {
-  const s = data?.habit_suggestion?.text;
-  habitSuggestion = s ? { text: String(s) } : { text: trimmed }; // fallback на текст пользователя
-} else {
-  habitSuggestion = null;
-}
+    // habits suggestion (только если это реально намерение)
+    if (!isHabitDiary && activeFeature === "habits" && intent) {
+      const s = data?.habit_suggestion?.text;
+      habitSuggestion = s ? { text: String(s) } : { text: trimmed };
+    } else {
+      habitSuggestion = null;
+    }
 
     setLastGoalSuggestion(goalSuggestion);
     setLastHabitSuggestion(habitSuggestion);
 
-    const botMsg: ChatMessage = { role: 'assistant', content: replyText, ts: Date.now() };
+    const botMsg: ChatMessage = { role: "assistant", content: replyText, ts: Date.now() };
 
     updateCurrentSession((prev) => ({
       ...prev,
@@ -1108,8 +1223,8 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
     }));
   } catch {
     const errMsg: ChatMessage = {
-      role: 'assistant',
-      content: 'Ошибка сервера, попробуй ещё раз чуть позже 🙏',
+      role: "assistant",
+      content: "Ошибка сервера, попробуй ещё раз чуть позже 🙏",
       ts: Date.now(),
     };
 
@@ -1124,7 +1239,7 @@ if (!isHabitDiary && activeFeature === 'habits' && intent) {
   }
 };
 
-  const locale = getLocaleFromPath();
+const locale = getLocaleFromPath();
 
 return (
   <div className="h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
