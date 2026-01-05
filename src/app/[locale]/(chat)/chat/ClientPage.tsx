@@ -1054,159 +1054,79 @@ const handleSend = async (text: string) => {
     ...prev,
     feature: prev.feature ?? activeFeature,
     messages: [...prev.messages, userMsg],
-    title:
-      prev.title === "New chat"
-        ? newSessionTitle([...prev.messages, userMsg])
-        : prev.title,
+    title: prev.title === "New chat" ? newSessionTitle([...prev.messages, userMsg]) : prev.title,
     updatedAt: Date.now(),
   }));
 
   setSending(true);
 
-  // -----------------------------
-  // ✅ REMINDER PARSE (works inside long phrases)
-  // -----------------------------
+  // ---------------- REMINDERS: parse + confirm UI ----------------
   try {
     const locale = getLocaleFromPath();
-    const lower = trimmed.toLowerCase();
 
-    const looksLikeReminder =
-      /\b(напомни|напомните|напоминание|напомнить)\b/i.test(lower) ||
-      /\b(remind)\b/i.test(lower);
+    // 1) сначала парсим время (твой парсер)
+    const parsed = parseNaturalTime(trimmed, normLocale(locale));
 
-    const isReminderContext = activeFeature === "reminders" || looksLikeReminder;
+    console.log("[REMINDER] feature=", activeFeature, "text=", trimmed);
+    console.log("[REMINDER] parsed=", parsed);
 
-    const buildDueFromParsed = (parsed: any): Date | null => {
+    if (parsed) {
       const now = new Date();
-      if (!parsed) return null;
+      let due: Date | null = null;
 
-      if (parsed.kind === "relative" && typeof parsed.minutes === "number") {
-        return new Date(now.getTime() + parsed.minutes * 60_000);
-      }
-
-      if (parsed.kind === "tomorrow" && typeof parsed.hh === "number") {
-        const due = new Date(now);
+      if (parsed.kind === "relative") {
+        due = new Date(now.getTime() + parsed.minutes * 60_000);
+      } else if (parsed.kind === "tomorrow") {
+        due = new Date(now);
         due.setDate(due.getDate() + 1);
-        due.setHours(parsed.hh, parsed.mm ?? 0, 0, 0);
-        return due;
-      }
-
-      if (parsed.kind === "fixed" && typeof parsed.hh === "number") {
-        const due = new Date(now);
-        due.setHours(parsed.hh, parsed.mm ?? 0, 0, 0);
+        due.setHours(parsed.hh, parsed.mm, 0, 0);
+      } else if (parsed.kind === "fixed") {
+        due = new Date(now);
+        due.setHours(parsed.hh, parsed.mm, 0, 0);
         if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
-        return due;
       }
 
-      return null;
-    };
+      // 2) вырезаем “напомни …” и “через 3 минуты / tomorrow 9:00 / in 10 min”
+      const cleanReminderText = (raw: string) => {
+        let s = raw.trim();
 
-    // 1) сначала пробуем твой парсер (если он умеет)
-    let due: Date | null = null;
-    try {
-      const parsed = parseNaturalTime(trimmed, normLocale(locale)) as any;
-      due = buildDueFromParsed(parsed);
-    } catch {}
+        // убираем “напомни/напомнить/поставь напоминание/please remind me…”
+        s = s
+          .replace(/^\s*(напомни(ть)?(\s+мне)?|поставь(\s+мне)?\s+напоминание|сделай\s+напоминание)\s*/i, "")
+          .replace(/^\s*(remind\s+me(\s+to)?|set\s+a\s+reminder(\s+to)?)\s*/i, "");
 
-    // 2) fallback regex (RU/EN) — чтобы работало в длинных фразах
-    if (!due) {
-      const now = new Date();
+        // убираем хвост “через N …”
+        s = s.replace(/\bчерез\s+\d+\s*(мин|минут|час|часа|часов)?\b.*$/i, "").trim();
 
-      // RU: через N минут/часов
-      const ruMin = lower.match(/\bчерез\s+(\d{1,4})\s*(минут|минуту|мин|м)\b/i);
-      const ruHour = lower.match(/\bчерез\s+(\d{1,3})\s*(час|часа|часов|ч)\b/i);
+        // убираем “in N min/hour …”
+        s = s.replace(/\bin\s+\d+\s*(min|mins|minutes|hour|hours)\b.*$/i, "").trim();
 
-      // EN: in/after N minutes/hours
-      const enMin = lower.match(/\b(in|after)\s+(\d{1,4})\s*(minutes|minute|min|mins)\b/i);
-      const enHour = lower.match(/\b(in|after)\s+(\d{1,3})\s*(hours|hour|hr|hrs)\b/i);
+        // убираем “tomorrow 9:00 … / завтра 9:00 …”
+        s = s.replace(/\b(завтра|tomorrow)\b.*?(\d{1,2})[:.](\d{2}).*$/i, "").trim();
 
-      // RU: завтра HH:MM
-      const ruTomorrow = lower.match(/\bзавтра\b.*?\b(\d{1,2})[:.](\d{2})\b/i);
+        // убираем “в 9:00 … / at 9:00 …” (если вдруг)
+        s = s.replace(/\b(в|at)\s*\d{1,2}[:.]\d{2}\b.*$/i, "").trim();
 
-      // EN: tomorrow HH:MM
-      const enTomorrow = lower.match(/\btomorrow\b.*?\b(\d{1,2})[:.](\d{2})\b/i);
+        // если после чистки пусто — оставляем исходный текст как fallback
+        return s || raw.trim();
+      };
 
-      // RU: в HH:MM (сегодня/следующий день если прошло)
-      const ruAt = lower.match(/\bв\s+(\d{1,2})[:.](\d{2})\b/i);
+      if (due) {
+        const reminderText = cleanReminderText(trimmed);
 
-      // EN: at HH:MM
-      const enAt = lower.match(/\bat\s+(\d{1,2})[:.](\d{2})\b/i);
+        console.log("[REMINDER] due=", due.toISOString(), "reminderText=", reminderText);
 
-      if (ruMin) {
-        const m = Number(ruMin[1]);
-        if (Number.isFinite(m) && m > 0) due = new Date(now.getTime() + m * 60_000);
-      } else if (ruHour) {
-        const h = Number(ruHour[1]);
-        if (Number.isFinite(h) && h > 0) due = new Date(now.getTime() + h * 60 * 60_000);
-      } else if (enMin) {
-        const m = Number(enMin[2]);
-        if (Number.isFinite(m) && m > 0) due = new Date(now.getTime() + m * 60_000);
-      } else if (enHour) {
-        const h = Number(enHour[2]);
-        if (Number.isFinite(h) && h > 0) due = new Date(now.getTime() + h * 60 * 60_000);
-      } else if (ruTomorrow) {
-        const hh = Number(ruTomorrow[1]);
-        const mm = Number(ruTomorrow[2]);
-        const d = new Date(now);
-        d.setDate(d.getDate() + 1);
-        d.setHours(hh, mm, 0, 0);
-        due = d;
-      } else if (enTomorrow) {
-        const hh = Number(enTomorrow[1]);
-        const mm = Number(enTomorrow[2]);
-        const d = new Date(now);
-        d.setDate(d.getDate() + 1);
-        d.setHours(hh, mm, 0, 0);
-        due = d;
-      } else if (ruAt) {
-        const hh = Number(ruAt[1]);
-        const mm = Number(ruAt[2]);
-        const d = new Date(now);
-        d.setHours(hh, mm, 0, 0);
-        if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
-        due = d;
-      } else if (enAt) {
-        const hh = Number(enAt[1]);
-        const mm = Number(enAt[2]);
-        const d = new Date(now);
-        d.setHours(hh, mm, 0, 0);
-        if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
-        due = d;
+        setPendingReminder({
+          text: reminderText,
+          dueUtc: due.toISOString(),
+        });
       }
     }
+  } catch (e) {
+    console.log("[REMINDER] parse error", e);
+  }
 
-    // 3) если есть due и это похоже на напоминание — показываем confirm
-    if (due && isReminderContext) {
-      // вычищаем текст напоминания из фразы
-      let reminderText = trimmed;
-
-      // убираем "напомни мне / remind me to"
-      reminderText = reminderText
-        .replace(/^(напомни(те)?\s*(мне)?\s*)/i, "")
-        .replace(/^(remind\s+me\s+(to\s+)?)?/i, "");
-
-      // убираем куски времени (RU/EN)
-      reminderText = reminderText
-        .replace(/\bчерез\s+\d{1,4}\s*(минут|минуту|мин|м)\b/gi, "")
-        .replace(/\bчерез\s+\d{1,3}\s*(час|часа|часов|ч)\b/gi, "")
-        .replace(/\b(in|after)\s+\d{1,4}\s*(minutes|minute|min|mins)\b/gi, "")
-        .replace(/\b(in|after)\s+\d{1,3}\s*(hours|hour|hr|hrs)\b/gi, "")
-        .replace(/\bзавтра\b/gi, "")
-        .replace(/\btomorrow\b/gi, "")
-        .replace(/\b(в|at)\s+\d{1,2}[:.]\d{2}\b/gi, "");
-
-      reminderText = reminderText.replace(/\s+/g, " ").trim();
-
-      // если вдруг всё вычистилось — fallback на исходное
-      if (!reminderText) reminderText = trimmed;
-
-      setPendingReminder({ text: reminderText, dueUtc: due.toISOString() });
-    }
-  } catch {}
-
-  // -----------------------------
-  // main chat request
-  // -----------------------------
+  // ---------------- main bot request ----------------
   try {
     const res = await fetch("/api/web-chat", {
       method: "POST",
@@ -1251,11 +1171,7 @@ const handleSend = async (text: string) => {
     setLastGoalSuggestion(goalSuggestion);
     setLastHabitSuggestion(habitSuggestion);
 
-    const botMsg: ChatMessage = {
-      role: "assistant",
-      content: replyText,
-      ts: Date.now(),
-    };
+    const botMsg: ChatMessage = { role: "assistant", content: replyText, ts: Date.now() };
 
     updateCurrentSession((prev) => ({
       ...prev,
