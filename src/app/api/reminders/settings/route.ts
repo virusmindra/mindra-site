@@ -1,6 +1,11 @@
+// src/app/api/reminders/settings/route.ts
 import { NextResponse } from "next/server";
 import { requireUserId } from "@/server/auth";
 import { prisma } from "@/server/prisma";
+
+function boolOrUndefined(v: any): boolean | undefined {
+  return typeof v === "boolean" ? v : undefined;
+}
 
 export async function GET() {
   const userId = await requireUserId();
@@ -26,10 +31,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const userId = await requireUserId();
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch(() => ({}));
 
   const tz = String(body?.tz || "UTC");
-  const quietEnabled = Boolean(body?.quietEnabled ?? body?.quiet_enabled ?? true);
+
+  // quiet
+  const quietEnabledRaw = body?.quietEnabled ?? body?.quiet_enabled;
+  const quietEnabled = typeof quietEnabledRaw === "boolean" ? quietEnabledRaw : true;
 
   let quietStart = Number(body?.quietStart ?? body?.quiet_start ?? 22);
   let quietEnd = Number(body?.quietEnd ?? body?.quiet_end ?? 8);
@@ -39,40 +47,40 @@ export async function POST(req: Request) {
   quietEnd = Math.min(23, Math.max(0, quietEnd));
   quietBypassMin = Math.min(180, Math.max(0, quietBypassMin));
 
-  // каналы/пауза (если ты будешь сохранять это из UI)
-  const notifyInApp = body?.notifyInApp ?? body?.notify_inapp;
-  const notifyPush = body?.notifyPush ?? body?.notify_push;
-  const notifyEmail = body?.notifyEmail ?? body?.notify_email;
-  const notifyTelegram = body?.notifyTelegram ?? body?.notify_telegram;
-  const pauseAll = body?.pauseAll ?? body?.pause_all;
+  // channels + pause
+  const notifyInApp = boolOrUndefined(body?.notifyInApp ?? body?.notify_inapp);
+  const notifyPush = boolOrUndefined(body?.notifyPush ?? body?.notify_push);
+  const notifyEmail = boolOrUndefined(body?.notifyEmail ?? body?.notify_email);
+  const notifyTelegram = boolOrUndefined(body?.notifyTelegram ?? body?.notify_telegram);
+  const pauseAll = boolOrUndefined(body?.pauseAll ?? body?.pause_all);
 
   await prisma.userSettings.upsert({
     where: { userId },
     create: {
       userId,
       tz,
+      quietEnabled,
       quietStart,
       quietEnd,
       quietBypassMin,
-      ...(typeof quietEnabled === "boolean" ? { quietEnabled } : {}),
-      ...(typeof notifyInApp === "boolean" ? { notifyInApp } : {}),
-      ...(typeof notifyPush === "boolean" ? { notifyPush } : {}),
-      ...(typeof notifyEmail === "boolean" ? { notifyEmail } : {}),
-      ...(typeof notifyTelegram === "boolean" ? { notifyTelegram } : {}),
-      ...(typeof pauseAll === "boolean" ? { pauseAll } : {}),
-    } as any,
+      ...(notifyInApp !== undefined ? { notifyInApp } : {}),
+      ...(notifyPush !== undefined ? { notifyPush } : {}),
+      ...(notifyEmail !== undefined ? { notifyEmail } : {}),
+      ...(notifyTelegram !== undefined ? { notifyTelegram } : {}),
+      ...(pauseAll !== undefined ? { pauseAll } : {}),
+    },
     update: {
       tz,
+      quietEnabled,
       quietStart,
       quietEnd,
       quietBypassMin,
-      ...(typeof quietEnabled === "boolean" ? { quietEnabled } : {}),
-      ...(typeof notifyInApp === "boolean" ? { notifyInApp } : {}),
-      ...(typeof notifyPush === "boolean" ? { notifyPush } : {}),
-      ...(typeof notifyEmail === "boolean" ? { notifyEmail } : {}),
-      ...(typeof notifyTelegram === "boolean" ? { notifyTelegram } : {}),
-      ...(typeof pauseAll === "boolean" ? { pauseAll } : {}),
-    } as any,
+      ...(notifyInApp !== undefined ? { notifyInApp } : {}),
+      ...(notifyPush !== undefined ? { notifyPush } : {}),
+      ...(notifyEmail !== undefined ? { notifyEmail } : {}),
+      ...(notifyTelegram !== undefined ? { notifyTelegram } : {}),
+      ...(pauseAll !== undefined ? { pauseAll } : {}),
+    },
   });
 
   return NextResponse.json({ ok: true });
