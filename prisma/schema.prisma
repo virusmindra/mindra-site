@@ -154,6 +154,7 @@ model Reminder {
   userId    String
   text      String
   dueUtc    DateTime @map("due_utc")
+  snoozeUntilUtc DateTime? @map("snooze_until_utc")
   status    String   @default("scheduled") // scheduled|sent|canceled
   urgent    Boolean  @default(false)
   sentAt    DateTime? @map("sent_at")
@@ -167,6 +168,7 @@ model Reminder {
 model UserSettings {
   userId         String @id
   tz             String @default("UTC")
+  quietEnabled   Boolean @default(true) @map("quiet_enabled") 
   quietStart     Int    @default(22) @map("quiet_start")
   quietEnd       Int    @default(8)  @map("quiet_end")
   quietBypassMin Int    @default(30) @map("quiet_bypass_min")

@@ -11,6 +11,14 @@ function mustEnv(name: string) {
   return v;
 }
 
+function setupWebPushOnce() {
+  webpush.setVapidDetails(
+    mustEnv("VAPID_SUBJECT"),
+    mustEnv("VAPID_PUBLIC_KEY"),
+    mustEnv("VAPID_PRIVATE_KEY")
+  );
+}
+
 function getHourInTz(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -28,12 +36,45 @@ function isQuietNow(now: Date, tz: string, quietStart: number, quietEnd: number)
   return h >= quietStart || h < quietEnd;
 }
 
-function setupWebPushOnce() {
-  webpush.setVapidDetails(
-    mustEnv("VAPID_SUBJECT"),
-    mustEnv("VAPID_PUBLIC_KEY"),
-    mustEnv("VAPID_PRIVATE_KEY")
-  );
+function minutesUntil(now: Date, due: Date) {
+  return Math.floor((due.getTime() - now.getTime()) / 60000);
+}
+
+// вычислить ближайший "конец quiet" в UTC (на основе TZ)
+function computeQuietEndUtc(now: Date, tz: string, quietStart: number, quietEnd: number) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const y = Number(parts.find((p) => p.type === "year")?.value);
+  const m = Number(parts.find((p) => p.type === "month")?.value);
+  const d = Number(parts.find((p) => p.type === "day")?.value);
+
+  const hNow = getHourInTz(now, tz);
+
+  let addDay = 0;
+  if (quietStart > quietEnd) {
+    // через ночь (22..8)
+    addDay = hNow >= quietStart ? 1 : 0;
+  }
+
+  const rough = new Date(Date.UTC(y, m - 1, d + addDay, quietEnd, 0, 0));
+
+  const tzParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(rough);
+
+  const tzH = Number(tzParts.find((p) => p.type === "hour")?.value ?? "0");
+  const tzM = Number(tzParts.find((p) => p.type === "minute")?.value ?? "0");
+
+  const diffMin = quietEnd * 60 - (tzH * 60 + tzM);
+  return new Date(rough.getTime() + diffMin * 60000);
 }
 
 /** 11 языков: ru, uk, en, es, de, pl, fr, ro, hy, ka, kk */
@@ -55,7 +96,6 @@ function normalizeLang(lang?: string | null) {
   if (!lang) return "ru";
   const s = String(lang).trim();
   if (!s) return "ru";
-  // "ru-RU" -> "ru"
   const base = s.split("-")[0].toLowerCase();
   return REMINDER_TITLE_BY_LANG[base] ? base : "ru";
 }
@@ -67,32 +107,33 @@ function getReminderTitle(lang?: string | null) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-
   const force = searchParams.get("force") === "1";
-  console.log("[CRON] tick", new Date().toISOString(), "force=", force);
 
   const expected = process.env.CRON_SECRET || "";
   const auth = req.headers.get("authorization") || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 
-  // ✅ Только Bearer. Никаких ?secret=
   if (!expected || bearer !== expected) {
-    console.log("[CRON] unauthorized", { hasBearer: !!bearer });
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  console.log("[CRON] tick", new Date().toISOString(), "force=", force);
-  
   setupWebPushOnce();
 
   const now = new Date();
 
   const scheduledCount = await prisma.reminder.count({ where: { status: "scheduled" } });
 
+  // ⚠️ Пока snoozeUntilUtc ещё может отсутствовать в Prisma types — делаем where через any
   const due = await prisma.reminder.findMany({
-    where: { status: "scheduled", dueUtc: { lte: now } },
+    where: {
+      status: "scheduled",
+      OR: [
+        { snoozeUntilUtc: { lte: now } } as any,
+        { snoozeUntilUtc: null, dueUtc: { lte: now } } as any,
+      ],
+    } as any,
     take: 200,
-    orderBy: { dueUtc: "asc" },
+    orderBy: [{ snoozeUntilUtc: "asc" } as any, { dueUtc: "asc" }],
   });
 
   const minDue = await prisma.reminder.findFirst({
@@ -124,53 +165,83 @@ export async function GET(req: Request) {
 
     const tz = (settings as any)?.tz ?? "America/New_York";
     const pauseAll = (settings as any)?.pauseAll ?? false;
+
     const notifyInApp = (settings as any)?.notifyInApp ?? true;
     const notifyPush = (settings as any)?.notifyPush ?? true;
+
+    const quietEnabled = (settings as any)?.quietEnabled ?? true; // может не существовать в типах
     const quietStart = (settings as any)?.quietStart ?? 22;
     const quietEnd = (settings as any)?.quietEnd ?? 8;
+    const quietBypassMin = (settings as any)?.quietBypassMin ?? 30;
 
-    // язык (подставь тут то поле, которое у тебя реально есть: lang / locale / language)
-    const lang = (settings as any)?.lang ?? (settings as any)?.locale ?? (settings as any)?.language ?? "ru";
+    const lang =
+      (settings as any)?.lang ??
+      (settings as any)?.locale ??
+      (settings as any)?.language ??
+      "ru";
+
+    const langNorm = normalizeLang(lang);
     const title = getReminderTitle(lang);
 
-    const quiet = isQuietNow(now, tz, quietStart, quietEnd);
-    const hasUrgent = items.some((r) => (r as any).urgent === true);
+    const quietNow = quietEnabled ? isQuietNow(now, tz, quietStart, quietEnd) : false;
 
-    if (!force && !hasUrgent && (pauseAll || quiet)) {
-      await prisma.deliveryLog.createMany({
-        data: items.flatMap((r) => ([
-          {
-            userId,
-            reminderId: r.id,
-            channel: "inapp",
-            status: "skipped",
-            error: pauseAll ? "pauseAll=true" : "quietHours",
-            meta: { reason: pauseAll ? "pauseAll" : "quietHours", tz, quietStart, quietEnd },
-          },
-          {
-            userId,
-            reminderId: r.id,
-            channel: "push",
-            status: "skipped",
-            error: pauseAll ? "pauseAll=true" : "quietHours",
-            meta: { reason: pauseAll ? "pauseAll" : "quietHours", tz, quietStart, quietEnd },
-          },
-        ])),
-      });
-      continue;
-    }
-
-    const subsCount = notifyPush
-  ? await prisma.pushSubscription.count({ where: { userId } })
-  : 0;
-
-console.log("[CRON] user", userId, "subsCount", subsCount);
-
-const subs = notifyPush
-  ? await prisma.pushSubscription.findMany({ where: { userId } })
-  : [];
+    // пуш-подписки грузим 1 раз на юзера
+    const subs = notifyPush ? await prisma.pushSubscription.findMany({ where: { userId } }) : [];
 
     for (const r of items) {
+      const effectiveDue: Date = ((r as any).snoozeUntilUtc ?? r.dueUtc) as Date;
+      const isUrgent = (r as any).urgent === true;
+
+      // 1) Quiet/pause handling: переносим, а не "sent"
+      if (!force && (pauseAll || quietNow)) {
+        const deltaMin = minutesUntil(now, effectiveDue);
+        const bypass = !pauseAll && (isUrgent || deltaMin <= quietBypassMin);
+
+        if (!bypass) {
+          const snoozeUntil = pauseAll
+            ? new Date(now.getTime() + 30 * 60000)
+            : computeQuietEndUtc(now, tz, quietStart, quietEnd);
+
+          // если поля snoozeUntilUtc ещё нет в БД — этот update упадёт.
+          // поэтому оборачиваем в try и просто логируем, чтобы cron не падал.
+          try {
+            await prisma.reminder.update({
+              where: { id: r.id },
+              data: { snoozeUntilUtc: snoozeUntil } as any,
+            });
+          } catch (e) {
+            // если ещё нет колонки — просто пропускаем (но тогда reminder будет дёргаться каждый тик)
+            console.log("[CRON] snoozeUntilUtc missing in DB? update failed:", (e as any)?.message);
+          }
+
+          await prisma.deliveryLog.createMany({
+            data: [
+              {
+                userId,
+                reminderId: r.id,
+                channel: "inapp",
+                status: "skipped",
+                error: pauseAll ? "pauseAll=true" : "quietHours",
+                meta: { snoozeUntil, tz, quietStart, quietEnd, quietEnabled, quietBypassMin },
+              },
+              {
+                userId,
+                reminderId: r.id,
+                channel: "push",
+                status: "skipped",
+                error: pauseAll ? "pauseAll=true" : "quietHours",
+                meta: { snoozeUntil, tz, quietStart, quietEnd, quietEnabled, quietBypassMin },
+              },
+            ],
+          });
+
+          processed += 1;
+          continue;
+        }
+      }
+
+      // 2) IN-APP
+      let sentInApp = false;
       let notificationId: bigint | null = null;
 
       if (notifyInApp) {
@@ -178,12 +249,14 @@ const subs = notifyPush
           data: {
             userId,
             type: "reminder",
-            title,              // ✅ локализованный title
+            title,
             body: r.text,
             data: { reminderId: r.id.toString() },
           },
         });
+
         notificationId = notif.id;
+        sentInApp = true;
 
         await prisma.deliveryLog.create({
           data: {
@@ -206,77 +279,95 @@ const subs = notifyPush
         });
       }
 
+      // 3) PUSH
+      let sentPush = false;
+
       if (notifyPush && subs.length) {
-  for (const sub of subs) {
-    try {
-  const langNorm = normalizeLang(lang);
+        for (const sub of subs) {
+          try {
+            const payload = {
+              title,
+              body: r.text,
+              url: `/${langNorm}/chat`,
+              icon: "/icons/icon-192.png",
+              badge: "/icons/badge-72.png",
+              tag: `reminder-${r.id}`,
+              renotify: true,
+              data: {
+                reminderId: r.id.toString(),
+                userId,
+                url: `/${langNorm}/chat`,
+              },
+            };
 
-  const payload = {
-    title,
-    body: r.text,
-    url: `/${langNorm}/chat`,
-    icon: "/icons/icon-192.png",
-    badge: "/icons/badge-72.png",
-    tag: `reminder-${r.id}`,
-    renotify: true,
-    data: {
-      reminderId: r.id.toString(),
-      userId,
-      url: `/${langNorm}/chat`,
-    },
-  };
+            await webpush.sendNotification(
+              {
+                endpoint: sub.endpoint,
+                keys: { p256dh: sub.p256dh, auth: sub.auth },
+              } as any,
+              JSON.stringify(payload)
+            );
 
-  await webpush.sendNotification(
-    {
-      endpoint: sub.endpoint,
-      keys: { p256dh: sub.p256dh, auth: sub.auth },
-    } as any,
-    JSON.stringify(payload)
-  );
+            sentPush = true;
 
-  await prisma.deliveryLog.create({
-    data: {
-      userId,
-      reminderId: r.id,
-      channel: "push",
-      status: "ok",
-      meta: {
-        endpoint: sub.endpoint,
-        notificationId: notificationId ? notificationId.toString() : null,
-        tag: payload.tag,
-        url: payload.url,
-      },
-    },
-  });
-} catch (e: any) {
-  await prisma.deliveryLog.create({
-    data: {
-      userId,
-      reminderId: r.id,
-      channel: "push",
-      status: "fail",
-      error: String(e?.message ?? e),
-      meta: { endpoint: sub.endpoint },
-    },
-  });
-}
+            await prisma.deliveryLog.create({
+              data: {
+                userId,
+                reminderId: r.id,
+                channel: "push",
+                status: "ok",
+                meta: {
+                  endpoint: sub.endpoint,
+                  notificationId: notificationId ? notificationId.toString() : null,
+                  tag: payload.tag,
+                  url: payload.url,
+                },
+              },
+            });
+          } catch (e: any) {
+            await prisma.deliveryLog.create({
+              data: {
+                userId,
+                reminderId: r.id,
+                channel: "push",
+                status: "fail",
+                error: String(e?.message ?? e),
+                meta: { endpoint: sub.endpoint },
+              },
+            });
+          }
+        }
+      } else {
+        await prisma.deliveryLog.create({
+          data: {
+            userId,
+            reminderId: r.id,
+            channel: "push",
+            status: "skipped",
+            error: notifyPush ? "no subscriptions" : "notifyPush=false",
+          },
+        });
+      }
 
-  }
-} else {
-  await prisma.deliveryLog.create({
-    data: {
-      userId,
-      reminderId: r.id,
-      channel: "push",
-      status: "skipped",
-      error: notifyPush ? "no subscriptions" : "notifyPush=false",
-    },
-  });
-}
-      await prisma.reminder.update({
-        where: { id: r.id },
-        data: { status: "sent", sentAt: now },
-      });
+      // 4) ✅ mark sent ONLY if реально доставили хотя бы в один канал
+      if (sentInApp || sentPush) {
+        await prisma.reminder.update({
+          where: { id: r.id },
+          data: {
+            status: "sent",
+            sentAt: now,
+            snoozeUntilUtc: null,
+          } as any,
+        });
+      } else {
+        // если ничего не доставили — не теряем reminder, попробуем позже
+        try {
+          await prisma.reminder.update({
+            where: { id: r.id },
+            data: { snoozeUntilUtc: new Date(now.getTime() + 10 * 60000) } as any,
+          });
+        } catch {}
+      }
 
       processed += 1;
     }

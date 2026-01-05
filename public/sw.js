@@ -1,20 +1,27 @@
 self.addEventListener("push", (event) => {
-  let data = {};
+  let payload = {};
   try {
-    data = event.data ? event.data.json() : {};
+    payload = event.data ? event.data.json() : {};
   } catch {}
 
-  const title = data.title || "Mindra";
+  const title = payload.title || "Mindra";
+
+  // url может быть либо payload.url, либо payload.data.url
+  const url =
+    payload.url ||
+    (payload.data && typeof payload.data === "object" ? payload.data.url : null) ||
+    "/";
 
   const options = {
-    body: data.body || "",
-    icon: data.icon || "/icons/icon-192.png",
-    badge: data.badge || "/icons/badge-72.png",
-    tag: data.tag || undefined,
-    renotify: Boolean(data.renotify),
+    body: payload.body || "",
+    icon: payload.icon || "/icons/icon-192.png",
+    badge: payload.badge || "/icons/badge-72.png",
+    tag: payload.tag || undefined,
+    renotify: Boolean(payload.renotify),
     data: {
-      url: data.url || "/",
-      ...((data.data && typeof data.data === "object") ? data.data : {}),
+      url,
+      // кладём всё что пришло в payload.data, чтобы reminderId не потерять
+      ...((payload.data && typeof payload.data === "object") ? payload.data : {}),
     },
   };
 
@@ -30,7 +37,6 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil((async () => {
     const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
 
-    // если уже открыта вкладка Mindra — фокус + навигация
     for (const client of allClients) {
       try {
         const clientUrl = new URL(client.url);
@@ -44,7 +50,6 @@ self.addEventListener("notificationclick", (event) => {
       } catch {}
     }
 
-    // иначе новая вкладка
     if (clients.openWindow) return clients.openWindow(targetUrl);
   })());
 });
