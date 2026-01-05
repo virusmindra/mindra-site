@@ -1,87 +1,93 @@
-// src/app/api/reminders/settings/route.ts
 import { NextResponse } from "next/server";
-import { requireUserId } from "@/server/auth";
 import { prisma } from "@/server/prisma";
+import { requireUserId } from "@/server/auth";
 
-function boolOrUndefined(v: any): boolean | undefined {
-  return typeof v === "boolean" ? v : undefined;
+const DEFAULTS = {
+  tz: "UTC",
+  quietEnabled: true,
+  quietStart: 22,
+  quietEnd: 8,
+  quietBypassMin: 30,
+  notifyInApp: true,
+  notifyPush: true,
+  notifyEmail: false,
+  notifyTelegram: false,
+  pauseAll: false,
+};
+
+function json(data: any, status = 200) {
+  return NextResponse.json(data, { status });
 }
 
 export async function GET() {
-  const userId = await requireUserId();
-  const settings = await prisma.userSettings.findUnique({ where: { userId } });
+  let userId: string | null = null;
 
-  return NextResponse.json({
+  try {
+    userId = await requireUserId();
+  } catch {
+    // не залогинен — отдаём дефолты, но явно помечаем
+    return json({ ok: true, settings: DEFAULTS, anon: true });
+  }
+
+  const s = await prisma.userSettings.findUnique({ where: { userId } });
+
+  return json({
     ok: true,
-    settings: settings ?? {
-      userId,
-      tz: "UTC",
-      quietEnabled: true,
-      quietStart: 22,
-      quietEnd: 8,
-      quietBypassMin: 30,
-      notifyInApp: true,
-      notifyPush: true,
-      notifyEmail: false,
-      notifyTelegram: false,
-      pauseAll: false,
-    },
+    settings: s ?? { ...DEFAULTS, userId },
+    anon: false,
   });
 }
 
 export async function POST(req: Request) {
-  const userId = await requireUserId();
-  const body = await req.json().catch(() => ({}));
+  let userId: string;
 
-  const tz = String(body?.tz || "UTC");
+  try {
+    userId = await requireUserId();
+  } catch {
+    return json({ ok: false, error: "Unauthorized" }, 401);
+  }
 
-  // quiet
-  const quietEnabledRaw = body?.quietEnabled ?? body?.quiet_enabled;
-  const quietEnabled = typeof quietEnabledRaw === "boolean" ? quietEnabledRaw : true;
+  const body = (await req.json().catch(() => null)) ?? {};
 
-  let quietStart = Number(body?.quietStart ?? body?.quiet_start ?? 22);
-  let quietEnd = Number(body?.quietEnd ?? body?.quiet_end ?? 8);
-  let quietBypassMin = Number(body?.quietBypassMin ?? body?.quiet_bypass_min ?? 30);
+  const tz = String(body.tz ?? DEFAULTS.tz);
 
-  quietStart = Math.min(23, Math.max(0, quietStart));
-  quietEnd = Math.min(23, Math.max(0, quietEnd));
-  quietBypassMin = Math.min(180, Math.max(0, quietBypassMin));
+  const quietEnabled = Boolean(body.quietEnabled ?? body.quiet_enabled ?? DEFAULTS.quietEnabled);
 
-  // channels + pause
-  const notifyInApp = boolOrUndefined(body?.notifyInApp ?? body?.notify_inapp);
-  const notifyPush = boolOrUndefined(body?.notifyPush ?? body?.notify_push);
-  const notifyEmail = boolOrUndefined(body?.notifyEmail ?? body?.notify_email);
-  const notifyTelegram = boolOrUndefined(body?.notifyTelegram ?? body?.notify_telegram);
-  const pauseAll = boolOrUndefined(body?.pauseAll ?? body?.pause_all);
+  const clamp = (n: any, min: number, max: number) =>
+    Math.min(max, Math.max(min, Number.isFinite(Number(n)) ? Math.floor(Number(n)) : min));
 
-  await prisma.userSettings.upsert({
+  const quietStart = clamp(body.quietStart ?? body.quiet_start ?? DEFAULTS.quietStart, 0, 23);
+  const quietEnd = clamp(body.quietEnd ?? body.quiet_end ?? DEFAULTS.quietEnd, 0, 23);
+  const quietBypassMin = clamp(
+    body.quietBypassMin ?? body.quiet_bypass_min ?? DEFAULTS.quietBypassMin,
+    0,
+    180
+  );
+
+  const notifyInApp = body.notifyInApp ?? body.notify_inapp;
+  const notifyPush = body.notifyPush ?? body.notify_push;
+  const notifyEmail = body.notifyEmail ?? body.notify_email;
+  const notifyTelegram = body.notifyTelegram ?? body.notify_telegram;
+  const pauseAll = body.pauseAll ?? body.pause_all;
+
+  const data: any = {
+    tz,
+    quietEnabled,
+    quietStart,
+    quietEnd,
+    quietBypassMin,
+    ...(typeof notifyInApp === "boolean" ? { notifyInApp } : {}),
+    ...(typeof notifyPush === "boolean" ? { notifyPush } : {}),
+    ...(typeof notifyEmail === "boolean" ? { notifyEmail } : {}),
+    ...(typeof notifyTelegram === "boolean" ? { notifyTelegram } : {}),
+    ...(typeof pauseAll === "boolean" ? { pauseAll } : {}),
+  };
+
+  const saved = await prisma.userSettings.upsert({
     where: { userId },
-    create: {
-      userId,
-      tz,
-      quietEnabled,
-      quietStart,
-      quietEnd,
-      quietBypassMin,
-      ...(notifyInApp !== undefined ? { notifyInApp } : {}),
-      ...(notifyPush !== undefined ? { notifyPush } : {}),
-      ...(notifyEmail !== undefined ? { notifyEmail } : {}),
-      ...(notifyTelegram !== undefined ? { notifyTelegram } : {}),
-      ...(pauseAll !== undefined ? { pauseAll } : {}),
-    },
-    update: {
-      tz,
-      quietEnabled,
-      quietStart,
-      quietEnd,
-      quietBypassMin,
-      ...(notifyInApp !== undefined ? { notifyInApp } : {}),
-      ...(notifyPush !== undefined ? { notifyPush } : {}),
-      ...(notifyEmail !== undefined ? { notifyEmail } : {}),
-      ...(notifyTelegram !== undefined ? { notifyTelegram } : {}),
-      ...(pauseAll !== undefined ? { pauseAll } : {}),
-    },
+    create: { userId, ...DEFAULTS, ...data },
+    update: data,
   });
 
-  return NextResponse.json({ ok: true });
+  return json({ ok: true, settings: saved });
 }
