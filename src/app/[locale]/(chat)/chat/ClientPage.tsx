@@ -529,6 +529,44 @@ function buildGoalDoneMessage(locale: string, points: number) {
     en: `Done ✅ Goal marked as completed! +5 points. You now have: ${points} ⭐`,
   });
 }
+function isReminderIntent(text: string) {
+  const t = (text || "").trim().toLowerCase();
+  if (!t) return false;
+
+  // RU/UK/EN — хватит для старта
+  return (
+    t.startsWith("напомни") ||
+    t.includes("напомни ") ||
+    t.startsWith("наполни") === false && false || // (ничего, просто чтобы не было автокорректа :)
+    t.startsWith("нагадай") ||
+    t.includes("напомнить") ||
+    t.includes("напомни мне") ||
+    t.includes("remind me") ||
+    t.startsWith("remind") ||
+    t.includes("напоминание")
+  );
+}
+
+// очень простой “очиститель” текста напоминания (можешь улучшать потом)
+function cleanupReminderText(original: string) {
+  let t = (original || "").trim();
+
+  // уберем командные слова
+  t = t.replace(/^напомни( мне)?/i, "").trim();
+  t = t.replace(/^нагадай( мені)?/i, "").trim();
+  t = t.replace(/^remind( me)?/i, "").trim();
+
+  // если осталось пусто — вернем исходник
+  return t || original.trim();
+}
+
+function computeDueInMin(dueUtcIso: string) {
+  const now = Date.now();
+  const due = new Date(dueUtcIso).getTime();
+  const diffMs = due - now;
+  // минимум 1 минута, чтобы не улетело в 0
+  return Math.max(1, Math.round(diffMs / 60000));
+}
 
 /* ----------------------------- component ----------------------------- */
 
@@ -716,29 +754,29 @@ const createPendingReminder = async () => {
   setReminderBusy(true);
 
   try {
-    const r = await fetch("/api/reminders", {
+    const dueInMin = computeDueInMin(pendingReminder.dueUtc);
+
+    const r = await fetch("/api/reminders/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: pendingReminder.text,
-        due_utc: pendingReminder.dueUtc,
+        dueInMin,
       }),
     });
 
     const j = await r.json().catch(() => null);
     if (!r.ok || !j?.ok) {
-      const msg = j?.error || "create reminder failed";
-      throw new Error(msg);
+      throw new Error(j?.error || `create reminder failed (${r.status})`);
     }
 
-    // ✅ можно добавить сообщение от ассистента в чат:
     updateCurrentSession((prev: any) => ({
       ...prev,
       messages: [
         ...(prev.messages || []),
         {
           role: "assistant",
-          content: "Ок ✅ Я создала напоминание и пришлю пуш в нужное время 🙂",
+          content: "Ок ✅ Я создала напоминание и пришлю уведомление в нужное время 🙂",
           ts: Date.now(),
         },
       ],
@@ -979,29 +1017,34 @@ const markGoalDone = async (goalId: string) => {
 
   setSending(true);
 
-  // ✅ попытка распарсить "завтра 9:00" / "через 10 минут" и т.д.
 try {
-  const locale = getLocaleFromPath();
-  const parsed = parseNaturalTime(trimmed, normLocale(locale));
+  // ✅ показываем confirm только в "Напоминания"
+  if (activeFeature === "reminders" && isReminderIntent(trimmed)) {
+    const locale = getLocaleFromPath();
+    const parsed = parseNaturalTime(trimmed, normLocale(locale));
 
-  if (parsed) {
-    const now = new Date();
-    let due: Date | null = null;
+    if (parsed) {
+      const now = new Date();
+      let due: Date | null = null;
 
-    if (parsed.kind === "relative") {
-      due = new Date(now.getTime() + parsed.minutes * 60_000);
-    } else if (parsed.kind === "tomorrow") {
-      due = new Date(now);
-      due.setDate(due.getDate() + 1);
-      due.setHours(parsed.hh, parsed.mm, 0, 0);
-    } else if (parsed.kind === "fixed") {
-      due = new Date(now);
-      due.setHours(parsed.hh, parsed.mm, 0, 0);
-      if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
-    }
+      if (parsed.kind === "relative") {
+        due = new Date(now.getTime() + parsed.minutes * 60_000);
+      } else if (parsed.kind === "tomorrow") {
+        due = new Date(now);
+        due.setDate(due.getDate() + 1);
+        due.setHours(parsed.hh, parsed.mm, 0, 0);
+      } else if (parsed.kind === "fixed") {
+        due = new Date(now);
+        due.setHours(parsed.hh, parsed.mm, 0, 0);
+        if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+      }
 
-    if (due) {
-      setPendingReminder({ text: trimmed, dueUtc: due.toISOString() });
+      if (due) {
+        setPendingReminder({
+          text: cleanupReminderText(trimmed),
+          dueUtc: due.toISOString(),
+        });
+      }
     }
   }
 } catch {}
