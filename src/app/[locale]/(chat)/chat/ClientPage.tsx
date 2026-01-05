@@ -1017,38 +1017,42 @@ const markGoalDone = async (goalId: string) => {
 
   setSending(true);
 
+// ✅ попытка распарсить "завтра 9:00" / "через 10 минут" и т.д.
 try {
-  // ✅ показываем confirm только в "Напоминания"
-  if (activeFeature === "reminders" && isReminderIntent(trimmed)) {
-    const locale = getLocaleFromPath();
-    console.log("FEATURE:", activeFeature);
-    const parsed = parseNaturalTime(trimmed, normLocale(locale));
+  const pageLocale = getLocaleFromPath(); // 'en' на /en/chat
+  const base = normLocale(pageLocale);
 
-    if (parsed) {
-      const now = new Date();
-      let due: Date | null = null;
+  const hasCyrillic = /[А-Яа-яЁёІіЇїЄє]/.test(trimmed);
+  const parseLocales = hasCyrillic ? ["ru", "uk", base] : [base, "ru", "uk"];
 
-      if (parsed.kind === "relative") {
-        due = new Date(now.getTime() + parsed.minutes * 60_000);
-      } else if (parsed.kind === "tomorrow") {
-        due = new Date(now);
-        due.setDate(due.getDate() + 1);
-        due.setHours(parsed.hh, parsed.mm, 0, 0);
-      } else if (parsed.kind === "fixed") {
-        due = new Date(now);
-        due.setHours(parsed.hh, parsed.mm, 0, 0);
-        if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
-      }
+  let parsed: any = null;
+  for (const loc of parseLocales) {
+    parsed = parseNaturalTime(trimmed, loc as any);
+    if (parsed) break;
+  }
 
-      if (due) {
-        setPendingReminder({
-          text: cleanupReminderText(trimmed),
-          dueUtc: due.toISOString(),
-        });
-      }
+  if (parsed) {
+    const now = new Date();
+    let due: Date | null = null;
+
+    if (parsed.kind === "relative") {
+      due = new Date(now.getTime() + parsed.minutes * 60_000);
+    } else if (parsed.kind === "tomorrow") {
+      due = new Date(now);
+      due.setDate(due.getDate() + 1);
+      due.setHours(parsed.hh, parsed.mm, 0, 0);
+    } else if (parsed.kind === "fixed") {
+      due = new Date(now);
+      due.setHours(parsed.hh, parsed.mm, 0, 0);
+      if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+    }
+
+    if (due) {
+      setPendingReminder({ text: trimmed, dueUtc: due.toISOString() });
     }
   }
 } catch {}
+
 
   try {
     const res = await fetch('/api/web-chat', {
