@@ -25,33 +25,37 @@ function clampInt(v: any, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.floor(n)));
 }
 
-async function fetchSettings(): Promise<{ ok: true; settings: any } | { ok: false; error: string }> {
-  const r = await fetch('/api/reminders/settings', { cache: 'no-store' });
+async function fetchSettings(): Promise<
+  { ok: true; settings: Partial<Settings> } | { ok: false; error: string }
+> {
+  const r = await fetch('/api/reminders/settings', { method: 'GET' });
   const j = await r.json().catch(() => null);
 
-  if (r.ok && j?.ok) return { ok: true, settings: j.settings };
+  if (r.ok && j?.ok) return { ok: true, settings: j.settings || {} };
   return { ok: false, error: j?.error || `Request failed: ${r.status}` };
 }
 
-async function saveSettings(payload: any) {
+async function saveSettings(payload: Settings) {
   const r = await fetch('/api/reminders/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+
   const j = await r.json().catch(() => null);
   if (r.ok && j?.ok) return { ok: true as const };
   return { ok: false as const, error: j?.error || `Save failed: ${r.status}` };
 }
 
-
 export default function QuietHoursCard() {
-  const [s, setS] = useState<Settings | null>(null);
+  const [s, setS] = useState<Settings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [pushBusy, setPushBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
   const [pushOk, setPushOk] = useState<boolean | null>(null);
+
+  const [err, setErr] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -60,12 +64,8 @@ export default function QuietHoursCard() {
     const res = await fetchSettings();
 
     if (res.ok) {
-      setS({
-        ...DEFAULTS,
-        ...res.settings,
-      });
+      setS({ ...DEFAULTS, ...res.settings });
     } else {
-      // ✅ показываем ошибку + даём дефолт, чтобы UI не был пустой
       setErr(res.error);
       setS(DEFAULTS);
     }
@@ -83,14 +83,15 @@ export default function QuietHoursCard() {
     setS(next);
 
     const res = await saveSettings(next);
-
     setSaving(false);
+
     if (!res.ok) setErr(res.error || 'Ошибка сохранения');
   };
 
   const handleEnablePush = async () => {
     setPushBusy(true);
     setErr(null);
+
     try {
       await enablePush();
       setPushOk(true);
@@ -106,28 +107,21 @@ export default function QuietHoursCard() {
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-4">
       <div>
         <div className="text-sm font-medium text-[var(--text)]">Push уведомления</div>
-        <div className="text-xs text-[var(--muted)] mt-1">
-          Включи push и настрой “тихие часы”.
-        </div>
+        <div className="text-xs text-[var(--muted)] mt-1">Включи push и настрой “тихие часы”.</div>
       </div>
 
-      {loading && (
-        <div className="text-xs text-[var(--muted)]">Загрузка…</div>
-      )}
+      {loading && <div className="text-xs text-[var(--muted)]">Загрузка…</div>}
 
       {err && (
         <div className="text-xs text-red-500">
           {err}
-          <button
-            onClick={load}
-            className="ml-2 underline text-[var(--text)]"
-          >
+          <button onClick={load} className="ml-2 underline text-[var(--text)]">
             Retry
           </button>
         </div>
       )}
 
-      {/* PUSH enable */}
+      {/* PUSH */}
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm text-[var(--text)]">
           Разрешить push-уведомления
@@ -147,84 +141,80 @@ export default function QuietHoursCard() {
       <div className="h-px bg-[var(--border)]" />
 
       {/* QUIET HOURS */}
-      {s && (
-        <>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-sm font-medium text-[var(--text)]">Тихие часы</div>
-              <div className="text-xs text-[var(--muted)] mt-1">
-                В это время напоминания не будут отправляться (кроме срочных).
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm text-[var(--text)]">
-              <input
-                type="checkbox"
-                checked={Boolean(s.quietEnabled)}
-                onChange={(e) => save({ ...s, quietEnabled: e.target.checked })}
-                disabled={saving}
-              />
-              Вкл
-            </label>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-[var(--text)]">Тихие часы</div>
+          <div className="text-xs text-[var(--muted)] mt-1">
+            В это время напоминания не будут отправляться (кроме срочных).
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-sm space-y-1">
-              <div className="text-xs text-[var(--muted)]">Начало (0–23)</div>
-              <input
-                className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
-                type="number"
-                min={0}
-                max={23}
-                value={s.quietStart}
-                disabled={!s.quietEnabled || saving}
-                onChange={(e) => setS({ ...s, quietStart: clampInt(e.target.value, 0, 23) })}
-                onBlur={() => save({ ...s, quietStart: clampInt(s.quietStart, 0, 23) })}
-              />
-            </label>
+        <label className="flex items-center gap-2 text-sm text-[var(--text)]">
+          <input
+            type="checkbox"
+            checked={Boolean(s.quietEnabled)}
+            onChange={(e) => save({ ...s, quietEnabled: e.target.checked })}
+            disabled={saving}
+          />
+          Вкл
+        </label>
+      </div>
 
-            <label className="text-sm space-y-1">
-              <div className="text-xs text-[var(--muted)]">Конец (0–23)</div>
-              <input
-                className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
-                type="number"
-                min={0}
-                max={23}
-                value={s.quietEnd}
-                disabled={!s.quietEnabled || saving}
-                onChange={(e) => setS({ ...s, quietEnd: clampInt(e.target.value, 0, 23) })}
-                onBlur={() => save({ ...s, quietEnd: clampInt(s.quietEnd, 0, 23) })}
-              />
-            </label>
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="text-sm space-y-1">
+          <div className="text-xs text-[var(--muted)]">Начало (0–23)</div>
+          <input
+            className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
+            type="number"
+            min={0}
+            max={23}
+            value={s.quietStart}
+            disabled={!s.quietEnabled || saving}
+            onChange={(e) => setS({ ...s, quietStart: clampInt(e.target.value, 0, 23) })}
+            onBlur={() => save({ ...s, quietStart: clampInt(s.quietStart, 0, 23) })}
+          />
+        </label>
 
-          <label className="text-sm space-y-1 block">
-            <div className="text-xs text-[var(--muted)]">Пробивать тихие часы, если осталось минут</div>
-            <input
-              className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
-              type="number"
-              min={0}
-              max={180}
-              value={s.quietBypassMin}
-              disabled={!s.quietEnabled || saving}
-              onChange={(e) => setS({ ...s, quietBypassMin: clampInt(e.target.value, 0, 180) })}
-              onBlur={() => save({ ...s, quietBypassMin: clampInt(s.quietBypassMin, 0, 180) })}
-            />
-          </label>
+        <label className="text-sm space-y-1">
+          <div className="text-xs text-[var(--muted)]">Конец (0–23)</div>
+          <input
+            className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
+            type="number"
+            min={0}
+            max={23}
+            value={s.quietEnd}
+            disabled={!s.quietEnabled || saving}
+            onChange={(e) => setS({ ...s, quietEnd: clampInt(e.target.value, 0, 23) })}
+            onBlur={() => save({ ...s, quietEnd: clampInt(s.quietEnd, 0, 23) })}
+          />
+        </label>
+      </div>
 
-          <label className="text-sm space-y-1 block">
-            <div className="text-xs text-[var(--muted)]">Timezone (IANA)</div>
-            <input
-              className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
-              value={s.tz || ''}
-              disabled={saving}
-              onChange={(e) => setS({ ...s, tz: e.target.value })}
-              onBlur={() => save({ ...s, tz: String(s.tz || 'UTC') })}
-              placeholder="America/New_York"
-            />
-          </label>
-        </>
-      )}
+      <label className="text-sm space-y-1 block">
+        <div className="text-xs text-[var(--muted)]">Пробивать тихие часы, если осталось минут</div>
+        <input
+          className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
+          type="number"
+          min={0}
+          max={180}
+          value={s.quietBypassMin}
+          disabled={!s.quietEnabled || saving}
+          onChange={(e) => setS({ ...s, quietBypassMin: clampInt(e.target.value, 0, 180) })}
+          onBlur={() => save({ ...s, quietBypassMin: clampInt(s.quietBypassMin, 0, 180) })}
+        />
+      </label>
+
+      <label className="text-sm space-y-1 block">
+        <div className="text-xs text-[var(--muted)]">Timezone (IANA)</div>
+        <input
+          className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
+          value={s.tz || ''}
+          disabled={saving}
+          onChange={(e) => setS({ ...s, tz: e.target.value })}
+          onBlur={() => save({ ...s, tz: String(s.tz || 'UTC') })}
+          placeholder="America/New_York"
+        />
+      </label>
     </div>
   );
 }
