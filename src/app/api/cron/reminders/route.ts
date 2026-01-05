@@ -19,6 +19,15 @@ function setupWebPushOnce() {
   );
 }
 
+function safeTz(tz: string) {
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: tz }).format(new Date());
+    return tz;
+  } catch {
+    return "UTC";
+  }
+}
+
 function getHourInTz(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
