@@ -109,6 +109,40 @@ function isIntentText(text: string): boolean {
   return intentWords.some((w) => t.includes(w));
 }
 
+function stripReminderPhrase(raw: string) {
+  const s = (raw || "").trim();
+
+  // EN: remove "remind me to", "remind me", "remind"
+  let out = s.replace(/\bremind\s+(me\s+to|me)\b/i, "").replace(/\bremind\b/i, "");
+
+  // ES: remove "recuérdame", "recuerdame", "recordarme" (MVP)
+  out = out
+    .replace(/\brecuérdame\b/gi, "")
+    .replace(/\brecuerdame\b/gi, "")
+    .replace(/\brecordarme\b/gi, "");
+
+  // remove time tails:
+  // EN: "in 2 min", "after 10 minutes", "tomorrow at 9:00", "at 18:30"
+  out = out
+    .replace(/\b(?:in|after)\s+\d+\s*(?:min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/gi, "")
+    .replace(/\b(?:tomorrow)\b.*?\b(?:at\s*)?\d{1,2}(?:[:.]\d{2})?\b/gi, "")
+    .replace(/\bat\s+\d{1,2}[:.]\d{2}\b/gi, "");
+
+  // ES: "en 10 minutos", "dentro de 5 min", "mañana a las 9:00", "a las 18:30"
+  out = out
+    .replace(/\b(?:en|dentro\s+de)\s+\d+\s*(?:min|minuto|minutos|hora|horas)\b/gi, "")
+    .replace(/\b(?:mañana|manana)\b.*?\b(?:a\s+las|a\s+la)?\s*\d{1,2}(?:[:.]\d{2})?\b/gi, "")
+    .replace(/\b(?:a\s+las|a\s+la)\s*\d{1,2}[:.]\d{2}\b/gi, "");
+
+  // RU (если вдруг)
+  out = out.replace(/\bчерез\s+\d+\s*(?:м|мин|минута|минуту|минуты|минут|час|часа|часов|ч)?\b/gi, "");
+
+  // cleanup spaces
+  out = out.replace(/\s{2,}/g, " ").trim();
+
+  return out || s; // fallback: если всё вырезали — вернём исходник
+}
+
 function buildNextStepAfterGoal(locale: string) {
   const l = (locale || 'en').toLowerCase();
 
@@ -572,44 +606,6 @@ type ParsedReminder =
   | { kind: "tomorrow"; hh: number; mm: number }
   | { kind: "fixed"; hh: number; mm: number };
 
-function parseReminderFallback(text: string): ParsedReminder | null {
-  const t = (text || "").trim().toLowerCase();
-
-  // через N минут
-  const m1 = t.match(/\b(?:через|in)\s*(\d+)\s*(?:мин|минут|минуты|minutes?|mins?)\b/iu);
-  // через N часов
-  const h1 = t.match(/\b(?:через|in)\s*(\d+)\s*(?:час|часа|часов|hours?|hrs?)\b/iu);
-
-  if (m1 || h1) {
-    const mins = m1 ? Number(m1[1]) : 0;
-    const hrs = h1 ? Number(h1[1]) : 0;
-
-    // поддержка "через 2 часа 15 минут"
-    const extraM = t.match(/\b(\d+)\s*(?:мин|минут|минуты|minutes?|mins?)\b/iu);
-    const extra = extraM ? Number(extraM[1]) : 0;
-
-    const total = hrs * 60 + (m1 ? mins : extra);
-    if (Number.isFinite(total) && total > 0) return { kind: "relative", minutes: total };
-  }
-
-  // завтра в 9:30
-  const tom = t.match(/\b(?:завтра|tomorrow)\b.*?\b(\d{1,2})(?::(\d{2}))?\b/iu);
-  if (tom) {
-    const hh = Number(tom[1]);
-    const mm = tom[2] ? Number(tom[2]) : 0;
-    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { kind: "tomorrow", hh, mm };
-  }
-
-  // в 18:00
-  const at = t.match(/\b(?:в|at|today|сегодня)\b.*?\b(\d{1,2})(?::(\d{2}))?\b/iu);
-  if (at) {
-    const hh = Number(at[1]);
-    const mm = at[2] ? Number(at[2]) : 0;
-    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { kind: "fixed", hh, mm };
-  }
-
-  return null;
-}
 
 /* ----------------------------- component ----------------------------- */
 
@@ -1062,64 +1058,76 @@ const handleSend = async (text: string) => {
 
   // ---------------- REMINDERS: parse + confirm UI ----------------
   try {
-    const locale = getLocaleFromPath();
+    if (activeFeature === "reminders") {
+      const locale = getLocaleFromPath();
+      const parsed = parseNaturalTime(trimmed, normLocale(locale));
 
-    // 1) сначала парсим время (твой парсер)
-    const parsed = parseNaturalTime(trimmed, normLocale(locale));
+      console.log("[REMINDER] feature=", activeFeature, "text=", trimmed);
+      console.log("[REMINDER] parsed=", parsed);
 
-    console.log("[REMINDER] feature=", activeFeature, "text=", trimmed);
-    console.log("[REMINDER] parsed=", parsed);
+      if (parsed) {
+        const now = new Date();
+        let due: Date | null = null;
 
-    if (parsed) {
-      const now = new Date();
-      let due: Date | null = null;
+        if (parsed.kind === "relative") {
+          due = new Date(now.getTime() + parsed.minutes * 60_000);
+        } else if (parsed.kind === "tomorrow") {
+          due = new Date(now);
+          due.setDate(due.getDate() + 1);
+          due.setHours(parsed.hh, parsed.mm, 0, 0);
+        } else if (parsed.kind === "fixed") {
+          due = new Date(now);
+          due.setHours(parsed.hh, parsed.mm, 0, 0);
+          if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+        }
 
-      if (parsed.kind === "relative") {
-        due = new Date(now.getTime() + parsed.minutes * 60_000);
-      } else if (parsed.kind === "tomorrow") {
-        due = new Date(now);
-        due.setDate(due.getDate() + 1);
-        due.setHours(parsed.hh, parsed.mm, 0, 0);
-      } else if (parsed.kind === "fixed") {
-        due = new Date(now);
-        due.setHours(parsed.hh, parsed.mm, 0, 0);
-        if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
-      }
+        // вырезаем “remind me … / set a reminder … / por favor recuérdame …”
+        // и вырезаем хвост времени: "in 2 min", "after 1 hour", "en 10 minutos", "mañana 9:00"
+        const stripReminderPhrase = (raw: string) => {
+          let s = raw.trim();
 
-      // 2) вырезаем “напомни …” и “через 3 минуты / tomorrow 9:00 / in 10 min”
-      const cleanReminderText = (raw: string) => {
-        let s = raw.trim();
+          // --- leading phrases (EN/ES/RU)
+          s = s
+            // RU
+            .replace(
+              /^\s*(напомни(ть)?(\s+мне)?|поставь(\s+мне)?\s+напоминание|сделай\s+напоминание)\s*/i,
+              ""
+            )
+            // EN
+            .replace(/^\s*(remind\s+me(\s+to)?|set\s+a\s+reminder(\s+to)?)\s*/i, "")
+            // ES
+            .replace(/^\s*(recuérdame|recuerdame|pon\s+un\s+recordatorio|establece\s+un\s+recordatorio)\s*(que\s+)?/i, "");
 
-        // убираем “напомни/напомнить/поставь напоминание/please remind me…”
-        s = s
-          .replace(/^\s*(напомни(ть)?(\s+мне)?|поставь(\s+мне)?\s+напоминание|сделай\s+напоминание)\s*/i, "")
-          .replace(/^\s*(remind\s+me(\s+to)?|set\s+a\s+reminder(\s+to)?)\s*/i, "");
+          // --- trailing time phrases
+          // EN: "in 10 min", "after 2 hours"
+          s = s.replace(/\b(?:in|after)\s+\d+\s*(min|mins|minute|minutes|h|hr|hrs|hour|hours)\b.*$/i, "");
 
-        // убираем хвост “через N …”
-        s = s.replace(/\bчерез\s+\d+\s*(мин|минут|час|часа|часов)?\b.*$/i, "").trim();
+          // ES: "en 10 minutos", "dentro de 2 horas"
+          s = s.replace(/\b(?:en|dentro\s+de)\s+\d+\s*(min|minuto|minutos|hora|horas)\b.*$/i, "");
 
-        // убираем “in N min/hour …”
-        s = s.replace(/\bin\s+\d+\s*(min|mins|minutes|hour|hours)\b.*$/i, "").trim();
+          // RU: "через 10 минут/час"
+          s = s.replace(/\bчерез\s+\d+\s*(м|мин|минута|минуту|минуты|минут|час|часа|часов|ч)?\b.*$/i, "");
 
-        // убираем “tomorrow 9:00 … / завтра 9:00 …”
-        s = s.replace(/\b(завтра|tomorrow)\b.*?(\d{1,2})[:.](\d{2}).*$/i, "").trim();
+          // tomorrow/mañana/завтра with time
+          s = s.replace(/\b(?:tomorrow|mañana|manana|завтра)\b.*$/i, "");
 
-        // убираем “в 9:00 … / at 9:00 …” (если вдруг)
-        s = s.replace(/\b(в|at)\s*\d{1,2}[:.]\d{2}\b.*$/i, "").trim();
+          // explicit "at 18:30" / "a las 18:30" / "в 18:30"
+          s = s.replace(/\b(?:at|a\s+las|a\s+la|в)\s*\d{1,2}([:.]\d{2})?\b.*$/i, "");
 
-        // если после чистки пусто — оставляем исходный текст как fallback
-        return s || raw.trim();
-      };
+          s = s.trim();
+          return s || raw.trim();
+        };
 
-      if (due) {
-        const reminderText = cleanReminderText(trimmed);
+        if (due) {
+          const reminderText = stripReminderPhrase(trimmed);
 
-        console.log("[REMINDER] due=", due.toISOString(), "reminderText=", reminderText);
+          console.log("[REMINDER] due=", due.toISOString(), "reminderText=", reminderText);
 
-        setPendingReminder({
-          text: reminderText,
-          dueUtc: due.toISOString(),
-        });
+          setPendingReminder({
+            text: reminderText,
+            dueUtc: due.toISOString(),
+          });
+        }
       }
     }
   } catch (e) {
@@ -1149,7 +1157,6 @@ const handleSend = async (text: string) => {
       replyText = data.reply.trim();
     }
 
-    const locale = getLocaleFromPath();
     const intent = isIntentText(trimmed);
 
     // goals suggestion (только если это реально намерение)
@@ -1196,7 +1203,6 @@ const handleSend = async (text: string) => {
     setSending(false);
   }
 };
-
 
 const locale = getLocaleFromPath();
 
