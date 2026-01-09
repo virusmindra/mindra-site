@@ -15,37 +15,60 @@ export default function ReminderConfirm({
 }) {
   const due = new Date(dueUtc);
 
-  const isEs = navigator.language.startsWith("es");
+  // язык страницы (en | es), fallback en
+  const lang =
+    typeof document !== "undefined"
+      ? document.documentElement.lang?.startsWith("es")
+        ? "es"
+        : "en"
+      : "en";
 
-const title = isEs
-  ? "¿Crear recordatorio de Mindra?"
-  : "Create a reminder from Mindra?";
-
-const yes = isEs ? "Yes ✅" : "Yes ✅";
-const no = isEs ? "No" : "No";
+  const t =
+    lang === "es"
+      ? {
+          title: "¿Crear un recordatorio de Mindra?",
+          text: "Texto",
+          when: "Cuándo",
+          yes: "Sí ✅",
+          no: "No",
+        }
+      : {
+          title: "Create a reminder from Mindra?",
+          text: "Text",
+          when: "When",
+          yes: "Yes ✅",
+          no: "No",
+        };
 
   return (
-    <div className="mt-2 rounded-2xl border bg-white/60 dark:bg-black/20 p-4">
-      <div className="font-semibold">Создать напоминание от Mindra?</div>
-      <div className="text-sm opacity-70 mt-1">
-        <div><span className="opacity-60">Текст:</span> {text}</div>
-        <div><span className="opacity-60">Когда:</span> {due.toLocaleString()}</div>
+    <div className="mt-3 rounded-2xl border border-white/10 bg-[#1c1c1f] p-4 text-white shadow-lg">
+      <div className="font-semibold text-base">{t.title}</div>
+
+      <div className="text-sm text-white/70 mt-2 space-y-1">
+        <div>
+          <span className="text-white/40">{t.text}:</span> {text}
+        </div>
+        <div>
+          <span className="text-white/40">{t.when}:</span>{" "}
+          {due.toLocaleString(lang)}
+        </div>
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-4 flex gap-2">
         <button
-          className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-50"
           onClick={onYes}
           disabled={busy}
+          className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 disabled:opacity-50 transition"
         >
-          Да ✅
+          {t.yes}
         </button>
+
         <button
-          className="px-4 py-2 rounded-xl border disabled:opacity-50"
           onClick={onNo}
           disabled={busy}
+          className="px-4 py-2 rounded-xl border border-white/20 text-white/80 hover:bg-white/10 disabled:opacity-50 transition"
         >
-          Нет
+          {t.no}
         </button>
       </div>
     </div>
