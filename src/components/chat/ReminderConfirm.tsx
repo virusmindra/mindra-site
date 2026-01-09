@@ -15,6 +15,15 @@ export default function ReminderConfirm({
 }) {
   const due = new Date(dueUtc);
 
+  const isEs = navigator.language.startsWith("es");
+
+const title = isEs
+  ? "¿Crear recordatorio de Mindra?"
+  : "Create a reminder from Mindra?";
+
+const yes = isEs ? "Yes ✅" : "Yes ✅";
+const no = isEs ? "No" : "No";
+
   return (
     <div className="mt-2 rounded-2xl border bg-white/60 dark:bg-black/20 p-4">
       <div className="font-semibold">Создать напоминание от Mindra?</div>

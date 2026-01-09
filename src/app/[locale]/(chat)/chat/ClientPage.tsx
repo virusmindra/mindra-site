@@ -11,6 +11,7 @@ import PointsPanel from '@/components/chat/PointsPanel'; // путь подст�
 import SettingsPanel from "@/components/chat/SettingsPanel";
 import ReminderConfirm from "../../../../components/chat/ReminderConfirm";
 import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
+import { detectLangFromText } from "@/lib/lang/detectLang";
 
 /* ----------------------------- helpers ----------------------------- */
 function urlBase64ToUint8Array(base64String: string) {
@@ -792,6 +793,20 @@ const createPendingReminder = async () => {
   if (!pendingReminder) return;
   setReminderBusy(true);
 
+  const locale = getLocaleFromPath();
+  const l = (locale || "en").toLowerCase();
+
+  const t = {
+    ok:
+      l.startsWith("es")
+        ? "Perfecto ✅ Ya creé el recordatorio. Te avisaré a tiempo 🙂"
+        : "Perfect ✅ I created the reminder. I’ll notify you at the right time 🙂",
+    failTitle:
+      l.startsWith("es")
+        ? "No pude crear el recordatorio 😕"
+        : "I couldn’t create the reminder 😕",
+  };
+
   try {
     const dueInMin = computeDueInMin(pendingReminder.dueUtc);
 
@@ -801,6 +816,8 @@ const createPendingReminder = async () => {
       body: JSON.stringify({
         text: pendingReminder.text,
         dueInMin,
+        // если твой API поддерживает — можешь прокинуть:
+        // locale,
       }),
     });
 
@@ -813,11 +830,7 @@ const createPendingReminder = async () => {
       ...prev,
       messages: [
         ...(prev.messages || []),
-        {
-          role: "assistant",
-          content: "Ок ✅ Я создала напоминание и пришлю уведомление в нужное время 🙂",
-          ts: Date.now(),
-        },
+        { role: "assistant", content: t.ok, ts: Date.now() },
       ],
       updatedAt: Date.now(),
     }));
@@ -830,7 +843,7 @@ const createPendingReminder = async () => {
         ...(prev.messages || []),
         {
           role: "assistant",
-          content: `Не получилось создать напоминание 😕\n${String(e?.message ?? e)}`,
+          content: `${t.failTitle}\n${String(e?.message ?? e)}`,
           ts: Date.now(),
         },
       ],
@@ -840,7 +853,6 @@ const createPendingReminder = async () => {
     setReminderBusy(false);
   }
 };
-
 
 const saveAsHabit = async (habitText: string) => {
   try {
@@ -1037,6 +1049,8 @@ const handleSend = async (text: string) => {
   }
 
   const uid = getOrCreateWebUid();
+  const locale = getLocaleFromPath();
+  const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
   const isGoalDiary = Boolean(current.id?.startsWith("goal:"));
   const isHabitDiary = Boolean(current.id?.startsWith("habit:"));
 
@@ -1056,10 +1070,19 @@ const handleSend = async (text: string) => {
 
   setSending(true);
 
-  // ---------------- REMINDERS: parse + confirm UI ----------------
+  // ---------- helper: localized reminder preview text ----------
+  const buildReminderPreview = (loc: string, reminderText: string) => {
+    const l = (loc || "en").toLowerCase();
+    if (l.startsWith("es")) {
+      return `Perfecto ✅\n¿Creo el recordatorio para: **${reminderText}**?\n(Confirma abajo 👇)`;
+    }
+    // default EN
+    return `Got it ✅\nShould I create a reminder for: **${reminderText}**?\n(Confirm below 👇)`;
+  };
+
+  // ---------------- REMINDERS: parse + confirm UI (NO BOT CALL) ----------------
   try {
     if (activeFeature === "reminders") {
-      const locale = getLocaleFromPath();
       const parsed = parseNaturalTime(trimmed, normLocale(locale));
 
       console.log("[REMINDER] feature=", activeFeature, "text=", trimmed);
@@ -1081,52 +1104,49 @@ const handleSend = async (text: string) => {
           if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
         }
 
-        // вырезаем “remind me … / set a reminder … / por favor recuérdame …”
-        // и вырезаем хвост времени: "in 2 min", "after 1 hour", "en 10 minutos", "mañana 9:00"
-        const stripReminderPhrase = (raw: string) => {
+        // clean reminder text
+        const stripReminderPhraseLocal = (raw: string) => {
           let s = raw.trim();
 
-          // --- leading phrases (EN/ES/RU)
+          // leading phrases (EN/ES/RU)
           s = s
-            // RU
             .replace(
               /^\s*(напомни(ть)?(\s+мне)?|поставь(\s+мне)?\s+напоминание|сделай\s+напоминание)\s*/i,
               ""
             )
-            // EN
             .replace(/^\s*(remind\s+me(\s+to)?|set\s+a\s+reminder(\s+to)?)\s*/i, "")
-            // ES
             .replace(/^\s*(recuérdame|recuerdame|pon\s+un\s+recordatorio|establece\s+un\s+recordatorio)\s*(que\s+)?/i, "");
 
-          // --- trailing time phrases
-          // EN: "in 10 min", "after 2 hours"
+          // trailing time phrases
           s = s.replace(/\b(?:in|after)\s+\d+\s*(min|mins|minute|minutes|h|hr|hrs|hour|hours)\b.*$/i, "");
-
-          // ES: "en 10 minutos", "dentro de 2 horas"
           s = s.replace(/\b(?:en|dentro\s+de)\s+\d+\s*(min|minuto|minutos|hora|horas)\b.*$/i, "");
-
-          // RU: "через 10 минут/час"
           s = s.replace(/\bчерез\s+\d+\s*(м|мин|минута|минуту|минуты|минут|час|часа|часов|ч)?\b.*$/i, "");
 
-          // tomorrow/mañana/завтра with time
           s = s.replace(/\b(?:tomorrow|mañana|manana|завтра)\b.*$/i, "");
-
-          // explicit "at 18:30" / "a las 18:30" / "в 18:30"
-          s = s.replace(/\b(?:at|a\s+las|a\s+la|в)\s*\d{1,2}([:.]\d{2})?\b.*$/i, "");
+          s = s.replace(/\b(?:at|a\s+las|a\s+la|в)\s*\d{1,2}(?:[:.]\d{2})?\b.*$/i, "");
 
           s = s.trim();
           return s || raw.trim();
         };
 
         if (due) {
-          const reminderText = stripReminderPhrase(trimmed);
+          const reminderText = stripReminderPhraseLocal(trimmed);
 
-          console.log("[REMINDER] due=", due.toISOString(), "reminderText=", reminderText);
+          setPendingReminder({ text: reminderText, dueUtc: due.toISOString() });
 
-          setPendingReminder({
-            text: reminderText,
-            dueUtc: due.toISOString(),
-          });
+          // ✅ IMPORTANT: add our own assistant message (no upstream bot)
+          const preview = buildReminderPreview(locale, reminderText);
+          const botMsg: ChatMessage = { role: "assistant", content: preview, ts: Date.now() };
+
+          updateCurrentSession((prev) => ({
+            ...prev,
+            feature: prev.feature ?? activeFeature,
+            messages: [...prev.messages, botMsg],
+            updatedAt: Date.now(),
+          }));
+
+          setSending(false);
+          return; // ✅ stop here: prevents “I can’t set reminders…”
         }
       }
     }
@@ -1137,14 +1157,15 @@ const handleSend = async (text: string) => {
   // ---------------- main bot request ----------------
   try {
     const res = await fetch("/api/web-chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        input: trimmed,
-        sessionId: current.id,
-        feature: activeFeature,
-        user_id: uid,
-      }),
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    input: trimmed,
+    sessionId: current.id,
+    feature: activeFeature,
+    user_id: uid,
+    lang, // 👈 КРИТИЧНО
+  }),
     });
 
     let replyText = "Извини, сервер сейчас недоступен.";
@@ -1159,7 +1180,6 @@ const handleSend = async (text: string) => {
 
     const intent = isIntentText(trimmed);
 
-    // goals suggestion (только если это реально намерение)
     if (!isGoalDiary && activeFeature === "goals" && intent) {
       const s = data?.goal_suggestion?.text;
       goalSuggestion = s ? { text: String(s) } : { text: trimmed };
@@ -1167,7 +1187,6 @@ const handleSend = async (text: string) => {
       goalSuggestion = null;
     }
 
-    // habits suggestion (только если это реально намерение)
     if (!isHabitDiary && activeFeature === "habits" && intent) {
       const s = data?.habit_suggestion?.text;
       habitSuggestion = s ? { text: String(s) } : { text: trimmed };
