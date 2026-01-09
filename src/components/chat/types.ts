@@ -12,12 +12,6 @@ export type ChatFeature =
   | 'goals'
   | 'habits'
   | 'reminders'
-  | 'challenges'
-  | 'sleep_sounds'
-  | 'bedtime_stories'
-  | 'daily_tasks'
-  | 'modes'
-  | 'points'
   | 'settings';
 
 export type ChatSession = {
@@ -27,6 +21,7 @@ export type ChatSession = {
   createdAt: number;
   updatedAt: number;
 
-  feature?: ChatFeature; // ✅ добавили
-  goalId?: string;       // ✅ для дневника цели
+  feature?: ChatFeature;
+  goalId?: string;
+  habitId?: string;
 };

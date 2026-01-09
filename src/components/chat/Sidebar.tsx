@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useTheme } from '@/components/theme/ThemeProvider';
 
 import type { ChatSession, ChatFeature } from './types';
 
@@ -18,17 +17,54 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
-const featureList: { id: ChatFeature; label: string }[] = [
-  { id: 'default',         label: 'Чат' },
-  { id: 'goals',           label: 'Цели' },
-  { id: 'habits',          label: 'Привычки' },
-  { id: 'reminders',       label: 'Напоминания' },
-  { id: 'challenges',      label: 'Челленджи' },
-  { id: 'sleep_sounds',    label: 'Сон' },
-  { id: 'bedtime_stories', label: 'Сказки' },
-  { id: 'daily_tasks',     label: 'Задания на день' },
-  { id: 'modes',           label: 'Режим общения' },
-  { id: 'points',          label: 'Очки и титулы' },
+function normLocale(raw: string) {
+  const l = String(raw || 'en').toLowerCase();
+  return l.startsWith('es') ? 'es' : 'en';
+}
+
+function t(locale: 'en' | 'es') {
+  const EN = {
+    backHome: '← Back to home',
+    newChat: 'New chat',
+    functions: 'Functions',
+    yourChats: 'Your chats',
+    settings: 'Settings',
+    signIn: 'Sign in with Google',
+    signOut: 'Sign out',
+    hello: 'Hi',
+    syncHint: 'Sign in later — we’ll sync chats & subscription.',
+    loading: 'Checking session...',
+    chat: 'Chat',
+    goals: 'Goals',
+    habits: 'Habits',
+    reminders: 'Reminders',
+  };
+
+  const ES = {
+    backHome: '← Volver al inicio',
+    newChat: 'Nuevo chat',
+    functions: 'Funciones',
+    yourChats: 'Tus chats',
+    settings: 'Ajustes',
+    signIn: 'Entrar con Google',
+    signOut: 'Salir',
+    hello: 'Hola',
+    syncHint: 'Entra luego — sincronizaremos chats y suscripción.',
+    loading: 'Comprobando sesión...',
+    chat: 'Chat',
+    goals: 'Objetivos',
+    habits: 'Hábitos',
+    reminders: 'Recordatorios',
+  };
+
+  return locale === 'es' ? ES : EN;
+}
+
+const featureList: { id: ChatFeature; labelKey: keyof ReturnType<typeof t> }[] = [
+  { id: 'default', labelKey: 'chat' },
+  { id: 'goals', labelKey: 'goals' },
+  { id: 'habits', labelKey: 'habits' },
+  { id: 'reminders', labelKey: 'reminders' },
 ];
 
 export default function Sidebar({
@@ -43,128 +79,122 @@ export default function Sidebar({
   const authed = !!session?.user;
 
   const params = useParams();
-  const locale = String((params as any)?.locale ?? 'en');
-
-  const { theme, setTheme } = useTheme();
-
-  const displayedSessions = sessions.filter(
-    (s) => (s.feature ?? 'default') === activeFeature,
-  );
+  const locale = normLocale(String((params as any)?.locale ?? 'en'));
+  const L = t(locale);
 
   return (
-  <aside className="w-80 flex flex-col border-r border-[var(--border)] bg-[var(--card)] h-full overflow-hidden">
-    {/* TOP */}
-    <div className="p-3 border-b border-[var(--border)] space-y-2">
-      <Link
-        href={`/${locale}`}
-        className="block w-full text-left text-xs text-[var(--muted)] hover:text-[var(--text)] transition"
-      >
-        ← На главную
-      </Link>
+    <aside className="w-80 flex flex-col border-r border-[var(--border)] bg-[var(--card)] h-full overflow-hidden">
+      {/* TOP */}
+      <div className="p-3 border-b border-[var(--border)] space-y-2">
+        <Link
+          href={`/${locale}`}
+          className="block w-full text-left text-xs text-[var(--muted)] hover:text-[var(--text)] transition"
+        >
+          {L.backHome}
+        </Link>
 
-      <button
-        type="button"
-        onClick={onNewChat}
-        className="w-full rounded-xl px-3 py-2 text-sm font-medium bg-[var(--accent)] text-white hover:opacity-90 transition"
-      >
-        Новый чат
-      </button>
-    </div>
+        <button
+          type="button"
+          onClick={onNewChat}
+          className="w-full rounded-xl px-3 py-2 text-sm font-medium bg-[var(--accent)] text-white hover:opacity-90 transition"
+        >
+          {L.newChat}
+        </button>
+      </div>
 
-    {/* MIDDLE */}
-    <div className="flex-1 flex overflow-hidden">
-      {/* CHATS */}
-      <div className="w-1/2 flex flex-col border-r border-[var(--border)] overflow-hidden">
-        <div className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">
-          Чаты
+      {/* FUNCTIONS */}
+      <div className="p-3 border-b border-[var(--border)]">
+        <div className="text-[11px] uppercase tracking-wide text-[var(--muted)] mb-2">
+          {L.functions}
         </div>
 
-        <ul className="flex-1 px-2 pb-3 space-y-1 text-xs overflow-auto">
-          {displayedSessions.map((s) => (
+        <div className="space-y-1 text-sm">
+          {featureList.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => onChangeFeature(f.id)}
+              className={[
+                'w-full text-left px-3 py-2 rounded-xl transition border',
+                activeFeature === f.id
+                  ? 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)]'
+                  : 'border-transparent text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
+              ].join(' ')}
+            >
+              {L[f.labelKey]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CHATS */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="px-3 pt-3 pb-2 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+          {L.yourChats}
+        </div>
+
+        <ul className="flex-1 px-2 pb-3 space-y-1 text-sm overflow-auto">
+          {sessions.map((s) => (
             <li key={s.id}>
               <button
                 type="button"
                 onClick={() => onSelect(s.id)}
                 className={[
-                  'w-full text-left px-2 py-1.5 rounded-md transition',
+                  'w-full text-left px-3 py-2 rounded-xl transition border',
                   s.id === currentId
-                    ? 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)]'
-                    : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
+                    ? 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)]'
+                    : 'border-transparent text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
                 ].join(' ')}
               >
+                {/* маленький hint по feature */}
                 {(s.feature ?? 'default') === 'goals' && '🎯 '}
-                {s.title || 'Без названия'}
+                {(s.feature ?? 'default') === 'habits' && '🔁 '}
+                {(s.feature ?? 'default') === 'reminders' && '⏰ '}
+                {s.title || (locale === 'es' ? 'Sin título' : 'Untitled')}
               </button>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* MODES */}
-      <div className="w-1/2 flex flex-col overflow-hidden">
-        <div className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">
-          Режимы
+      {/* BOTTOM */}
+      <div className="border-t border-[var(--border)] p-3 space-y-3 text-xs">
+        <button
+          type="button"
+          onClick={() => onChangeFeature('settings')}
+          className="w-full text-left px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10 transition"
+        >
+          ⚙️ {L.settings}
+        </button>
+
+        <div className="pt-3 border-t border-[var(--border)]">
+          {authed ? (
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: `/${locale}/chat` })}
+              className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-[11px] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text)]"
+            >
+              {L.signOut}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => signIn('google', { callbackUrl: `/${locale}/chat` })}
+              className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-[11px] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text)]"
+            >
+              {L.signIn}
+            </button>
+          )}
+
+          <p className="text-[11px] mt-2 text-[var(--muted)]">
+            {status === 'loading'
+              ? L.loading
+              : authed
+              ? `${L.hello}, ${session?.user?.name ?? 'friend'}`
+              : L.syncHint}
+          </p>
         </div>
-
-        <ul className="flex-1 px-2 pb-3 space-y-1 text-xs overflow-auto">
-          {featureList.map((f) => (
-            <li key={f.id}>
-              <button
-                type="button"
-                onClick={() => onChangeFeature(f.id)}
-                className={[
-                  'w-full text-left px-2 py-1.5 rounded-md transition',
-                  activeFeature === f.id
-                    ? 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)]'
-                    : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
-                ].join(' ')}
-              >
-                {f.label}
-              </button>
-            </li>
-          ))}
-        </ul>
       </div>
-    </div>
-
-    {/* BOTTOM */}
-    <div className="border-t border-[var(--border)] p-3 space-y-3 text-xs">
-      <button
-        type="button"
-        onClick={() => onChangeFeature('settings')}
-        className="w-full text-left px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10 transition"
-      >
-        ⚙️ Настройки
-      </button>
-
-      <div className="pt-3 border-t border-[var(--border)]">
-        {authed ? (
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: `/${locale}/chat` })}
-            className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-[11px] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text)]"
-          >
-            Выйти из аккаунта
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => signIn('google', { callbackUrl: `/${locale}/chat` })}
-            className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-[11px] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text)]"
-          >
-            Войти через Google
-          </button>
-        )}
-
-        <p className="text-[11px] mt-2 text-[var(--muted)]">
-          {status === 'loading'
-            ? 'Проверяем сессию...'
-            : authed
-            ? `Привет, ${session?.user?.name ?? 'пользователь'}`
-            : 'Войдёшь позже — будем синкать чаты и подписку.'}
-        </p>
-      </div>
-    </div>
-  </aside>
-);
+    </aside>
+  );
 }

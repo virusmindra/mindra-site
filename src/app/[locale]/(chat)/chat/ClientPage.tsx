@@ -7,7 +7,6 @@ import Composer from '@/components/chat/Composer';
 import type { ChatSession, ChatMessage, ChatFeature } from '@/components/chat/types';
 import { loadSessions, saveSessions, newSessionTitle } from '@/components/chat/storage';
 import { getTotalPoints, addPoints } from '@/lib/points';
-import PointsPanel from '@/components/chat/PointsPanel'; // путь подстрой под свой
 import SettingsPanel from "@/components/chat/SettingsPanel";
 import ReminderConfirm from "../../../../components/chat/ReminderConfirm";
 import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
@@ -351,8 +350,8 @@ function resolveLang(locale?: string): Lang {
 
 function getLocaleFromPath(): string {
   if (typeof window === 'undefined') return 'en';
-  const seg = window.location.pathname.split('/').filter(Boolean)[0];
-  return seg || 'en';
+  const seg = window.location.pathname.split('/').filter(Boolean)[0] || 'en';
+  return seg.toLowerCase().startsWith('es') ? 'es' : 'en';
 }
 
 function detectGoalCategory(goalText: string): GoalCategory {
@@ -1241,10 +1240,6 @@ return (
         {activeFeature === 'settings' ? (
           <div className="flex-1 overflow-y-auto">
             <SettingsPanel />
-          </div>
-        ) : activeFeature === 'points' ? (
-          <div className="flex-1 overflow-y-auto">
-            <PointsPanel uid={getOrCreateWebUid()} locale={locale} />
           </div>
         ) : (
           <>
