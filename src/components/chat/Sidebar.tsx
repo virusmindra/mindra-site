@@ -15,6 +15,8 @@ type Props = {
 
   onNewChat: () => void;
   onSelect: (id: string) => void;
+
+  onDelete: (id: string) => void; 
 };
 
 function normLocale(raw: string) {
@@ -74,9 +76,20 @@ export default function Sidebar({
   onChangeFeature,
   onNewChat,
   onSelect,
+  onDelete,
 }: Props) {
   const { data: session, status } = useSession();
   const authed = !!session?.user;
+
+  const isEmpty = (s: ChatSession) => (s.messages?.length ?? 0) === 0;
+
+  // показываем только текущую фичу
+  const displayedSessions = sessions
+    .filter((s) => (s.feature ?? 'default') === activeFeature)
+    // скрываем пустые “New chat”, кроме текущего открытого
+    .filter((s) => !isEmpty(s) || s.id === currentId)
+    // сортируем по обновлению
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
   const params = useParams();
   const locale = normLocale(String((params as any)?.locale ?? 'en'));
@@ -134,27 +147,41 @@ export default function Sidebar({
         </div>
 
         <ul className="flex-1 px-2 pb-3 space-y-1 text-sm overflow-auto">
-          {sessions.map((s) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(s.id)}
-                className={[
-                  'w-full text-left px-3 py-2 rounded-xl transition border',
-                  s.id === currentId
-                    ? 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)]'
-                    : 'border-transparent text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
-                ].join(' ')}
-              >
-                {/* маленький hint по feature */}
-                {(s.feature ?? 'default') === 'goals' && '🎯 '}
-                {(s.feature ?? 'default') === 'habits' && '🔁 '}
-                {(s.feature ?? 'default') === 'reminders' && '⏰ '}
-                {s.title || (locale === 'es' ? 'Sin título' : 'Untitled')}
-              </button>
-            </li>
-          ))}
-        </ul>
+  {displayedSessions.map((s) => (
+    <li key={s.id} className="group">
+      <button
+        type="button"
+        onClick={() => onSelect(s.id)}
+        className={[
+          'w-full text-left px-3 py-2 rounded-xl transition border flex items-center gap-2',
+          s.id === currentId
+            ? 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)]'
+            : 'border-transparent text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
+        ].join(' ')}
+      >
+        <span className="flex-1 min-w-0 truncate">
+          {(s.feature ?? 'default') === 'goals' && '🎯 '}
+          {(s.feature ?? 'default') === 'habits' && '🔁 '}
+          {(s.feature ?? 'default') === 'reminders' && '⏰ '}
+          {s.title || (locale === 'es' ? 'Sin título' : 'Untitled')}
+        </span>
+
+        {/* delete on hover */}
+        <span
+          className="opacity-0 group-hover:opacity-100 transition"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDelete(s.id);
+          }}
+          title={locale === 'es' ? 'Eliminar chat' : 'Delete chat'}
+        >
+          ✕
+        </span>
+      </button>
+    </li>
+  ))}
+</ul>
       </div>
 
       {/* BOTTOM */}

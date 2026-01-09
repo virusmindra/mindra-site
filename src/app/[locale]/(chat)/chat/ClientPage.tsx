@@ -647,6 +647,31 @@ export default function ClientPage() {
     [sessions, currentId],
   );
 
+  const handleDeleteSession = (id: string) => {
+  const locale = getLocaleFromPath();
+  const ok = window.confirm(
+    locale === 'es'
+      ? '¿Eliminar este chat?'
+      : 'Delete this chat?'
+  );
+  if (!ok) return;
+
+  setSessions((prev) => {
+    const next = prev.filter((s) => s.id !== id);
+
+    // если удалили текущий — переключаемся на самый свежий чат этой же фичи
+    if (currentId === id) {
+      const fallback =
+        next.find((s) => (s.feature ?? 'default') === activeFeature) ?? next[0];
+
+      setCurrentId(fallback?.id);
+      if (fallback) setActiveFeature(fallback.feature ?? 'default');
+    }
+
+    return next.length ? next : [createEmptySession(activeFeature)];
+  });
+};
+
   const updateCurrentSession = (updater: (prev: ChatSession) => ChatSession) => {
     setSessions((prev) => prev.map((s) => (s.id === currentId ? updater(s) : s)));
   };
@@ -1234,6 +1259,7 @@ return (
         onSelect={handleSelectSession}
         activeFeature={activeFeature}
         onChangeFeature={handleChangeFeature}
+        onDelete={handleDeleteSession}
       />
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
