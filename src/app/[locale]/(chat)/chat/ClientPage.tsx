@@ -1204,31 +1204,19 @@ const handleSend = async (text: string) => {
 
     const data = await res.json().catch(() => null);
 
-// ✅ voice gating
 if (data?.voiceBlocked) {
-  // выключаем тумблер сразу
   setPremiumVoiceEnabled(false);
 
   if (data?.voiceReason === "login_required") {
     setVoiceNotice("To use Premium voice, please sign in 🙂");
-
-    updateCurrentSession((prev) => ({
-      ...prev,
-      messages: [
-        ...(prev.messages || []),
-        { role: "assistant", content: "To use Premium voice, please sign in 🙂", ts: Date.now() },
-      ],
-      updatedAt: Date.now(),
-    }));
-
+    // НЕ пишем в чат
     setSending(false);
-    return; // ✅ выходим, чтобы дальше не обрабатывать как обычный ответ
+    return;
   }
 
-  // любые другие причины (лимиты и т.д.)
   setVoiceNotice("Premium voice is temporarily unavailable 😕");
+  // чат не трогаем
 }
-
 
     const ttsUrl = data?.tts?.audioUrl;
   if (ttsUrl && typeof ttsUrl === "string") {
@@ -1308,52 +1296,37 @@ return (
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {activeFeature === 'settings' ? (
           <div className="flex-1 overflow-y-auto">
-            <SettingsPanel />
+            <SettingsPanel
+              premiumVoiceEnabled={premiumVoiceEnabled}
+              onTogglePremiumVoice={(v) => {
+                setPremiumVoiceEnabled(v);
+                setVoiceNotice(null); // сбрасываем notice при ручном переключении
+              }}
+              voiceNotice={voiceNotice}
+            />
           </div>
         ) : (
           <>
             <ChatWindow
-            messages={current ? current.messages : []}
-            activeFeature={activeFeature}
-            goalSuggestion={lastGoalSuggestion}
-            habitSuggestion={lastHabitSuggestion}
-            onSaveGoal={saveAsGoal}
-            onSaveHabit={saveAsHabit}
-            onMarkGoalDone={markGoalDone}
-            onMarkHabitDone={markHabitDone}
-            pendingReminder={pendingReminder}
-            onConfirmReminder={createPendingReminder}
-            onCancelReminder={() => setPendingReminder(null)}
-            reminderBusy={reminderBusy}
-            currentSessionId={current?.id}
-            locale={locale}
-            goalDone={Boolean((current as any)?.goalDone)}
-            habitDone={Boolean((current as any)?.habitDone)}
-          />
-          {/* ✅ Premium voice toggle (показываем только когда не settings и не reminders) */}
-          {showVoiceToggle ? (
-  <div className="border-t border-[var(--border)] bg-[var(--bg)]">
-    <div className="mx-auto max-w-3xl px-6 py-2 flex items-center justify-end gap-2">
-      <label className="text-xs text-[var(--muted)] select-none">Premium voice</label>
-      <input
-        type="checkbox"
-        checked={premiumVoiceEnabled}
-        onChange={(e) => {
-          setVoiceNotice(null);
-          setPremiumVoiceEnabled(e.target.checked);
-        }}
-      />
-    </div>
+              messages={current ? current.messages : []}
+              activeFeature={activeFeature}
+              goalSuggestion={lastGoalSuggestion}
+              habitSuggestion={lastHabitSuggestion}
+              onSaveGoal={saveAsGoal}
+              onSaveHabit={saveAsHabit}
+              onMarkGoalDone={markGoalDone}
+              onMarkHabitDone={markHabitDone}
+              pendingReminder={pendingReminder}
+              onConfirmReminder={createPendingReminder}
+              onCancelReminder={() => setPendingReminder(null)}
+              reminderBusy={reminderBusy}
+              currentSessionId={current?.id}
+              locale={locale}
+              goalDone={Boolean((current as any)?.goalDone)}
+              habitDone={Boolean((current as any)?.habitDone)}
+            />
 
-    {voiceNotice ? (
-      <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
-        {voiceNotice}
-      </div>
-    ) : null}
-  </div>
-) : null}
-          <Composer onSend={handleSend} disabled={sending} />
-
+            <Composer onSend={handleSend} disabled={sending} />
           </>
         )}
       </main>

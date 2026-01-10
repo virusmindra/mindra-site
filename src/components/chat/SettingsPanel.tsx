@@ -10,40 +10,54 @@ function normLocale(raw: string) {
   return l.startsWith('es') ? 'es' : 'en';
 }
 
-export default function SettingsPanel() {
+export default function SettingsPanel({
+  premiumVoiceEnabled,
+  onTogglePremiumVoice,
+  voiceNotice,
+}: {
+  premiumVoiceEnabled: boolean;
+  onTogglePremiumVoice: (v: boolean) => void;
+  voiceNotice?: string | null;
+}) {
   const router = useRouter();
   const params = useParams();
   const locale = normLocale(String((params as any)?.locale ?? 'en'));
 
   const { theme, setTheme } = useTheme();
 
-  const T = locale === 'es'
-    ? {
-        title: 'Ajustes',
-        subtitle: 'Idioma, tema, notificaciones y puntos.',
-        language: 'Idioma',
-        english: 'English',
-        spanish: 'Español',
-        theme: 'Tema',
-        light: 'Light',
-        dark: 'Dark',
-        points: 'Puntos y títulos',
-      }
-    : {
-        title: 'Settings',
-        subtitle: 'Language, theme, notifications, and points.',
-        language: 'Language',
-        english: 'English',
-        spanish: 'Español',
-        theme: 'Theme',
-        light: 'Light',
-        dark: 'Dark',
-        points: 'Points & titles',
-      };
+  const T =
+    locale === 'es'
+      ? {
+          title: 'Ajustes',
+          subtitle: 'Idioma, tema, notificaciones y puntos.',
+          language: 'Idioma',
+          english: 'English',
+          spanish: 'Español',
+          theme: 'Tema',
+          light: 'Light',
+          dark: 'Dark',
+          points: 'Puntos y títulos',
+          premiumVoice: 'Voz Premium',
+          premiumVoiceHint: 'Respuestas de voz (ElevenLabs) para Premium.',
+        }
+      : {
+          title: 'Settings',
+          subtitle: 'Language, theme, notifications, and points.',
+          language: 'Language',
+          english: 'English',
+          spanish: 'Español',
+          theme: 'Theme',
+          light: 'Light',
+          dark: 'Dark',
+          points: 'Points & titles',
+          premiumVoice: 'Premium voice',
+          premiumVoiceHint: 'Voice replies (ElevenLabs) for Premium.',
+        };
 
-  const uid = typeof window === 'undefined'
-    ? 'web'
-    : (localStorage.getItem('mindra_uid') || 'web');
+  const uid =
+    typeof window === 'undefined'
+      ? 'web'
+      : localStorage.getItem('mindra_uid') || 'web';
 
   return (
     <div className="p-6 max-w-3xl">
@@ -51,6 +65,26 @@ export default function SettingsPanel() {
       <p className="text-sm text-[var(--muted)] mt-1">{T.subtitle}</p>
 
       <div className="mt-6 space-y-4">
+        {/* PREMIUM VOICE */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium text-[var(--text)]">{T.premiumVoice}</div>
+              <div className="text-xs text-[var(--muted)]">{T.premiumVoiceHint}</div>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={premiumVoiceEnabled}
+              onChange={(e) => onTogglePremiumVoice(e.target.checked)}
+            />
+          </div>
+
+          {voiceNotice ? (
+            <div className="mt-3 text-xs text-[var(--muted)]">{voiceNotice}</div>
+          ) : null}
+        </div>
+
         {/* LANGUAGE */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="flex items-center justify-between gap-3">
