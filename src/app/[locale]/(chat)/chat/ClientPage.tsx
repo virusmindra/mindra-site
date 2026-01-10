@@ -11,6 +11,7 @@ import SettingsPanel from "@/components/chat/SettingsPanel";
 import ReminderConfirm from "../../../../components/chat/ReminderConfirm";
 import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
 import { detectLangFromText } from "@/lib/lang/detectLang";
+import FaceToFacePanel from "@/components/chat/FaceToFacePanel";
 
 /* ----------------------------- helpers ----------------------------- */
 function urlBase64ToUint8Array(base64String: string) {
@@ -1341,20 +1342,24 @@ return (
       />
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {activeFeature === 'settings' ? (
+        {activeFeature === "settings" ? (
           <div className="flex-1 overflow-y-auto">
             <SettingsPanel
-  premiumVoiceEnabled={premiumVoiceEnabled}
-  onTogglePremiumVoice={(v) => {
-    setPremiumVoiceEnabled(v);
-    setVoiceNotice(null);
-    try {
-      localStorage.setItem(VOICE_KEY, v ? "1" : "0");
-      window.dispatchEvent(new Event("mindra_premium_voice_changed"));
-    } catch {}
-  }}
-  voiceNotice={voiceNotice}
+              premiumVoiceEnabled={premiumVoiceEnabled}
+              onTogglePremiumVoice={(v) => {
+                setPremiumVoiceEnabled(v);
+                setVoiceNotice(null);
+                try {
+                  localStorage.setItem(VOICE_KEY, v ? "1" : "0");
+                  window.dispatchEvent(new Event("mindra_premium_voice_changed"));
+                } catch {}
+              }}
+              voiceNotice={voiceNotice}
             />
+          </div>
+        ) : activeFeature === "call" ? (
+          <div className="flex-1 overflow-y-auto">
+            <FaceToFacePanel />
           </div>
         ) : (
           <>
@@ -1376,11 +1381,12 @@ return (
               goalDone={Boolean((current as any)?.goalDone)}
               habitDone={Boolean((current as any)?.habitDone)}
             />
+
             {voiceNotice ? (
-  <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
-    {voiceNotice}
-  </div>
-) : null}
+              <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
+                {voiceNotice}
+              </div>
+            ) : null}
 
             <Composer onSend={handleSend} disabled={sending} />
           </>

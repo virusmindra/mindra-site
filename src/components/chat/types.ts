@@ -12,7 +12,8 @@ export type ChatFeature =
   | 'goals'
   | 'habits'
   | 'reminders'
-  | 'settings';
+  | 'settings'
+  | "call";
 
 export type ChatSession = {
   id: string;

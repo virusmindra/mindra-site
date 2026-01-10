@@ -121,6 +121,18 @@ export default function Sidebar({
           {L.functions}
         </div>
 
+<button
+  onClick={() => onChangeFeature("call")}
+  className={[
+    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
+    activeFeature === "call"
+      ? "bg-[var(--accent)] text-white"
+      : "text-[var(--muted)] hover:bg-white/5",
+  ].join(" ")}
+>
+  📞 Call
+</button>
+
         <div className="space-y-1 text-sm">
           {featureList.map((f) => (
             <button
