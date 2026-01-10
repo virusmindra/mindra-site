@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
-  userId?: string; // если хочешь пробросить залогиненного id (иначе "web")
+  userId?: string; // залогиненный id, иначе "web"
   lang?: "en" | "es";
-  wantVoice?: boolean; // твой premiumVoiceEnabled
-  onVoiceNotice?: (msg: string | null) => void; // чтобы показать внизу как voiceNotice
+  wantVoice?: boolean; // premiumVoiceEnabled
+  onVoiceNotice?: (msg: string | null) => void;
 };
 
 type TurnResponse = {
@@ -19,6 +19,30 @@ type TurnResponse = {
   error?: string;
 };
 
+function pickMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+    "audio/mp4", // иногда Safari
+  ];
+
+  for (const t of candidates) {
+    try {
+      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) return t;
+    } catch {}
+  }
+  return ""; // пусть браузер сам выберет
+}
+
+function extFromMime(mime: string) {
+  const m = (mime || "").toLowerCase();
+  if (m.includes("ogg")) return "ogg";
+  if (m.includes("mp4")) return "mp4";
+  return "webm";
+}
+
 export default function FaceToFacePanel({
   userId,
   lang = "en",
@@ -30,7 +54,6 @@ export default function FaceToFacePanel({
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  const isRecordingRef = useRef(false);
 
   const [camReady, setCamReady] = useState(false);
   const [recState, setRecState] = useState<"idle" | "recording" | "sending">("idle");
@@ -42,32 +65,42 @@ export default function FaceToFacePanel({
   const localeText = useMemo(() => {
     const isEs = lang === "es";
     return {
-      title: isEs ? "Call" : "Call",
-      subtitle: isEs ? "Hold to talk with Mindra" : "Hold to talk with Mindra",
-      hold: isEs ? "Hold to talk" : "Hold to talk",
-      sending: isEs ? "Sending…" : "Sending…",
-      noMic: isEs ? "Microphone access denied" : "Microphone access denied",
-      noCam: isEs ? "Camera access denied" : "Camera access denied",
-      youSaid: isEs ? "You said:" : "You said:",
+      title: "Call",
+      subtitle: isEs ? "Mantén presionado para hablar con Mindra" : "Hold to talk with Mindra",
+      hold: isEs ? "Mantén para hablar" : "Hold to talk",
+      sending: isEs ? "Enviando…" : "Sending…",
+      loadingCam: isEs ? "Cargando cámara…" : "Loading camera…",
+      noMic: isEs ? "Acceso al micrófono denegado" : "Microphone access denied",
+      noCam: isEs ? "Acceso a la cámara denegado" : "Camera access denied",
+      youSaid: isEs ? "Tú dijiste:" : "You said:",
       mindra: isEs ? "Mindra:" : "Mindra:",
-      tryAgain: isEs ? "Try again." : "Try again.",
-      signIn: isEs ? "Please sign in to use premium voice." : "Please sign in to use premium voice.",
-      unavailable: isEs ? "Premium voice is not available right now." : "Premium voice is not available right now.",
+      signIn: isEs ? "Inicia sesión para usar voz premium." : "Please sign in to use premium voice.",
+      unavailable: isEs
+        ? "La voz premium no está disponible ahora."
+        : "Premium voice is not available right now.",
+      recorderNotSupported: isEs ? "Grabación no soportada en este navegador" : "Recording is not supported in this browser",
     };
   }, [lang]);
 
-  // --- init camera + mic ---
+  // --- init camera + mic once ---
   useEffect(() => {
     let mounted = true;
 
     const start = async () => {
       try {
+        setLocalNotice(null);
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
 
         if (!mounted) return;
+
         streamRef.current = stream;
 
         if (videoRef.current) {
@@ -87,64 +120,82 @@ export default function FaceToFacePanel({
 
     return () => {
       mounted = false;
-      // stop tracks
       try {
         streamRef.current?.getTracks().forEach((t) => t.stop());
       } catch {}
       streamRef.current = null;
+
+      try {
+        recorderRef.current?.stop();
+      } catch {}
+      recorderRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, []); // важно: не зависим от lang, иначе дергаешь разрешения снова
 
   const stopRecorderSafe = () => {
     try {
-      if (recorderRef.current && recorderRef.current.state !== "inactive") {
-        recorderRef.current.stop();
-      }
+      const r = recorderRef.current;
+      if (r && r.state !== "inactive") r.stop();
     } catch {}
   };
 
   const startRecording = async () => {
-    setLocalNotice(null);
-    onVoiceNotice?.(null);
-
-    if (recState === "sending") return;
-    if (!streamRef.current) {
-      setLocalNotice(localeText.noMic);
-      return;
-    }
-
-    // choose best mime
-    const candidates = [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "audio/ogg;codecs=opus",
-      "audio/ogg",
-    ];
-    const mimeType = candidates.find((m) => MediaRecorder.isTypeSupported(m)) || "";
-
     try {
+      setLocalNotice(null);
+      onVoiceNotice?.(null);
+
+      if (recState === "sending") return;
+      if (!streamRef.current) {
+        setLocalNotice(localeText.noMic);
+        return;
+      }
+
+      if (typeof MediaRecorder === "undefined") {
+        setLocalNotice(localeText.recorderNotSupported);
+        return;
+      }
+
+      // если уже пишем — выходим
+      if (recorderRef.current && recorderRef.current.state === "recording") return;
+
       chunksRef.current = [];
+
+      const mimeType = pickMimeType();
       const mr = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : undefined);
 
       mr.ondataavailable = (ev) => {
         if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
       };
 
+      mr.onerror = (ev) => {
+        console.log("[CALL] recorder error", ev);
+      };
+
       mr.onstop = async () => {
-        if (!isRecordingRef.current) return;
-        isRecordingRef.current = false;
+        try {
+          const usedMime = mr.mimeType || mimeType || "audio/webm";
+          const blob = new Blob(chunksRef.current, { type: usedMime });
+          chunksRef.current = [];
 
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
-        chunksRef.current = [];
+          // если вдруг пусто — просто вернёмся в idle
+          if (!blob || blob.size < 10) {
+            setRecState("idle");
+            return;
+          }
 
-        await sendTurn(blob);
+          await sendTurn(blob, usedMime);
+        } catch (e) {
+          console.log("[CALL] onstop error:", e);
+          setLocalNotice("Server error 😕");
+          setRecState("idle");
+        }
       };
 
       recorderRef.current = mr;
-      isRecordingRef.current = true;
       setRecState("recording");
       mr.start();
+      // console.log("[CALL] recorder started", mr.mimeType);
     } catch (e) {
       console.log("[CALL] recorder start error:", e);
       setLocalNotice(localeText.noMic);
@@ -158,15 +209,22 @@ export default function FaceToFacePanel({
     stopRecorderSafe();
   };
 
-  const sendTurn = async (audioBlob: Blob) => {
+  const sendTurn = async (audioBlob: Blob, mime: string) => {
     const uid = userId || "web";
     const want = wantVoice ? "1" : "0";
 
     try {
       const fd = new FormData();
-      fd.append("audio", audioBlob, "turn.webm");
+
+      const ext = extFromMime(mime || audioBlob.type || "audio/webm");
+      const fileName = `turn.${ext}`;
+
+      // важно: отправляем как File с типом
+      const file = new File([audioBlob], fileName, { type: audioBlob.type || mime || "audio/webm" });
+
+      fd.append("audio", file);
       fd.append("user_id", uid);
-      fd.append("sessionId", "call"); // можно потом сделать реальную сессию
+      fd.append("sessionId", "call");
       fd.append("feature", "call");
       fd.append("lang", lang);
       fd.append("wantVoice", want);
@@ -183,7 +241,6 @@ export default function FaceToFacePanel({
       setLastTranscript(data.transcript || "");
       setLastReply(data.reply || "");
 
-      // handle voice blocked notice
       if (data.voiceBlocked) {
         if (data.voiceReason === "login_required") {
           setLocalNotice(localeText.signIn);
@@ -197,7 +254,6 @@ export default function FaceToFacePanel({
         onVoiceNotice?.(null);
       }
 
-      // autoplay tts
       const ttsUrl = data?.tts?.audioUrl;
       if (ttsUrl && typeof ttsUrl === "string") {
         try {
@@ -224,16 +280,11 @@ export default function FaceToFacePanel({
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4">
           <div className="relative overflow-hidden rounded-2xl bg-black/30">
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              className="h-[340px] w-full object-cover"
-            />
+            <video ref={videoRef} playsInline muted className="h-[340px] w-full object-cover" />
 
             {!camReady ? (
               <div className="absolute inset-0 grid place-items-center text-sm text-[var(--muted)]">
-                {localNotice || "Loading camera…"}
+                {localNotice || localeText.loadingCam}
               </div>
             ) : null}
 
