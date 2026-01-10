@@ -47,7 +47,7 @@ export default function FaceToFacePanel({
   const streamRef = useRef<MediaStream | null>(null); // preview audio+video
   const audioOnlyRef = useRef<MediaStream | null>(null); // recorder only audio
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -163,8 +163,21 @@ export default function FaceToFacePanel({
     }
   };
 
+  const stopTts = () => {
+  const a = ttsAudioRef.current;
+  if (!a) return;
+
+  try {
+    a.pause();
+    a.currentTime = 0;
+  } catch {}
+
+  ttsAudioRef.current = null;
+};
+
   const startRecording = async () => {
     try {
+      stopTts();
       setLocalNotice(null);
       onVoiceNotice?.(null);
 
@@ -317,21 +330,22 @@ export default function FaceToFacePanel({
       const ttsUrl = data?.tts?.audioUrl;
 if (ttsUrl) {
   try {
-    // stop previous
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
+    stopTts(); // на всякий случай
 
     const a = new Audio(ttsUrl);
     a.preload = "auto";
     a.volume = 1.0;
 
-    audioRef.current = a;
+    a.onended = () => {
+      if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+    };
+
+    ttsAudioRef.current = a;
     a.play().catch(() => {});
   } catch {}
 }
+
+
 
       setRecState("idle");
     } catch (e) {
