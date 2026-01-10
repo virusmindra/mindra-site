@@ -138,7 +138,16 @@ export default function FaceToFacePanel({
       fd.append("lang", lang);
       fd.append("wantVoice", want);
 
-      const res = await fetch("/api/call/turn", { method: "POST", body: fd });
+      const res = await (async () => {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 25000); // 25s
+  try {
+    return await fetch("/api/call/turn", { method: "POST", body: fd, signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
+})();
+
       const data: TurnResponse = await res.json().catch(() => ({}));
 
       if (!data || data.ok === false) {
@@ -170,12 +179,12 @@ export default function FaceToFacePanel({
 
       setRecState("idle");
       setTapModeRecording(false);
-    } catch (e) {
-      console.log("[CALL] sendTurn error:", e);
-      setLocalNotice("Server error 😕");
-      setRecState("idle");
-      setTapModeRecording(false);
-    }
+    } catch (e: any) {
+  console.log("[CALL] sendTurn error:", e);
+  setLocalNotice(e?.name === "AbortError" ? "Timeout 😕 (server not responding)" : "Server error 😕");
+  setRecState("idle");
+}
+
   };
 
   const startRecording = () => {
