@@ -1357,11 +1357,14 @@ return (
               voiceNotice={voiceNotice}
             />
           </div>
-        ) : activeFeature === "call" ? (
-          <div className="flex-1 overflow-y-auto">
-            <FaceToFacePanel />
-          </div>
-        ) : (
+          ) : activeFeature === "call" ? (
+            <FaceToFacePanel
+              userId={getOrCreateWebUid()}
+              lang={locale.toLowerCase().startsWith("es") ? "es" : "en"}
+              wantVoice={premiumVoiceEnabled}
+              onVoiceNotice={(msg) => setVoiceNotice(msg)}
+            />
+          ) : (
           <>
             <ChatWindow
               messages={current ? current.messages : []}
