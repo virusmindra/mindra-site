@@ -615,6 +615,8 @@ export default function ClientPage() {
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+
   const [lastGoalSuggestion, setLastGoalSuggestion] = useState<{ text: string } | null>(null);
   const [lastHabitSuggestion, setLastHabitSuggestion] = useState<{ text: string } | null>(null);
 
@@ -724,6 +726,7 @@ const pushToFeatureChat = (feature: ChatFeature, content: string) => {
 };
 
   const handleChangeFeature = (feature: ChatFeature) => {
+    setVoiceNotice(null);
   setActiveFeature(feature);
   setLastGoalSuggestion(null);
   setLastHabitSuggestion(null);
@@ -1059,6 +1062,8 @@ const markGoalDone = async (goalId: string) => {
     }
   };
 
+const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
+
 const handleSend = async (text: string) => {
   const trimmed = text.trim();
   if (!trimmed) return;
@@ -1189,6 +1194,7 @@ const handleSend = async (text: string) => {
     feature: activeFeature,
     user_id: uid,
     lang, // 👈 КРИТИЧНО
+    wantVoice: premiumVoiceEnabled,
   }),
     });
 
@@ -1197,6 +1203,41 @@ const handleSend = async (text: string) => {
     let habitSuggestion: { text: string } | null = null;
 
     const data = await res.json().catch(() => null);
+
+// ✅ voice gating
+if (data?.voiceBlocked) {
+  // выключаем тумблер сразу
+  setPremiumVoiceEnabled(false);
+
+  if (data?.voiceReason === "login_required") {
+    setVoiceNotice("To use Premium voice, please sign in 🙂");
+
+    updateCurrentSession((prev) => ({
+      ...prev,
+      messages: [
+        ...(prev.messages || []),
+        { role: "assistant", content: "To use Premium voice, please sign in 🙂", ts: Date.now() },
+      ],
+      updatedAt: Date.now(),
+    }));
+
+    setSending(false);
+    return; // ✅ выходим, чтобы дальше не обрабатывать как обычный ответ
+  }
+
+  // любые другие причины (лимиты и т.д.)
+  setVoiceNotice("Premium voice is temporarily unavailable 😕");
+}
+
+
+    const ttsUrl = data?.tts?.audioUrl;
+  if (ttsUrl && typeof ttsUrl === "string") {
+    try {
+      const audio = new Audio(ttsUrl);
+      audio.play().catch(() => {});
+   } catch {}
+  }
+
 
     if (data?.reply && typeof data.reply === "string" && data.reply.trim()) {
       replyText = data.reply.trim();
@@ -1248,6 +1289,8 @@ const handleSend = async (text: string) => {
 };
 
 const locale = getLocaleFromPath();
+const showVoiceToggle =
+  activeFeature === "default" || activeFeature === "goals" || activeFeature === "habits";
 
 return (
   <div className="h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
@@ -1270,24 +1313,47 @@ return (
         ) : (
           <>
             <ChatWindow
-              messages={current ? current.messages : []}
-              activeFeature={activeFeature}
-              goalSuggestion={lastGoalSuggestion}
-              habitSuggestion={lastHabitSuggestion}
-              onSaveGoal={saveAsGoal}
-              onSaveHabit={saveAsHabit}
-              onMarkGoalDone={markGoalDone}
-              onMarkHabitDone={markHabitDone}
-              pendingReminder={pendingReminder}
-              onConfirmReminder={createPendingReminder}
-              onCancelReminder={() => setPendingReminder(null)}
-              reminderBusy={reminderBusy}
-              currentSessionId={current?.id}
-              locale={locale}
-              goalDone={Boolean((current as any)?.goalDone)}
-              habitDone={Boolean((current as any)?.habitDone)}
-            />
-            <Composer onSend={handleSend} disabled={sending} />
+            messages={current ? current.messages : []}
+            activeFeature={activeFeature}
+            goalSuggestion={lastGoalSuggestion}
+            habitSuggestion={lastHabitSuggestion}
+            onSaveGoal={saveAsGoal}
+            onSaveHabit={saveAsHabit}
+            onMarkGoalDone={markGoalDone}
+            onMarkHabitDone={markHabitDone}
+            pendingReminder={pendingReminder}
+            onConfirmReminder={createPendingReminder}
+            onCancelReminder={() => setPendingReminder(null)}
+            reminderBusy={reminderBusy}
+            currentSessionId={current?.id}
+            locale={locale}
+            goalDone={Boolean((current as any)?.goalDone)}
+            habitDone={Boolean((current as any)?.habitDone)}
+          />
+          {/* ✅ Premium voice toggle (показываем только когда не settings и не reminders) */}
+          {showVoiceToggle ? (
+  <div className="border-t border-[var(--border)] bg-[var(--bg)]">
+    <div className="mx-auto max-w-3xl px-6 py-2 flex items-center justify-end gap-2">
+      <label className="text-xs text-[var(--muted)] select-none">Premium voice</label>
+      <input
+        type="checkbox"
+        checked={premiumVoiceEnabled}
+        onChange={(e) => {
+          setVoiceNotice(null);
+          setPremiumVoiceEnabled(e.target.checked);
+        }}
+      />
+    </div>
+
+    {voiceNotice ? (
+      <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
+        {voiceNotice}
+      </div>
+    ) : null}
+  </div>
+) : null}
+          <Composer onSend={handleSend} disabled={sending} />
+
           </>
         )}
       </main>

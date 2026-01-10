@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
-import type { ChatSession, ChatFeature } from './types';
+import type { ChatSession, ChatFeature } from '@/components/chat/types';
 
 type Props = {
   sessions: ChatSession[];

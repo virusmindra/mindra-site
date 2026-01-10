@@ -70,19 +70,70 @@ model Entitlement {
   userId             String   @id
   plus               Boolean  @default(false)
   pro                Boolean  @default(false)
+
+  /**
+   * Premium voice flag:
+   * - если false: ElevenLabs недоступен, только текст/лайт-голос (если будет)
+   * - если true: списываем секунды из voiceSecondsTotal/Used
+   */
   tts                Boolean  @default(false)
+
+  /**
+   * ✅ Единая валюта: voice seconds (ElevenLabs)
+   * Plus: 120*60
+   * Pro:  300*60
+   */
+  voiceSecondsTotal  Int      @default(0)
+  voiceSecondsUsed   Int      @default(0)
+
+  voicePeriodStart   DateTime?
+  voicePeriodEnd     DateTime?
+  
+  /**
+   * ✅ Daily-limit защита (опционально)
+   * dailyLimitSeconds=0 => использовать дефолт по плану (в коде)
+   */
+  dailyLimitEnabled  Boolean  @default(true)
+  dailyLimitSeconds  Int      @default(0)
+  dailySecondsUsed   Int      @default(0)
+  dailyUsedAtDate    String   @default("") // "YYYY-MM-DD"
+
+  /**
+   * Оставляем поле для совместимости (если где-то используется),
+   * но больше НЕ делаем лимит face отдельно — это та же валюта voice minutes.
+   */
   maxFaceTimeMinutes Int      @default(0)
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  voiceLedger        VoiceLedger[]
+  billingEvents      BillingEvent[]
+
   @@schema("mindra")
 }
+
 
 enum Plan {
   FREE
   PLUS
   PRO
+
+  @@schema("mindra")
+}
+
+enum VoiceUsageType {
+  TTS_CHAT
+  FACE_CALL
+
+  @@schema("mindra")
+}
+
+enum BillingEventType {
+  SUBSCRIPTION_RENEW
+  SUBSCRIPTION_CHANGE
+  TOPUP
+  MANUAL_ADJUST
 
   @@schema("mindra")
 }
@@ -230,5 +281,39 @@ model DeliveryLog {
   @@index([userId, channel, createdAt])
   @@index([reminderId, createdAt])
   @@map("delivery_logs")
+  @@schema("mindra")
+}
+
+model VoiceLedger {
+  id        String   @id @default(uuid())
+  userId    String
+  type      VoiceUsageType
+  seconds   Int
+  sessionId String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  entitlement Entitlement @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@schema("mindra")
+}
+
+model BillingEvent {
+  id            String           @id @default(uuid())
+  userId        String
+  type          BillingEventType
+  planFrom      Plan?
+  planTo        Plan?
+  secondsAdded  Int              @default(0)
+  amountCents   Int              @default(0)
+  currency      String           @default("usd")
+  stripeEventId String?          @unique
+  meta          Json?
+  createdAt     DateTime         @default(now())
+
+  entitlement   Entitlement @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, createdAt])
   @@schema("mindra")
 }

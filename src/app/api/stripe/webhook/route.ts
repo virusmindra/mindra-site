@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/server/prisma';
 import { recomputeEntitlements } from '@/lib/entitlements';
+import { syncVoiceEntitlementsFromStripe } from '@/lib/voice/stripe-sync';
 
 // price_id -> план/срок
 const PRICE_TO_PLAN: Record<
@@ -28,6 +29,13 @@ function priceToInfo(priceId?: string | null) {
   return priceId ? PRICE_TO_PLAN[priceId] : undefined;
 }
 
+function eventTypeForSubscriptionEvent(eType: string): 'SUBSCRIPTION_RENEW' | 'SUBSCRIPTION_CHANGE' {
+  // created/resumed/updated считаем "change", а renew определяем по смене periodEnd внутри sync (isNewPeriod)
+  // Но для аналитики: updated -> change, created/resumed -> change.
+  if (eType === 'customer.subscription.updated') return 'SUBSCRIPTION_CHANGE';
+  return 'SUBSCRIPTION_CHANGE';
+}
+
 export async function POST(req: NextRequest) {
   const sig = req.headers.get('stripe-signature');
   if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -47,7 +55,6 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.resumed': {
-      // ВАЖНО: any — чтобы обойти конфликт типов (Prisma Subscription vs Stripe Subscription)
       const s: any = event.data.object;
       const customerId = s.customer as string;
 
@@ -59,16 +66,33 @@ export async function POST(req: NextRequest) {
       const priceId = s.items?.data?.[0]?.price?.id ?? null;
       const info = priceToInfo(priceId);
 
+      const plan = (info?.plan ?? rec.plan) as any;
+      const term = (info?.term ?? rec.term) ?? null;
+
+      const periodStart = s.current_period_start ? new Date(s.current_period_start * 1000) : null;
+      const periodEnd = s.current_period_end ? new Date(s.current_period_end * 1000) : null;
+
       await prisma.subscription.update({
         where: { userId: rec.userId },
         data: {
           status: s.status,
-          plan: (info?.plan ?? rec.plan) as any,
-          term: (info?.term ?? rec.term) ?? null,
+          plan,
+          term,
           stripeSubscription: s.id,
-          currentPeriodEnd: s.current_period_end ? new Date(s.current_period_end * 1000) : null,
+          currentPeriodEnd: periodEnd,
         },
       });
+
+      await syncVoiceEntitlementsFromStripe({
+        userId: rec.userId,
+        plan,
+        status: s.status,
+        periodStart,
+        periodEnd,
+        stripeEventId: event.id,
+        eventType: eventTypeForSubscriptionEvent(event.type),
+      });
+
       await recomputeEntitlements(rec.userId);
       return NextResponse.json({ ok: true });
     }
@@ -82,13 +106,30 @@ export async function POST(req: NextRequest) {
       });
       if (!rec) return NextResponse.json({ ok: true });
 
+      const endedAt = s.ended_at ? new Date(s.ended_at * 1000) : new Date();
+
       await prisma.subscription.update({
         where: { userId: rec.userId },
         data: {
           status: 'canceled',
-          currentPeriodEnd: s.ended_at ? new Date(s.ended_at * 1000) : new Date(),
+          plan: 'FREE' as any,
+          term: null,
+          stripeSubscription: null,
+          currentPeriodEnd: endedAt,
         },
       });
+
+      // при удалении подписки отключаем голос/минуты
+      await syncVoiceEntitlementsFromStripe({
+        userId: rec.userId,
+        plan: 'FREE',
+        status: 'canceled',
+        periodStart: null,
+        periodEnd: null,
+        stripeEventId: event.id,
+        eventType: 'SUBSCRIPTION_CHANGE',
+      });
+
       await recomputeEntitlements(rec.userId);
       return NextResponse.json({ ok: true });
     }
@@ -102,27 +143,45 @@ export async function POST(req: NextRequest) {
       });
       if (!rec) return NextResponse.json({ ok: true });
 
+      // subscription checkout -> подтянем subscription из Stripe (фоллбек)
       if (session.mode === 'subscription' && session.subscription) {
-        // any — чтобы не спорить с Response<Subscription>
         const sub: any = await stripe.subscriptions.retrieve(session.subscription as string);
 
         const priceId = sub.items?.data?.[0]?.price?.id ?? null;
         const info = priceToInfo(priceId);
 
+        const plan = (info?.plan ?? rec.plan) as any;
+        const term = (info?.term ?? rec.term) ?? null;
+
+        const periodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000) : null;
+        const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+
         await prisma.subscription.update({
           where: { userId: rec.userId },
           data: {
             status: sub.status,
-            plan: (info?.plan ?? rec.plan) as any,
-            term: (info?.term ?? rec.term) ?? null,
+            plan,
+            term,
             stripeSubscription: sub.id,
-            currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+            currentPeriodEnd: periodEnd,
           },
         });
+
+        await syncVoiceEntitlementsFromStripe({
+          userId: rec.userId,
+          plan,
+          status: sub.status,
+          periodStart,
+          periodEnd,
+          stripeEventId: event.id,
+          eventType: 'SUBSCRIPTION_CHANGE',
+        });
+
         await recomputeEntitlements(rec.userId);
         return NextResponse.json({ ok: true });
       }
 
+      // one-time payment (lifetime)
       if (session.mode === 'payment') {
         await prisma.subscription.update({
           where: { userId: rec.userId },
@@ -133,6 +192,9 @@ export async function POST(req: NextRequest) {
             currentPeriodEnd: null,
           },
         });
+
+        // если lifetime = PRO/PLUS у тебя по price mapping — можно расширить.
+        // Сейчас просто пересчитываем энтайтлменты по твоей логике.
         await recomputeEntitlements(rec.userId);
         return NextResponse.json({ ok: true });
       }

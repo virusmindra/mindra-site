@@ -24,4 +24,8 @@ export type ChatSession = {
   feature?: ChatFeature;
   goalId?: string;
   habitId?: string;
+
+  // если ты используешь эти флаги — лучше добавить:
+  goalDone?: boolean;
+  habitDone?: boolean;
 };
