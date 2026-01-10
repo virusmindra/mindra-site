@@ -47,6 +47,8 @@ export default function FaceToFacePanel({
   const streamRef = useRef<MediaStream | null>(null); // preview audio+video
   const audioOnlyRef = useRef<MediaStream | null>(null); // recorder only audio
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
@@ -313,12 +315,23 @@ export default function FaceToFacePanel({
       }
 
       const ttsUrl = data?.tts?.audioUrl;
-      if (ttsUrl) {
-        try {
-          const a = new Audio(ttsUrl);
-          a.play().catch(() => {});
-        } catch {}
-      }
+if (ttsUrl) {
+  try {
+    // stop previous
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+
+    const a = new Audio(ttsUrl);
+    a.preload = "auto";
+    a.volume = 1.0;
+
+    audioRef.current = a;
+    a.play().catch(() => {});
+  } catch {}
+}
 
       setRecState("idle");
     } catch (e) {
