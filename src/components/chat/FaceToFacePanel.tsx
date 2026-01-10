@@ -19,20 +19,21 @@ type TurnResponse = {
   error?: string;
 };
 
-function pickMimeType() {
-  const candidates = [
+function pickMimeCandidates() {
+  return [
     "audio/webm;codecs=opus",
     "audio/webm",
     "audio/ogg;codecs=opus",
     "audio/ogg",
     "audio/mp4", // Safari иногда
   ];
-  for (const t of candidates) {
-    try {
-      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) return t;
-    } catch {}
-  }
-  return "";
+}
+
+function extFromMime(mime: string) {
+  const m = (mime || "").toLowerCase();
+  if (m.includes("ogg")) return "ogg";
+  if (m.includes("mp4")) return "mp4";
+  return "webm";
 }
 
 export default function FaceToFacePanel({
@@ -42,15 +43,17 @@ export default function FaceToFacePanel({
   onVoiceNotice,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+
+  const streamRef = useRef<MediaStream | null>(null); // preview audio+video
+  const audioOnlyRef = useRef<MediaStream | null>(null); // recorder only audio
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  const stoppingRef = useRef(false);
+
+  const stopGuardTimerRef = useRef<number | null>(null);
 
   const [camReady, setCamReady] = useState(false);
   const [recState, setRecState] = useState<"idle" | "recording" | "sending">("idle");
-  const [tapModeRecording, setTapModeRecording] = useState(false);
 
   const [lastTranscript, setLastTranscript] = useState("");
   const [lastReply, setLastReply] = useState("");
@@ -61,32 +64,43 @@ export default function FaceToFacePanel({
     return {
       title: "Call",
       subtitle: isEs ? "Toca para hablar con Mindra" : "Tap to talk with Mindra",
-      tap: isEs ? "Toca para hablar" : "Tap to talk",
-      recording: isEs ? "● Grabando…" : "● Recording…",
+      tap: isEs ? "Tocar para hablar" : "Tap to talk",
+      stop: isEs ? "Detener" : "Stop",
       sending: isEs ? "Enviando…" : "Sending…",
+      loading: isEs ? "Cargando cámara…" : "Loading camera…",
       noMic: isEs ? "Acceso al micrófono denegado" : "Microphone access denied",
       noCam: isEs ? "Acceso a la cámara denegado" : "Camera access denied",
+      recNoSupport: isEs ? "Grabación no soportada" : "Recording is not supported",
       youSaid: isEs ? "Tú dijiste:" : "You said:",
       mindra: isEs ? "Mindra:" : "Mindra:",
       signIn: isEs ? "Inicia sesión para usar voz premium." : "Please sign in to use premium voice.",
-      unavailable: isEs ? "Voz premium no disponible ahora." : "Premium voice is not available right now.",
-      loading: isEs ? "Cargando cámara…" : "Loading camera…",
+      unavailable: isEs ? "La voz premium no está disponible ahora." : "Premium voice is not available right now.",
+      recError: isEs ? "No pude iniciar la grabación 🙈" : "Could not start recording 🙈",
+      stopError: isEs ? "No pude detener la grabación 🙈" : "Could not stop recording 🙈",
+      empty: isEs ? "No capté audio 🙈" : "No audio captured 🙈",
     };
   }, [lang]);
 
-  // init cam + mic
   useEffect(() => {
     let mounted = true;
 
     const start = async () => {
       try {
+        setLocalNotice(null);
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
 
         if (!mounted) return;
+
         streamRef.current = stream;
+        audioOnlyRef.current = new MediaStream(stream.getAudioTracks());
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -94,7 +108,6 @@ export default function FaceToFacePanel({
         }
 
         setCamReady(true);
-        setLocalNotice(null);
       } catch (e) {
         console.log("[CALL] getUserMedia error:", e);
         setCamReady(false);
@@ -106,54 +119,180 @@ export default function FaceToFacePanel({
 
     return () => {
       mounted = false;
+
+      try {
+        if (recorderRef.current && recorderRef.current.state !== "inactive") {
+          recorderRef.current.stop();
+        }
+      } catch {}
+      recorderRef.current = null;
+
+      if (stopGuardTimerRef.current) {
+        window.clearTimeout(stopGuardTimerRef.current);
+        stopGuardTimerRef.current = null;
+      }
+
       try {
         streamRef.current?.getTracks().forEach((t) => t.stop());
       } catch {}
       streamRef.current = null;
+      audioOnlyRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const stopRecorderSafe = () => {
-  try {
-    const r = recorderRef.current;
-    if (r && r.state !== "inactive") {
-      try { r.requestData(); } catch {}
-      r.stop();
+  const createRecorder = (stream: MediaStream) => {
+    if (typeof MediaRecorder === "undefined") return null;
+
+    // кандидаты
+    for (const mt of pickMimeCandidates()) {
+      try {
+        if (MediaRecorder.isTypeSupported(mt)) {
+          return new MediaRecorder(stream, { mimeType: mt });
+        }
+      } catch {}
     }
-  } catch {}
-};
 
+    // fallback без mimeType
+    try {
+      return new MediaRecorder(stream);
+    } catch {
+      return null;
+    }
+  };
 
-  const sendTurn = async (audioBlob: Blob) => {
+  const startRecording = async () => {
+    try {
+      setLocalNotice(null);
+      onVoiceNotice?.(null);
+
+      if (recState === "sending") return;
+      if (!audioOnlyRef.current) {
+        setLocalNotice(localeText.noMic);
+        return;
+      }
+      if (typeof MediaRecorder === "undefined") {
+        setLocalNotice(localeText.recNoSupport);
+        return;
+      }
+      if (recorderRef.current && recorderRef.current.state === "recording") return;
+
+      chunksRef.current = [];
+
+      const mr = createRecorder(audioOnlyRef.current);
+      if (!mr) {
+        setLocalNotice(localeText.recNoSupport);
+        return;
+      }
+
+      mr.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
+      };
+
+      mr.onstop = async () => {
+        // ✅ ВАЖНО: именно здесь начинается "sending"
+        setRecState("sending");
+
+        // стоп-таймер больше не нужен
+        if (stopGuardTimerRef.current) {
+          window.clearTimeout(stopGuardTimerRef.current);
+          stopGuardTimerRef.current = null;
+        }
+
+        try {
+          const usedMime = mr.mimeType || "audio/webm";
+          const blob = new Blob(chunksRef.current, { type: usedMime });
+          chunksRef.current = [];
+
+          if (!blob || blob.size < 2000) {
+            setLocalNotice(localeText.empty);
+            setRecState("idle");
+            return;
+          }
+
+          await sendTurn(blob, usedMime);
+        } catch (e) {
+          console.log("[CALL] onstop error:", e);
+          setLocalNotice("Server error 😕");
+          setRecState("idle");
+        }
+      };
+
+      recorderRef.current = mr;
+      setRecState("recording");
+
+      // ✅ timeslice помогает, чтобы dataavailable точно прилетал
+      mr.start(250);
+    } catch (e) {
+      console.log("[CALL] recorder start error:", e);
+      setLocalNotice(localeText.recError);
+      setRecState("idle");
+    }
+  };
+
+  const stopRecording = () => {
+    try {
+      const r = recorderRef.current;
+
+      // ✅ если реально не пишем — не зависаем
+      if (!r || r.state !== "recording") {
+        setRecState("idle");
+        return;
+      }
+
+      // ✅ страховка: если onstop не придёт за 2.5 сек — возвращаем UI
+      if (stopGuardTimerRef.current) window.clearTimeout(stopGuardTimerRef.current);
+      stopGuardTimerRef.current = window.setTimeout(() => {
+        console.log("[CALL] stop guard fired (onstop not received)");
+        setLocalNotice(localeText.stopError);
+        setRecState("idle");
+        try {
+          if (recorderRef.current && recorderRef.current.state !== "inactive") {
+            recorderRef.current.stop();
+          }
+        } catch {}
+      }, 2500);
+
+      r.stop();
+      // ❗ НЕ ставим sending здесь
+    } catch (e) {
+      console.log("[CALL] stopRecording error:", e);
+      setLocalNotice(localeText.stopError);
+      setRecState("idle");
+    }
+  };
+
+  const toggleRecording = () => {
+    if (recState === "recording") stopRecording();
+    else startRecording();
+  };
+
+  const sendTurn = async (audioBlob: Blob, mime: string) => {
     const uid = userId || "web";
     const want = wantVoice ? "1" : "0";
 
     try {
       const fd = new FormData();
-      fd.append("audio", audioBlob, "turn.webm");
+
+      const ext = extFromMime(mime || audioBlob.type || "audio/webm");
+      const fileName = `turn.${ext}`;
+      const file = new File([audioBlob], fileName, { type: audioBlob.type || mime || "audio/webm" });
+
+      fd.append("audio", file);
       fd.append("user_id", uid);
       fd.append("sessionId", "call");
       fd.append("feature", "call");
       fd.append("lang", lang);
       fd.append("wantVoice", want);
 
-      const res = await (async () => {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 25000); // 25s
-  try {
-    return await fetch("/api/call/turn", { method: "POST", body: fd, signal: controller.signal });
-  } finally {
-    clearTimeout(t);
-  }
-})();
+      // ✅ Вот тут ДОЛЖЕН появиться /api/call/turn в Network
+      const res = await fetch("/api/call/turn", { method: "POST", body: fd });
 
       const data: TurnResponse = await res.json().catch(() => ({}));
 
       if (!data || data.ok === false) {
         setLocalNotice(data?.error || "Server error 😕");
         setRecState("idle");
-        setTapModeRecording(false);
         return;
       }
 
@@ -161,16 +300,20 @@ export default function FaceToFacePanel({
       setLastReply(data.reply || "");
 
       if (data.voiceBlocked) {
-        const msg = data.voiceReason === "login_required" ? localeText.signIn : localeText.unavailable;
-        setLocalNotice(msg);
-        onVoiceNotice?.(msg);
+        if (data.voiceReason === "login_required") {
+          setLocalNotice(localeText.signIn);
+          onVoiceNotice?.(localeText.signIn);
+        } else {
+          setLocalNotice(localeText.unavailable);
+          onVoiceNotice?.(localeText.unavailable);
+        }
       } else {
         setLocalNotice(null);
         onVoiceNotice?.(null);
       }
 
       const ttsUrl = data?.tts?.audioUrl;
-      if (ttsUrl && typeof ttsUrl === "string") {
+      if (ttsUrl) {
         try {
           const a = new Audio(ttsUrl);
           a.play().catch(() => {});
@@ -178,71 +321,11 @@ export default function FaceToFacePanel({
       }
 
       setRecState("idle");
-      setTapModeRecording(false);
-    } catch (e: any) {
-  console.log("[CALL] sendTurn error:", e);
-  setLocalNotice(e?.name === "AbortError" ? "Timeout 😕 (server not responding)" : "Server error 😕");
-  setRecState("idle");
-}
-
-  };
-
-  const startRecording = () => {
-    if (recState === "sending") return;
-    if (!streamRef.current) {
-      setLocalNotice(localeText.noMic);
-      return;
-    }
-
-    setLocalNotice(null);
-    onVoiceNotice?.(null);
-
-    try {
-      chunksRef.current = [];
-      stoppingRef.current = false;
-
-      // ✅ записываем ТОЛЬКО аудио
-      const audioOnly = new MediaStream(streamRef.current.getAudioTracks());
-
-      const mimeType = pickMimeType();
-      const mr = new MediaRecorder(audioOnly, mimeType ? { mimeType } : undefined);
-
-      mr.ondataavailable = (ev) => {
-        if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
-      };
-
-      mr.onstop = async () => {
-        // защита от двойного stop
-        if (!stoppingRef.current) return;
-        stoppingRef.current = false;
-
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
-        chunksRef.current = [];
-
-        await sendTurn(blob);
-      };
-
-      recorderRef.current = mr;
-      setRecState("recording");
-      setTapModeRecording(true);
-      mr.start(250); // можно давать таймслайсы
     } catch (e) {
-      console.log("[CALL] recorder start error:", e);
-      setLocalNotice(localeText.noMic);
+      console.log("[CALL] sendTurn error:", e);
+      setLocalNotice("Server error 😕");
       setRecState("idle");
-      setTapModeRecording(false);
     }
-  };
-
-  const stopRecording = () => {
-    if (recState !== "recording") return;
-    setRecState("sending");
-    stopRecorderSafe();
-  };
-
-  const toggleTap = () => {
-    if (tapModeRecording) stopRecording();
-    else startRecording();
   };
 
   return (
@@ -265,7 +348,7 @@ export default function FaceToFacePanel({
 
             <div className="absolute inset-x-0 bottom-4 flex justify-center">
               <button
-                onClick={toggleTap}
+                onClick={toggleRecording}
                 className={[
                   "rounded-full px-5 py-2 text-sm font-medium",
                   "border border-[var(--border)]",
@@ -277,7 +360,7 @@ export default function FaceToFacePanel({
                 {recState === "sending"
                   ? localeText.sending
                   : recState === "recording"
-                  ? localeText.recording
+                  ? `● ${localeText.stop}`
                   : localeText.tap}
               </button>
             </div>
