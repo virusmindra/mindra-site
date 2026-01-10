@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef} from 'react';
 import Sidebar from '@/components/chat/Sidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import Composer from '@/components/chat/Composer';
@@ -626,6 +626,7 @@ export default function ClientPage() {
   const [reminderBusy, setReminderBusy] = useState(false);
 
 
+
   useEffect(() => {
     const stored = loadSessions();
     if (stored.length > 0) {
@@ -778,7 +779,7 @@ const markHabitDone = async (habitId: string) => {
         habitDone: false,
         messages: [
           ...(prev.messages || []),
-          { role: 'assistant', content: `Не получилось отметить привычку 😕 (status ${res.status})\n${detail}`, ts: Date.now() },
+          { role: 'assistant', content: `I couldn't mark the habit as completed 😕 (status ${res.status})\n${detail}`, ts: Date.now() },
         ],
         updatedAt: Date.now(),
       }));
@@ -908,7 +909,7 @@ const saveAsHabit = async (habitText: string) => {
           messages: [
             {
               role: 'assistant',
-              content: `Ок ✅ Привычка добавлена: "${habitText}".\nХочешь, сделаем её удобной по времени? 🙂`,
+              content: `Okay ✅ Habit added: "${habitText}".\nDo you want us to make it more convenient in terms of time? 🙂`,
               ts: now + 1,
             },
           ],
@@ -960,7 +961,7 @@ const markGoalDone = async (goalId: string) => {
           ...(prev.messages || []),
           {
             role: 'assistant',
-            content: `Не получилось отметить цель 😕 (status ${res.status})\n${detail}`,
+            content: `I couldn't mark the target 😕 (status ${res.status})\n${detail}`,
             ts: Date.now(),
           },
         ],
@@ -990,7 +991,7 @@ const markGoalDone = async (goalId: string) => {
       goalDone: false,
       messages: [
         ...(prev.messages || []),
-        { role: 'assistant', content: 'Ошибка сети 😕 Попробуй ещё раз.', ts: Date.now() },
+        { role: 'assistant', content: 'Network error 😕 Please try again.', ts: Date.now() },
       ],
       updatedAt: Date.now(),
     }));
@@ -1017,7 +1018,7 @@ const markGoalDone = async (goalId: string) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: 'Тренировка',
+            title: 'Training',
             cadence: 'weekly',
             targetPerWeek: 3,
             user_id: uid, // если habits API не принимает user_id — можешь убрать
@@ -1065,6 +1066,7 @@ const markGoalDone = async (goalId: string) => {
 const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
 
 const VOICE_KEY = "mindra_premium_voice";
+const audioRef = useRef<HTMLAudioElement | null>(null);
 
 useEffect(() => {
   if (typeof window === "undefined") return;
@@ -1125,7 +1127,6 @@ const handleSend = async (text: string) => {
     if (l.startsWith("es")) {
       return `Perfecto ✅\n¿Creo el recordatorio para: **${reminderText}**?\n(Confirma abajo 👇)`;
     }
-    // default EN
     return `Got it ✅\nShould I create a reminder for: **${reminderText}**?\n(Confirm below 👇)`;
   };
 
@@ -1133,9 +1134,6 @@ const handleSend = async (text: string) => {
   try {
     if (activeFeature === "reminders") {
       const parsed = parseNaturalTime(trimmed, normLocale(locale));
-
-      console.log("[REMINDER] feature=", activeFeature, "text=", trimmed);
-      console.log("[REMINDER] parsed=", parsed);
 
       if (parsed) {
         const now = new Date();
@@ -1153,11 +1151,9 @@ const handleSend = async (text: string) => {
           if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
         }
 
-        // clean reminder text
         const stripReminderPhraseLocal = (raw: string) => {
           let s = raw.trim();
 
-          // leading phrases (EN/ES/RU)
           s = s
             .replace(
               /^\s*(напомни(ть)?(\s+мне)?|поставь(\s+мне)?\s+напоминание|сделай\s+напоминание)\s*/i,
@@ -1166,7 +1162,6 @@ const handleSend = async (text: string) => {
             .replace(/^\s*(remind\s+me(\s+to)?|set\s+a\s+reminder(\s+to)?)\s*/i, "")
             .replace(/^\s*(recuérdame|recuerdame|pon\s+un\s+recordatorio|establece\s+un\s+recordatorio)\s*(que\s+)?/i, "");
 
-          // trailing time phrases
           s = s.replace(/\b(?:in|after)\s+\d+\s*(min|mins|minute|minutes|h|hr|hrs|hour|hours)\b.*$/i, "");
           s = s.replace(/\b(?:en|dentro\s+de)\s+\d+\s*(min|minuto|minutos|hora|horas)\b.*$/i, "");
           s = s.replace(/\bчерез\s+\d+\s*(м|мин|минута|минуту|минуты|минут|час|часа|часов|ч)?\b.*$/i, "");
@@ -1183,7 +1178,6 @@ const handleSend = async (text: string) => {
 
           setPendingReminder({ text: reminderText, dueUtc: due.toISOString() });
 
-          // ✅ IMPORTANT: add our own assistant message (no upstream bot)
           const preview = buildReminderPreview(locale, reminderText);
           const botMsg: ChatMessage = { role: "assistant", content: preview, ts: Date.now() };
 
@@ -1195,7 +1189,7 @@ const handleSend = async (text: string) => {
           }));
 
           setSending(false);
-          return; // ✅ stop here: prevents “I can’t set reminders…”
+          return;
         }
       }
     }
@@ -1206,75 +1200,96 @@ const handleSend = async (text: string) => {
   // ---------------- main bot request ----------------
   try {
     const res = await fetch("/api/web-chat", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    input: trimmed,
-    sessionId: current.id,
-    feature: activeFeature,
-    user_id: uid,
-    lang, // 👈 КРИТИЧНО
-    wantVoice: premiumVoiceEnabled,
-  }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        input: trimmed,
+        sessionId: current.id,
+        feature: activeFeature,
+        user_id: uid,
+        lang,
+        wantVoice: premiumVoiceEnabled,
+      }),
     });
 
-    let replyText = "Извини, сервер сейчас недоступен.";
+    let replyText = "Sorry, the server is currently unavailable.";
     let goalSuggestion: { text: string } | null = null;
     let habitSuggestion: { text: string } | null = null;
 
     const data = await res.json().catch(() => null);
+    let finalData: any = data;
 
-let finalData: any = data;
+    // 0) voiceBlocked -> выключаем тумблер + показываем notice
+    if (data?.voiceBlocked) {
+      setPremiumVoiceEnabled(false);
+      try { localStorage.setItem(VOICE_KEY, "0"); } catch {}
 
-// если voiceBlocked и reply пустой — перезапрос без голоса
-if (data?.voiceBlocked && (!data?.reply || !String(data.reply).trim())) {
-  const res2 = await fetch("/api/web-chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      input: trimmed,
-      sessionId: current.id,
-      feature: activeFeature,
-      user_id: uid,
-      lang,
-      wantVoice: false,
-    }),
-  });
+      if (data?.voiceReason === "login_required") {
+        setVoiceNotice("Please sign in to use premium voice.");
+      } else {
+        setVoiceNotice("Premium voice is not available right now.");
+      }
+    } else {
+      setVoiceNotice(null);
+    }
 
-  const data2 = await res2.json().catch(() => null);
-  if (data2) finalData = data2;
-}
+    // 1) если голос был включен, но его заблокировали ИЛИ reply пустой — перезапросим без голоса
+    const needFallback =
+      premiumVoiceEnabled && (data?.voiceBlocked || !data?.reply || !String(data.reply).trim());
 
-// теперь ВСЁ берём из finalData
-const ttsUrl = finalData?.tts?.audioUrl;
-if (ttsUrl && typeof ttsUrl === "string") {
-  try {
-    const audio = new Audio(ttsUrl);
-    audio.play().catch(() => {});
-  } catch {}
-}
+    if (needFallback) {
+      const res2 = await fetch("/api/web-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: trimmed,
+          sessionId: current.id,
+          feature: activeFeature,
+          user_id: uid,
+          lang,
+          wantVoice: false,
+        }),
+      });
 
-if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
-  replyText = finalData.reply.trim();
-}
+      const data2 = await res2.json().catch(() => null);
+      if (data2) finalData = data2;
+    }
 
-// suggestions тоже из finalData
-const intent = isIntentText(trimmed);
+    // 2) audio autoplay (если пришёл tts)
+    const ttsUrl = finalData?.tts?.audioUrl;
+    if (ttsUrl && typeof ttsUrl === "string") {
+      try {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        const a = new Audio(ttsUrl);
+        audioRef.current = a;
+        a.play().catch(() => {});
+      } catch {}
+    }
 
-if (!isGoalDiary && activeFeature === "goals" && intent) {
-  const s = finalData?.goal_suggestion?.text;
-  goalSuggestion = s ? { text: String(s) } : { text: trimmed };
-} else {
-  goalSuggestion = null;
-}
+    // 3) reply
+    if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
+      replyText = finalData.reply.trim();
+    }
 
-if (!isHabitDiary && activeFeature === "habits" && intent) {
-  const s = finalData?.habit_suggestion?.text;
-  habitSuggestion = s ? { text: String(s) } : { text: trimmed };
-} else {
-  habitSuggestion = null;
-}
+    // 4) suggestions
+    const intent = isIntentText(trimmed);
 
+    if (!isGoalDiary && activeFeature === "goals" && intent) {
+      const s = finalData?.goal_suggestion?.text;
+      goalSuggestion = s ? { text: String(s) } : { text: trimmed };
+    } else {
+      goalSuggestion = null;
+    }
+
+    if (!isHabitDiary && activeFeature === "habits" && intent) {
+      const s = finalData?.habit_suggestion?.text;
+      habitSuggestion = s ? { text: String(s) } : { text: trimmed };
+    } else {
+      habitSuggestion = null;
+    }
 
     setLastGoalSuggestion(goalSuggestion);
     setLastHabitSuggestion(habitSuggestion);
@@ -1287,10 +1302,12 @@ if (!isHabitDiary && activeFeature === "habits" && intent) {
       messages: [...prev.messages, botMsg],
       updatedAt: Date.now(),
     }));
-  } catch {
+  } catch (e) {
+    console.log("handleSend error:", e);
+
     const errMsg: ChatMessage = {
       role: "assistant",
-      content: "Ошибка сервера, попробуй ещё раз чуть позже 🙏",
+      content: "Server error, please try again later 🙏",
       ts: Date.now(),
     };
 
@@ -1304,6 +1321,7 @@ if (!isHabitDiary && activeFeature === "habits" && intent) {
     setSending(false);
   }
 };
+
 
 const locale = getLocaleFromPath();
 const showVoiceToggle =
