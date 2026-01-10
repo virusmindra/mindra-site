@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
-  userId?: string; // залогиненный id, иначе "web"
+  userId?: string;
   lang?: "en" | "es";
-  wantVoice?: boolean; // premiumVoiceEnabled
+  wantVoice?: boolean;
   onVoiceNotice?: (msg: string | null) => void;
 };
 
@@ -19,21 +19,14 @@ type TurnResponse = {
   error?: string;
 };
 
-function pickMimeType() {
-  const candidates = [
+function pickMimeCandidates() {
+  return [
     "audio/webm;codecs=opus",
     "audio/webm",
     "audio/ogg;codecs=opus",
     "audio/ogg",
-    "audio/mp4", // иногда Safari
+    "audio/mp4", // Safari иногда
   ];
-
-  for (const t of candidates) {
-    try {
-      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) return t;
-    } catch {}
-  }
-  return ""; // пусть браузер сам выберет
 }
 
 function extFromMime(mime: string) {
@@ -50,7 +43,9 @@ export default function FaceToFacePanel({
   onVoiceNotice,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+
+  const streamRef = useRef<MediaStream | null>(null);      // audio+video preview
+  const audioOnlyRef = useRef<MediaStream | null>(null);   // ONLY audio for recorder
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -58,31 +53,32 @@ export default function FaceToFacePanel({
   const [camReady, setCamReady] = useState(false);
   const [recState, setRecState] = useState<"idle" | "recording" | "sending">("idle");
 
-  const [lastTranscript, setLastTranscript] = useState<string>("");
-  const [lastReply, setLastReply] = useState<string>("");
+  const [lastTranscript, setLastTranscript] = useState("");
+  const [lastReply, setLastReply] = useState("");
   const [localNotice, setLocalNotice] = useState<string | null>(null);
 
   const localeText = useMemo(() => {
     const isEs = lang === "es";
     return {
       title: "Call",
-      subtitle: isEs ? "Mantén presionado para hablar con Mindra" : "Hold to talk with Mindra",
-      hold: isEs ? "Mantén para hablar" : "Hold to talk",
+      subtitle: isEs ? "Toca para hablar con Mindra" : "Tap to talk with Mindra",
+      tap: isEs ? "Tocar para hablar" : "Tap to talk",
+      stop: isEs ? "Detener" : "Stop",
       sending: isEs ? "Enviando…" : "Sending…",
-      loadingCam: isEs ? "Cargando cámara…" : "Loading camera…",
+      loading: isEs ? "Cargando cámara…" : "Loading camera…",
       noMic: isEs ? "Acceso al micrófono denegado" : "Microphone access denied",
       noCam: isEs ? "Acceso a la cámara denegado" : "Camera access denied",
+      recNoSupport: isEs ? "Grabación no soportada en este navegador" : "Recording is not supported in this browser",
       youSaid: isEs ? "Tú dijiste:" : "You said:",
       mindra: isEs ? "Mindra:" : "Mindra:",
       signIn: isEs ? "Inicia sesión para usar voz premium." : "Please sign in to use premium voice.",
       unavailable: isEs
         ? "La voz premium no está disponible ahora."
         : "Premium voice is not available right now.",
-      recorderNotSupported: isEs ? "Grabación no soportada en este navegador" : "Recording is not supported in this browser",
+      recError: isEs ? "No pude iniciar la grabación 🙈" : "Could not start recording 🙈",
     };
   }, [lang]);
 
-  // --- init camera + mic once ---
   useEffect(() => {
     let mounted = true;
 
@@ -103,6 +99,10 @@ export default function FaceToFacePanel({
 
         streamRef.current = stream;
 
+        // ✅ Ключевой фикс: recorder будет писать ТОЛЬКО аудио-треки
+        const audioTracks = stream.getAudioTracks();
+        audioOnlyRef.current = new MediaStream(audioTracks);
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
@@ -120,18 +120,20 @@ export default function FaceToFacePanel({
 
     return () => {
       mounted = false;
-      try {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch {}
-      streamRef.current = null;
 
       try {
         recorderRef.current?.stop();
       } catch {}
       recorderRef.current = null;
+
+      try {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+      } catch {}
+      streamRef.current = null;
+      audioOnlyRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // важно: не зависим от lang, иначе дергаешь разрешения снова
+  }, []);
 
   const stopRecorderSafe = () => {
     try {
@@ -140,45 +142,66 @@ export default function FaceToFacePanel({
     } catch {}
   };
 
+  const createRecorder = (stream: MediaStream) => {
+    if (typeof MediaRecorder === "undefined") return null;
+
+    // 1) пробуем кандидаты
+    const candidates = pickMimeCandidates();
+    for (const mt of candidates) {
+      try {
+        if (MediaRecorder.isTypeSupported(mt)) {
+          return new MediaRecorder(stream, { mimeType: mt });
+        }
+      } catch {}
+    }
+
+    // 2) пробуем вообще без mimeType (часто это спасает Safari/Chrome)
+    try {
+      return new MediaRecorder(stream);
+    } catch {
+      return null;
+    }
+  };
+
   const startRecording = async () => {
     try {
       setLocalNotice(null);
       onVoiceNotice?.(null);
 
       if (recState === "sending") return;
-      if (!streamRef.current) {
+
+      if (!audioOnlyRef.current) {
         setLocalNotice(localeText.noMic);
         return;
       }
 
       if (typeof MediaRecorder === "undefined") {
-        setLocalNotice(localeText.recorderNotSupported);
+        setLocalNotice(localeText.recNoSupport);
         return;
       }
 
-      // если уже пишем — выходим
       if (recorderRef.current && recorderRef.current.state === "recording") return;
 
       chunksRef.current = [];
 
-      const mimeType = pickMimeType();
-      const mr = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : undefined);
+      // ✅ используем audio-only stream
+      const mr = createRecorder(audioOnlyRef.current);
+
+      if (!mr) {
+        setLocalNotice(localeText.recNoSupport);
+        return;
+      }
 
       mr.ondataavailable = (ev) => {
         if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
       };
 
-      mr.onerror = (ev) => {
-        console.log("[CALL] recorder error", ev);
-      };
-
       mr.onstop = async () => {
         try {
-          const usedMime = mr.mimeType || mimeType || "audio/webm";
+          const usedMime = mr.mimeType || "audio/webm";
           const blob = new Blob(chunksRef.current, { type: usedMime });
           chunksRef.current = [];
 
-          // если вдруг пусто — просто вернёмся в idle
           if (!blob || blob.size < 10) {
             setRecState("idle");
             return;
@@ -194,11 +217,12 @@ export default function FaceToFacePanel({
 
       recorderRef.current = mr;
       setRecState("recording");
+
+      // ✅ timeslice не нужен, старт обычный
       mr.start();
-      // console.log("[CALL] recorder started", mr.mimeType);
     } catch (e) {
       console.log("[CALL] recorder start error:", e);
-      setLocalNotice(localeText.noMic);
+      setLocalNotice(localeText.recError);
       setRecState("idle");
     }
   };
@@ -207,6 +231,12 @@ export default function FaceToFacePanel({
     if (recState !== "recording") return;
     setRecState("sending");
     stopRecorderSafe();
+  };
+
+  // ✅ Toggle: клик = старт/стоп (на маке удобно)
+  const toggleRecording = () => {
+    if (recState === "recording") stopRecording();
+    else startRecording();
   };
 
   const sendTurn = async (audioBlob: Blob, mime: string) => {
@@ -218,8 +248,6 @@ export default function FaceToFacePanel({
 
       const ext = extFromMime(mime || audioBlob.type || "audio/webm");
       const fileName = `turn.${ext}`;
-
-      // важно: отправляем как File с типом
       const file = new File([audioBlob], fileName, { type: audioBlob.type || mime || "audio/webm" });
 
       fd.append("audio", file);
@@ -255,7 +283,7 @@ export default function FaceToFacePanel({
       }
 
       const ttsUrl = data?.tts?.audioUrl;
-      if (ttsUrl && typeof ttsUrl === "string") {
+      if (ttsUrl) {
         try {
           const a = new Audio(ttsUrl);
           a.play().catch(() => {});
@@ -284,22 +312,21 @@ export default function FaceToFacePanel({
 
             {!camReady ? (
               <div className="absolute inset-0 grid place-items-center text-sm text-[var(--muted)]">
-                {localNotice || localeText.loadingCam}
+                {localNotice || localeText.loading}
               </div>
             ) : null}
 
             <div className="absolute inset-x-0 bottom-4 flex justify-center">
               <button
-                onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                onMouseLeave={stopRecording}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  startRecording();
+                // ✅ и hold и toggle — всё вместе
+                onClick={toggleRecording}
+                onPointerDown={(e) => {
+                  // optional: если хочешь реально hold мышкой/тачпадом — можешь включить
+                  // но для mac без мышки удобнее toggle
+                  // startRecording();
                 }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  stopRecording();
+                onPointerUp={(e) => {
+                  // stopRecording();
                 }}
                 className={[
                   "rounded-full px-5 py-2 text-sm font-medium",
@@ -312,8 +339,8 @@ export default function FaceToFacePanel({
                 {recState === "sending"
                   ? localeText.sending
                   : recState === "recording"
-                  ? "● Recording…"
-                  : localeText.hold}
+                  ? `● ${localeText.stop}`
+                  : localeText.tap}
               </button>
             </div>
           </div>
