@@ -1064,6 +1064,26 @@ const markGoalDone = async (goalId: string) => {
 
 const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
 
+const VOICE_KEY = "mindra_premium_voice";
+
+useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  const sync = () => {
+    setPremiumVoiceEnabled(localStorage.getItem(VOICE_KEY) === "1");
+  };
+
+  sync();
+
+  window.addEventListener("mindra_premium_voice_changed", sync);
+  window.addEventListener("storage", sync);
+
+  return () => {
+    window.removeEventListener("mindra_premium_voice_changed", sync);
+    window.removeEventListener("storage", sync);
+  };
+}, []);
+
 const handleSend = async (text: string) => {
   const trimmed = text.trim();
   if (!trimmed) return;
@@ -1204,48 +1224,57 @@ const handleSend = async (text: string) => {
 
     const data = await res.json().catch(() => null);
 
-if (data?.voiceBlocked) {
-  setPremiumVoiceEnabled(false);
+let finalData: any = data;
 
-  if (data?.voiceReason === "login_required") {
-    setVoiceNotice("To use Premium voice, please sign in 🙂");
-    // НЕ пишем в чат
-    setSending(false);
-    return;
-  }
+// если voiceBlocked и reply пустой — перезапрос без голоса
+if (data?.voiceBlocked && (!data?.reply || !String(data.reply).trim())) {
+  const res2 = await fetch("/api/web-chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      input: trimmed,
+      sessionId: current.id,
+      feature: activeFeature,
+      user_id: uid,
+      lang,
+      wantVoice: false,
+    }),
+  });
 
-  setVoiceNotice("Premium voice is temporarily unavailable 😕");
-  // чат не трогаем
+  const data2 = await res2.json().catch(() => null);
+  if (data2) finalData = data2;
 }
 
-    const ttsUrl = data?.tts?.audioUrl;
-  if (ttsUrl && typeof ttsUrl === "string") {
-    try {
-      const audio = new Audio(ttsUrl);
-      audio.play().catch(() => {});
-   } catch {}
-  }
+// теперь ВСЁ берём из finalData
+const ttsUrl = finalData?.tts?.audioUrl;
+if (ttsUrl && typeof ttsUrl === "string") {
+  try {
+    const audio = new Audio(ttsUrl);
+    audio.play().catch(() => {});
+  } catch {}
+}
 
+if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
+  replyText = finalData.reply.trim();
+}
 
-    if (data?.reply && typeof data.reply === "string" && data.reply.trim()) {
-      replyText = data.reply.trim();
-    }
+// suggestions тоже из finalData
+const intent = isIntentText(trimmed);
 
-    const intent = isIntentText(trimmed);
+if (!isGoalDiary && activeFeature === "goals" && intent) {
+  const s = finalData?.goal_suggestion?.text;
+  goalSuggestion = s ? { text: String(s) } : { text: trimmed };
+} else {
+  goalSuggestion = null;
+}
 
-    if (!isGoalDiary && activeFeature === "goals" && intent) {
-      const s = data?.goal_suggestion?.text;
-      goalSuggestion = s ? { text: String(s) } : { text: trimmed };
-    } else {
-      goalSuggestion = null;
-    }
+if (!isHabitDiary && activeFeature === "habits" && intent) {
+  const s = finalData?.habit_suggestion?.text;
+  habitSuggestion = s ? { text: String(s) } : { text: trimmed };
+} else {
+  habitSuggestion = null;
+}
 
-    if (!isHabitDiary && activeFeature === "habits" && intent) {
-      const s = data?.habit_suggestion?.text;
-      habitSuggestion = s ? { text: String(s) } : { text: trimmed };
-    } else {
-      habitSuggestion = null;
-    }
 
     setLastGoalSuggestion(goalSuggestion);
     setLastHabitSuggestion(habitSuggestion);
@@ -1297,12 +1326,16 @@ return (
         {activeFeature === 'settings' ? (
           <div className="flex-1 overflow-y-auto">
             <SettingsPanel
-              premiumVoiceEnabled={premiumVoiceEnabled}
-              onTogglePremiumVoice={(v) => {
-                setPremiumVoiceEnabled(v);
-                setVoiceNotice(null); // сбрасываем notice при ручном переключении
-              }}
-              voiceNotice={voiceNotice}
+  premiumVoiceEnabled={premiumVoiceEnabled}
+  onTogglePremiumVoice={(v) => {
+    setPremiumVoiceEnabled(v);
+    setVoiceNotice(null);
+    try {
+      localStorage.setItem(VOICE_KEY, v ? "1" : "0");
+      window.dispatchEvent(new Event("mindra_premium_voice_changed"));
+    } catch {}
+  }}
+  voiceNotice={voiceNotice}
             />
           </div>
         ) : (
@@ -1325,6 +1358,11 @@ return (
               goalDone={Boolean((current as any)?.goalDone)}
               habitDone={Boolean((current as any)?.habitDone)}
             />
+            {voiceNotice ? (
+  <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
+    {voiceNotice}
+  </div>
+) : null}
 
             <Composer onSend={handleSend} disabled={sending} />
           </>
