@@ -12,6 +12,7 @@ import ReminderConfirm from "../../../../components/chat/ReminderConfirm";
 import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
 import { detectLangFromText } from "@/lib/lang/detectLang";
 import FaceToFacePanel from "@/components/chat/FaceToFacePanel";
+import CallOverlay from "@/components/chat/CallOverlay";
 
 /* ----------------------------- helpers ----------------------------- */
 function urlBase64ToUint8Array(base64String: string) {
@@ -618,6 +619,8 @@ export default function ClientPage() {
 
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
+  const [callOpen, setCallOpen] = useState(false);
+
   const [lastGoalSuggestion, setLastGoalSuggestion] = useState<{ text: string } | null>(null);
   const [lastHabitSuggestion, setLastHabitSuggestion] = useState<{ text: string } | null>(null);
 
@@ -729,6 +732,7 @@ const pushToFeatureChat = (feature: ChatFeature, content: string) => {
 
   const handleChangeFeature = (feature: ChatFeature) => {
     setVoiceNotice(null);
+    if (feature === "call") setCallOpen(true);
   setActiveFeature(feature);
   setLastGoalSuggestion(null);
   setLastHabitSuggestion(null);
@@ -1341,7 +1345,7 @@ return (
         onDelete={handleDeleteSession}
       />
 
-      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
         {activeFeature === "settings" ? (
           <div className="flex-1 overflow-y-auto">
             <SettingsPanel
@@ -1357,14 +1361,7 @@ return (
               voiceNotice={voiceNotice}
             />
           </div>
-          ) : activeFeature === "call" ? (
-            <FaceToFacePanel
-  userId={getOrCreateWebUid()}
-  lang={locale.toLowerCase().startsWith("es") ? "es" : "en"}
-  wantVoice={premiumVoiceEnabled}
-  onVoiceNotice={(msg) => setVoiceNotice(msg)}
-/>
-          ) : (
+        ) : (
           <>
             <ChatWindow
               messages={current ? current.messages : []}
@@ -1393,6 +1390,19 @@ return (
 
             <Composer onSend={handleSend} disabled={sending} />
           </>
+        )}
+
+        {/* ✅ Fullscreen Call Overlay */}
+        {callOpen && (
+          <CallOverlay
+            userId={getOrCreateWebUid()}
+            lang={locale.toLowerCase().startsWith("es") ? "es" : "en"}
+            wantVoice={premiumVoiceEnabled}
+            onClose={() => {
+              setCallOpen(false);
+              setActiveFeature("default"); // чтобы Call не был подсвечен
+            }}
+          />
         )}
       </main>
     </div>
