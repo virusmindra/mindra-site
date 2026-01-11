@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import FaceToFacePanel from "@/components/chat/FaceToFacePanel";
 
 type Props = {
   userId: string;
@@ -40,8 +39,8 @@ function extFromMime(mime: string) {
 export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const streamRef = useRef<MediaStream | null>(null);      // preview audio+video
-  const audioOnlyRef = useRef<MediaStream | null>(null);   // recorder only audio
+  const streamRef = useRef<MediaStream | null>(null); // preview audio+video
+  const audioOnlyRef = useRef<MediaStream | null>(null); // recorder only audio
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -60,6 +59,16 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
 
   const [notice, setNotice] = useState<string | null>(null);
 
+  // ✅ авто режим (VAD)
+  const [autoTalk, setAutoTalk] = useState(true);
+
+  // --- VAD refs ---
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const vadRafRef = useRef<number | null>(null);
+  const speechOnAtRef = useRef<number | null>(null);
+  const silenceOnAtRef = useRef<number | null>(null);
+
   const text = useMemo(() => {
     const isEs = lang === "es";
     return {
@@ -72,79 +81,21 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
       tap: isEs ? "Tocar para hablar" : "Tap to talk",
       sending: isEs ? "Enviando…" : "Sending…",
       stop: isEs ? "Detener" : "Stop",
+      listening: isEs ? "Escuchando…" : "Listening…",
     };
   }, [lang]);
 
-  useEffect(() => {
-    let mounted = true;
+  // -------------------- helpers --------------------
 
-    const start = async () => {
-      try {
-        setNotice(null);
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-
-        if (!mounted) return;
-
-        streamRef.current = stream;
-        audioOnlyRef.current = new MediaStream(stream.getAudioTracks());
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
-
-        setCamReady(true);
-      } catch (e) {
-        console.log("[CALL] getUserMedia error:", e);
-        setCamReady(false);
-        setNotice(text.noCam);
-      }
-    };
-
-    start();
-
-    return () => {
-      mounted = false;
-
-      // stop recorder
-      try {
-        if (recorderRef.current && recorderRef.current.state !== "inactive") {
-          recorderRef.current.stop();
-        }
-      } catch {}
-      recorderRef.current = null;
-
-      if (stopGuardTimerRef.current) {
-        window.clearTimeout(stopGuardTimerRef.current);
-        stopGuardTimerRef.current = null;
-      }
-
-      // stop tts
-      try {
-        if (ttsAudioRef.current) {
-          ttsAudioRef.current.pause();
-          ttsAudioRef.current.currentTime = 0;
-        }
-      } catch {}
-      ttsAudioRef.current = null;
-
-      // stop tracks
-      try {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch {}
-      streamRef.current = null;
-      audioOnlyRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const stopTts = () => {
+    const a = ttsAudioRef.current;
+    if (!a) return;
+    try {
+      a.pause();
+      a.currentTime = 0;
+    } catch {}
+    ttsAudioRef.current = null;
+  };
 
   const createRecorder = (stream: MediaStream) => {
     if (typeof MediaRecorder === "undefined") return null;
@@ -164,14 +115,108 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
     }
   };
 
-  const stopTts = () => {
-    const a = ttsAudioRef.current;
-    if (!a) return;
+  // ✅ VAD stop
+  const stopVAD = () => {
+    if (vadRafRef.current) {
+      cancelAnimationFrame(vadRafRef.current);
+      vadRafRef.current = null;
+    }
     try {
-      a.pause();
-      a.currentTime = 0;
+      analyserRef.current?.disconnect();
     } catch {}
-    ttsAudioRef.current = null;
+    analyserRef.current = null;
+
+    try {
+      audioCtxRef.current?.close();
+    } catch {}
+    audioCtxRef.current = null;
+
+    speechOnAtRef.current = null;
+    silenceOnAtRef.current = null;
+  };
+
+  // ✅ VAD start
+  const startVAD = (stream: MediaStream) => {
+    stopVAD();
+
+    try {
+      const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
+      const ctx: AudioContext = new AudioCtx();
+      audioCtxRef.current = ctx;
+
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = analyser;
+
+      src.connect(analyser);
+
+      const buf = new Uint8Array(analyser.fftSize);
+
+      // --- тюнинг ---
+      const START_THRESHOLD = 0.018;
+      const STOP_THRESHOLD = 0.012;
+      const START_HOLD_MS = 120;
+      const SILENCE_MS = 700;
+
+      const loop = () => {
+        vadRafRef.current = requestAnimationFrame(loop);
+
+        if (!autoTalk) return;
+        if (!micOn) return;
+        if (!analyserRef.current) return;
+
+        // когда отправляем — не трогаем
+        if (recState === "sending") return;
+
+        analyserRef.current.getByteTimeDomainData(buf);
+
+        // RMS
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = (buf[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / buf.length);
+        const now = performance.now();
+
+        const isRecording = recorderRef.current?.state === "recording";
+
+        // START
+        if (!isRecording) {
+          if (rms >= START_THRESHOLD) {
+            if (speechOnAtRef.current == null) speechOnAtRef.current = now;
+            const held = now - speechOnAtRef.current;
+            if (held >= START_HOLD_MS) {
+              silenceOnAtRef.current = null;
+              speechOnAtRef.current = null;
+              startRecording();
+            }
+          } else {
+            speechOnAtRef.current = null;
+          }
+          return;
+        }
+
+        // STOP
+        if (rms <= STOP_THRESHOLD) {
+          if (silenceOnAtRef.current == null) silenceOnAtRef.current = now;
+          const silentFor = now - silenceOnAtRef.current;
+          if (silentFor >= SILENCE_MS) {
+            silenceOnAtRef.current = null;
+            stopRecording();
+          }
+        } else {
+          silenceOnAtRef.current = null;
+        }
+      };
+
+      loop();
+    } catch (e) {
+      console.log("[CALL] VAD start error:", e);
+      stopVAD();
+    }
   };
 
   const sendTurn = async (audioBlob: Blob, mime: string) => {
@@ -200,7 +245,6 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
       setLastTranscript(data.transcript || "");
       setLastReply(data.reply || "");
 
-      // play tts if exists
       const ttsUrl = data?.tts?.audioUrl;
       if (ttsUrl) {
         try {
@@ -230,6 +274,8 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
       setNotice(null);
 
       if (recState === "sending") return;
+      if (!micOn) return;
+
       if (!audioOnlyRef.current) {
         setNotice(text.noMic);
         return;
@@ -281,7 +327,6 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
 
       recorderRef.current = mr;
       setRecState("recording");
-
       mr.start(250);
     } catch (e) {
       console.log("[CALL] recorder start error:", e);
@@ -324,6 +369,95 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
     else startRecording();
   };
 
+  // -------------------- media init --------------------
+
+  useEffect(() => {
+    let mounted = true;
+
+    const start = async () => {
+      try {
+        setNotice(null);
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        if (!mounted) return;
+
+        streamRef.current = stream;
+        audioOnlyRef.current = new MediaStream(stream.getAudioTracks());
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+
+        setCamReady(true);
+
+        // ✅ стартуем VAD сразу (если micOn)
+        if (audioOnlyRef.current && micOn) startVAD(audioOnlyRef.current);
+      } catch (e) {
+        console.log("[CALL] getUserMedia error:", e);
+        setCamReady(false);
+        setNotice(text.noCam);
+      }
+    };
+
+    start();
+
+    return () => {
+      mounted = false;
+
+      // ✅ СЮДА — stopVAD()
+      stopVAD();
+
+      // stop recorder
+      try {
+        if (recorderRef.current && recorderRef.current.state !== "inactive") {
+          recorderRef.current.stop();
+        }
+      } catch {}
+      recorderRef.current = null;
+
+      if (stopGuardTimerRef.current) {
+        window.clearTimeout(stopGuardTimerRef.current);
+        stopGuardTimerRef.current = null;
+      }
+
+      // stop tts
+      stopTts();
+
+      // stop tracks
+      try {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+      } catch {}
+      streamRef.current = null;
+      audioOnlyRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ если micOn меняется — включаем/выключаем VAD правильно
+  useEffect(() => {
+    if (!camReady) return;
+    if (!audioOnlyRef.current) return;
+
+    if (!micOn) {
+      stopRecording();
+      stopVAD();
+      return;
+    }
+
+    // включили мик обратно
+    startVAD(audioOnlyRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [micOn, camReady]);
+
   const toggleMic = () => {
     const s = streamRef.current;
     if (!s) return;
@@ -345,16 +479,34 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
   };
 
   const endCall = () => {
+    // ✅ СЮДА — stopVAD() тоже
+    stopVAD();
     stopTts();
+    try {
+      if (recorderRef.current && recorderRef.current.state === "recording") {
+        recorderRef.current.stop();
+      }
+    } catch {}
+
     try {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     } catch {}
     streamRef.current = null;
+    audioOnlyRef.current = null;
+
     onClose();
   };
 
+  // iOS/Safari: поднимаем AudioContext по жесту
+  const ensureAudioRunning = () => {
+    const ctx = audioCtxRef.current;
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-black">
+    <div className="fixed inset-0 z-[9999] bg-black" onPointerDown={ensureAudioRunning}>
       {/* background user cam */}
       <div className="absolute inset-0">
         <video ref={videoRef} playsInline muted className="h-full w-full object-cover opacity-60" />
@@ -369,7 +521,7 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
         </div>
       </div>
 
-      {/* subtitles/last turn (минимально, можно убрать позже) */}
+      {/* subtitles/last turn */}
       {(lastTranscript || lastReply) && (
         <div className="absolute left-0 right-0 bottom-[120px] z-20 px-4">
           <div className="mx-auto max-w-2xl space-y-2">
@@ -417,34 +569,54 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
           </button>
         </div>
 
-        {/* talk button */}
-        <div className="mt-5 flex justify-center">
-          <button
-            onClick={toggleTalk}
-            className={[
-              "rounded-full px-6 py-2 text-sm font-medium",
-              "border border-white/15",
-              "bg-white/10 hover:bg-white/15 text-white",
-              recState === "recording" ? "scale-[1.03]" : "",
-            ].join(" ")}
-          >
-            {recState === "sending"
-              ? text.sending
-              : recState === "recording"
-              ? `● ${text.stop}`
-              : text.tap}
-          </button>
+        {/* status */}
+        <div className="mt-4 text-center text-white/70 text-sm">
+          {!camReady ? (notice || text.loading) : null}
+          {camReady && notice ? notice : null}
+          {camReady && !notice ? (
+            recState === "recording" ? "● Recording…" : text.listening
+          ) : null}
         </div>
 
-        {!camReady && (
-          <div className="mt-4 text-center text-white/70 text-sm">
-            {notice || text.loading}
+        {/* ✅ кнопка push-to-talk: показываем ТОЛЬКО если autoTalk выключен */}
+        {!autoTalk && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={toggleTalk}
+              className={[
+                "rounded-full px-6 py-2 text-sm font-medium",
+                "border border-white/15",
+                "bg-white/10 hover:bg-white/15 text-white",
+                recState === "recording" ? "scale-[1.03]" : "",
+              ].join(" ")}
+            >
+              {recState === "sending"
+                ? text.sending
+                : recState === "recording"
+                ? `● ${text.stop}`
+                : text.tap}
+            </button>
           </div>
         )}
 
-        {camReady && notice ? (
-          <div className="mt-3 text-center text-white/70 text-sm">{notice}</div>
-        ) : null}
+        {/* маленький переключатель (можешь убрать позже) */}
+        <div className="mt-3 flex justify-center">
+          <button
+            onClick={() => {
+              const next = !autoTalk;
+              setAutoTalk(next);
+              if (!next) {
+                // ручной режим -> стопнем VAD чтобы не мешал
+                stopVAD();
+              } else if (audioOnlyRef.current && micOn) {
+                startVAD(audioOnlyRef.current);
+              }
+            }}
+            className="text-white/60 text-xs underline underline-offset-4"
+          >
+            {autoTalk ? "Auto: ON" : "Auto: OFF"}
+          </button>
+        </div>
       </div>
     </div>
   );
