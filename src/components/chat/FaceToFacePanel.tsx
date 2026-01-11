@@ -61,6 +61,15 @@ export default function FaceToFacePanel({
   const [lastReply, setLastReply] = useState("");
   const [localNotice, setLocalNotice] = useState<string | null>(null);
 
+  const [autoTalk, setAutoTalk] = useState(true);
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const vadRafRef = useRef<number | null>(null);
+
+  const speechOnAtRef = useRef<number | null>(null);
+  const silenceOnAtRef = useRef<number | null>(null);
+
   const localeText = useMemo(() => {
     const isEs = lang === "es";
     return {
@@ -84,64 +93,72 @@ export default function FaceToFacePanel({
   }, [lang]);
 
   useEffect(() => {
-    let mounted = true;
+  let mounted = true;
 
-    const start = async () => {
-      try {
-        setLocalNotice(null);
+  const start = async () => {
+    try {
+      setLocalNotice(null);
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        streamRef.current = stream;
-        audioOnlyRef.current = new MediaStream(stream.getAudioTracks());
+      streamRef.current = stream;
+      audioOnlyRef.current = new MediaStream(stream.getAudioTracks());
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
+      // ✅ стартуем VAD сразу после получения аудио
+      startVAD(audioOnlyRef.current);
 
-        setCamReady(true);
-      } catch (e) {
-        console.log("[CALL] getUserMedia error:", e);
-        setCamReady(false);
-        setLocalNotice(localeText.noCam);
-      }
-    };
-
-    start();
-
-    return () => {
-      mounted = false;
-
-      try {
-        if (recorderRef.current && recorderRef.current.state !== "inactive") {
-          recorderRef.current.stop();
-        }
-      } catch {}
-      recorderRef.current = null;
-
-      if (stopGuardTimerRef.current) {
-        window.clearTimeout(stopGuardTimerRef.current);
-        stopGuardTimerRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
       }
 
-      try {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch {}
-      streamRef.current = null;
-      audioOnlyRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      setCamReady(true);
+    } catch (e) {
+      console.log("[CALL] getUserMedia error:", e);
+      setCamReady(false);
+      setLocalNotice(localeText.noCam);
+    }
+  };
+
+  start();
+
+  return () => {
+    mounted = false;
+
+    // ✅ остановить VAD
+    stopVAD();
+
+    try {
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
+    } catch {}
+    recorderRef.current = null;
+
+    if (stopGuardTimerRef.current) {
+      window.clearTimeout(stopGuardTimerRef.current);
+      stopGuardTimerRef.current = null;
+    }
+
+    try {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    } catch {}
+
+    streamRef.current = null;
+    audioOnlyRef.current = null;
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
 
   const createRecorder = (stream: MediaStream) => {
     if (typeof MediaRecorder === "undefined") return null;
@@ -174,6 +191,115 @@ export default function FaceToFacePanel({
 
   ttsAudioRef.current = null;
 };
+
+
+  const stopVAD = () => {
+    if (vadRafRef.current) {
+      cancelAnimationFrame(vadRafRef.current);
+      vadRafRef.current = null;
+    }
+    try {
+      analyserRef.current?.disconnect();
+    } catch {}
+    analyserRef.current = null;
+
+    try {
+      audioCtxRef.current?.close();
+    } catch {}
+    audioCtxRef.current = null;
+
+    speechOnAtRef.current = null;
+    silenceOnAtRef.current = null;
+  };
+
+  const startVAD = (stream: MediaStream) => {
+    // iOS/Safari: AudioContext часто требует user gesture.
+    // Мы запустим, но если будет suspended — просто попробуем resume при клике (ниже добавим).
+    stopVAD();
+
+    try {
+      const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
+      const ctx: AudioContext = new AudioCtx();
+      audioCtxRef.current = ctx;
+
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = analyser;
+
+      src.connect(analyser);
+
+      const buf = new Uint8Array(analyser.fftSize);
+
+      // --- тюнинг порогов ---
+      const START_THRESHOLD = 0.018; // чувствительность старта (rms)
+      const STOP_THRESHOLD  = 0.012; // порог тишины (rms)
+      const START_HOLD_MS   = 120;   // сколько держать "громко" чтобы начать запись
+      const SILENCE_MS      = 700;   // сколько тишины чтобы остановить запись
+
+      const loop = () => {
+        vadRafRef.current = requestAnimationFrame(loop);
+
+        if (!autoTalk) return;
+        if (!analyserRef.current) return;
+
+        // когда отправляем — не трогаем запись
+        if (recState === "sending") return;
+
+        // берём сигнал
+        analyserRef.current.getByteTimeDomainData(buf);
+
+        // RMS
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = (buf[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / buf.length);
+        const now = performance.now();
+
+        const isRecording = recorderRef.current?.state === "recording";
+
+        // --- START logic ---
+        if (!isRecording) {
+          if (rms >= START_THRESHOLD) {
+            if (speechOnAtRef.current == null) speechOnAtRef.current = now;
+            const held = now - speechOnAtRef.current;
+
+            if (held >= START_HOLD_MS) {
+              // начинаем запись
+              silenceOnAtRef.current = null;
+              speechOnAtRef.current = null;
+              startRecording();
+            }
+          } else {
+            speechOnAtRef.current = null;
+          }
+          return;
+        }
+
+        // --- STOP logic (когда пишем) ---
+        if (rms <= STOP_THRESHOLD) {
+          if (silenceOnAtRef.current == null) silenceOnAtRef.current = now;
+          const silentFor = now - silenceOnAtRef.current;
+
+          if (silentFor >= SILENCE_MS) {
+            silenceOnAtRef.current = null;
+            stopRecording();
+          }
+        } else {
+          silenceOnAtRef.current = null;
+        }
+      };
+
+      loop();
+    } catch (e) {
+      console.log("[CALL] VAD start error:", e);
+      stopVAD();
+    }
+  };
+
 
   const startRecording = async () => {
     try {
@@ -356,7 +482,15 @@ if (ttsUrl) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div
+    className="flex-1 overflow-y-auto"
+    onPointerDown={() => {
+      const ctx = audioCtxRef.current;
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+    }}
+  >
       <div className="mx-auto max-w-3xl px-6 py-6">
         <div className="mb-4">
           <div className="text-2xl font-semibold">{localeText.title}</div>
