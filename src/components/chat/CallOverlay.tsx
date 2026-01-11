@@ -156,9 +156,9 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
 
       // --- тюнинг ---
       const START_THRESHOLD = 0.018;
-      const STOP_THRESHOLD = 0.012;
+      const STOP_THRESHOLD = 0.010;
       const START_HOLD_MS = 120;
-      const SILENCE_MS = 700;
+      const SILENCE_MS = 2000;
 
       const loop = () => {
         vadRafRef.current = requestAnimationFrame(loop);
