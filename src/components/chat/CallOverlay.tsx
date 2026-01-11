@@ -30,6 +30,15 @@ function pickMimeCandidates() {
   ];
 }
 
+function slowText(t: string) {
+  return t
+    .replace(/,\s+/g, "… ")
+    .replace(/\.\s+/g, "… ")
+    .replace(/\?\s+/g, "?… ")
+    .replace(/!\s+/g, "!… ");
+}
+
+
 function extFromMime(mime: string) {
   const m = (mime || "").toLowerCase();
   if (m.includes("ogg")) return "ogg";
@@ -222,12 +231,14 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
     }
   };
 
-  const sendTurn = async (audioBlob: Blob, mime: string) => {
+const sendTurn = async (audioBlob: Blob, mime: string) => {
   try {
     const fd = new FormData();
     const ext = extFromMime(mime || audioBlob.type || "audio/webm");
     const fileName = `turn.${ext}`;
-    const file = new File([audioBlob], fileName, { type: audioBlob.type || mime || "audio/webm" });
+    const file = new File([audioBlob], fileName, {
+      type: audioBlob.type || mime || "audio/webm",
+    });
 
     fd.append("audio", file);
     fd.append("user_id", userId || "web");
@@ -258,6 +269,7 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
         const a = new Audio(ttsUrl);
         a.preload = "auto";
         a.volume = 1.0;
+        a.playbackRate = 0.9;
 
         setAvatarState("speaking");
 
@@ -283,6 +295,7 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
     setAvatarState("idle");
   }
 };
+
 
 
 
