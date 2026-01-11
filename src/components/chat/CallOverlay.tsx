@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+type AvatarState = "idle" | "listening" | "speaking";
 
 type Props = {
   userId: string;
@@ -51,6 +52,8 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
   const [camReady, setCamReady] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
+
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
 
   const [recState, setRecState] = useState<"idle" | "recording" | "sending">("idle");
 
@@ -220,53 +223,68 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
   };
 
   const sendTurn = async (audioBlob: Blob, mime: string) => {
-    try {
-      const fd = new FormData();
-      const ext = extFromMime(mime || audioBlob.type || "audio/webm");
-      const fileName = `turn.${ext}`;
-      const file = new File([audioBlob], fileName, { type: audioBlob.type || mime || "audio/webm" });
+  try {
+    const fd = new FormData();
+    const ext = extFromMime(mime || audioBlob.type || "audio/webm");
+    const fileName = `turn.${ext}`;
+    const file = new File([audioBlob], fileName, { type: audioBlob.type || mime || "audio/webm" });
 
-      fd.append("audio", file);
-      fd.append("user_id", userId || "web");
-      fd.append("sessionId", "call");
-      fd.append("feature", "call");
-      fd.append("lang", lang);
-      fd.append("wantVoice", wantVoice ? "1" : "0");
+    fd.append("audio", file);
+    fd.append("user_id", userId || "web");
+    fd.append("sessionId", "call");
+    fd.append("feature", "call");
+    fd.append("lang", lang);
+    fd.append("wantVoice", wantVoice ? "1" : "0");
 
-      const res = await fetch("/api/call/turn", { method: "POST", body: fd });
-      const data: TurnResponse = await res.json().catch(() => ({}));
+    const res = await fetch("/api/call/turn", { method: "POST", body: fd });
+    const data: TurnResponse = await res.json().catch(() => ({}));
 
-      if (!data || data.ok === false) {
-        setNotice(data?.error || "Server error 😕");
-        setRecState("idle");
-        return;
-      }
-
-      setLastTranscript(data.transcript || "");
-      setLastReply(data.reply || "");
-
-      const ttsUrl = data?.tts?.audioUrl;
-      if (ttsUrl) {
-        try {
-          stopTts();
-          const a = new Audio(ttsUrl);
-          a.preload = "auto";
-          a.volume = 1.0;
-          a.onended = () => {
-            if (ttsAudioRef.current === a) ttsAudioRef.current = null;
-          };
-          ttsAudioRef.current = a;
-          a.play().catch(() => {});
-        } catch {}
-      }
-
+    if (!data || data.ok === false) {
+      setNotice(data?.error || "Server error 😕");
       setRecState("idle");
-    } catch (e) {
-      console.log("[CALL] sendTurn error:", e);
-      setNotice("Server error 😕");
-      setRecState("idle");
+      setAvatarState("idle");
+      return;
     }
-  };
+
+    setLastTranscript(data.transcript || "");
+    setLastReply(data.reply || "");
+
+    const ttsUrl = data?.tts?.audioUrl;
+
+    if (ttsUrl) {
+      try {
+        stopTts();
+
+        const a = new Audio(ttsUrl);
+        a.preload = "auto";
+        a.volume = 1.0;
+
+        setAvatarState("speaking");
+
+        a.onended = () => {
+          if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+          setAvatarState("idle");
+        };
+
+        ttsAudioRef.current = a;
+        a.play().catch(() => {});
+      } catch {
+        setAvatarState("idle");
+      }
+    } else {
+      setAvatarState("idle");
+    }
+
+    setRecState("idle");
+  } catch (e) {
+    console.log("[CALL] sendTurn error:", e);
+    setNotice("Server error 😕");
+    setRecState("idle");
+    setAvatarState("idle");
+  }
+};
+
+
 
   const startRecording = async () => {
     try {
@@ -327,6 +345,7 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
 
       recorderRef.current = mr;
       setRecState("recording");
+      setAvatarState("listening");
       mr.start(250);
     } catch (e) {
       console.log("[CALL] recorder start error:", e);
@@ -357,6 +376,7 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
       }, 2500);
 
       r.stop();
+      setAvatarState("idle");
     } catch (e) {
       console.log("[CALL] stopRecording error:", e);
       setNotice(text.stopError);
@@ -516,9 +536,21 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
 
       {/* center Mindra face placeholder */}
       <div className="relative z-10 h-full w-full flex items-center justify-center">
-        <div className="w-[280px] h-[280px] rounded-full bg-white/10 border border-white/15 backdrop-blur grid place-items-center">
-          <div className="text-white/80 text-sm">Mindra</div>
-        </div>
+        <div className="w-[280px] h-[280px] rounded-full overflow-hidden border border-white/15 bg-black">
+  <video
+    key={avatarState} // 👈 критично для смены loop
+    src={
+      avatarState === "speaking"
+        ? "/video/mindra_talk.mp4"
+        : "/video/mindra_idle.mp4"
+    }
+    autoPlay
+    loop
+    muted
+    playsInline
+    className="w-full h-full object-cover"
+  />
+</div>
       </div>
 
       {/* subtitles/last turn */}
