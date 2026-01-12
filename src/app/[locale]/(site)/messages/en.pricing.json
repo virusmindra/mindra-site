@@ -1,21 +1,38 @@
 {
   "pricing.title": "Pricing",
-  "pricing.subtitle": "Three tiers — pick what fits. Subscriptions are managed via Telegram.",
+  "pricing.subtitle": "Choose a plan — then pick a billing period with a discount.",
+  "plan.free.name": "Free",
   "plan.free.desc": "Core features with fair limits.",
-  "plan.plus.from": "from $6.99/mo",
-  "plan.plus.desc": "All premium features with generous limits.",
-  "plan.pro.from": "from $14.99/mo",
-  "plan.pro.desc": "No limits. Full Mindra power.",
-  "cta.telegram": "Subscribe in Telegram",
+  "plan.plus.name": "Mindra+",
+  "plan.plus.from": "$19.99 / month",
+  "plan.plus.desc": "Unlimited chat + monthly limits for goals/habits + 120 voice minutes.",
+  "plan.pro.name": "Mindra Pro",
+  "plan.pro.from": "$39.99 / month",
+  "plan.pro.desc": "Unlimited everything + 300 voice minutes.",
+
+  "cta.buyPlus": "Buy Plus",
+  "cta.buyPro": "Buy Pro",
+
+  "modal.title": "Choose billing period",
+  "modal.subtitle": "You selected",
+  "modal.perMonth": "Approx.",
+  "modal.total": "Total",
+  "modal.choose": "Choose",
+  "modal.best": "Best value",
+  "modal.popular": "Popular",
+  "modal.note": "Cancel anytime in the customer portal.",
+
+  "term.1m": "1 month",
+  "term.3m": "3 months (-10%)",
+  "term.6m": "6 months (-15%)",
+  "term.12m": "12 months (-25%)",
+
   "features.header": "Included",
   "features.items": [
-    "Supportive, caring conversation",
-    "Motivation & coaching (plan, focus, micro-steps)",
-    "Goals & habits with reminders",
-    "Weekly reports & statistics",
-    "Voices & sounds (incl. sleep)"
-  ],
-  "plan.free.name": "Free",
-  "plan.plus.name": "Mindra+",
-  "plan.pro.name": "Mindra Pro"
+    "Unlimited chat on paid plans",
+    "Goals, habits, and reminders",
+    "Voice & Face-to-Face calls (minutes depend on plan)",
+    "Daily check-ins (morning & evening)",
+    "Multi-language (EN/ES)"
+  ]
 }

@@ -44,26 +44,33 @@ export async function POST(req: Request) {
     const rawLang = body?.lang ?? body?.locale ?? "en";
     const lang = String(rawLang).toLowerCase().startsWith("es") ? "es" : "en";
 
-    // ✅ хочет ли юзер премиум-голос (ElevenLabs)
-    const wantVoice = Boolean(body?.wantVoice);
+// ✅ хочет ли юзер премиум-голос (ElevenLabs)
+const wantVoice = Boolean(body?.wantVoice);
 
-    // ✅ userId ТОЛЬКО из сессии (trust no client)
-    const session = await getServerSession(authOptions);
-    const authedUserId = (session?.user as any)?.id as string | undefined;
+// ✅ userId ТОЛЬКО из сессии для премиум функций (trust no client)
+const session = await getServerSession(authOptions);
+const authedUserId = (session?.user as any)?.id as string | undefined;
 
-    // premium voice only: если нет сессии — не даём голос
-    if (wantVoice && !authedUserId) {
-      return new Response(
-        JSON.stringify({
-          reply: "Please sign in to use premium voice.",
-          voiceBlocked: true,
-          voiceReason: "login_required",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    }
+// ✅ anon uid (для памяти/чат-сессий анонимов)
+const anonUidRaw = body?.user_id ?? body?.uid ?? null;
+const anonUid = anonUidRaw ? String(anonUidRaw) : null;
 
-    const userId = authedUserId ?? "web-anon";
+// premium voice only: если нет сессии — не даём голос
+if (wantVoice && !authedUserId) {
+  return new Response(
+    JSON.stringify({
+      reply: "Please sign in to use premium voice.",
+      voiceBlocked: true,
+      voiceReason: "login_required",
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+// ✅ userId:
+// - authed: реальный userId
+// - anon: стабильный web uid (если есть), иначе "web-anon"
+const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
     // ✅ 1) GATE: если хотят ElevenLabs — проверяем лимиты ДО запроса к боту
     if (wantVoice) {

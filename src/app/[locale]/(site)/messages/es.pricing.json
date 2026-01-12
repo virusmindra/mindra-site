@@ -1,21 +1,38 @@
 {
   "pricing.title": "Precios",
-  "pricing.subtitle": "Tres niveles: elige el tuyo. La suscripción se gestiona en Telegram.",
-  "plan.free.desc": "Funciones básicas con límites razonables.",
-  "plan.plus.from": "desde $6.99/mes",
-  "plan.plus.desc": "Todas las funciones premium con límites generosos.",
-  "plan.pro.from": "desde $14.99/mes",
-  "plan.pro.desc": "Sin límites. Toda la potencia de Mindra.",
-  "cta.telegram": "Suscribirse en Telegram",
+  "pricing.subtitle": "Elige un plan y luego el período con descuento.",
+  "plan.free.name": "Gratis",
+  "plan.free.desc": "Funciones básicas con límites justos.",
+  "plan.plus.name": "Mindra+",
+  "plan.plus.from": "$19.99 / mes",
+  "plan.plus.desc": "Chat ilimitado + límites mensuales de metas/hábitos + 120 minutos de voz.",
+  "plan.pro.name": "Mindra Pro",
+  "plan.pro.from": "$39.99 / mes",
+  "plan.pro.desc": "Ilimitado en todo + 300 minutos de voz.",
+
+  "cta.buyPlus": "Comprar Plus",
+  "cta.buyPro": "Comprar Pro",
+
+  "modal.title": "Elige el período",
+  "modal.subtitle": "Has elegido",
+  "modal.perMonth": "Aprox.",
+  "modal.total": "Total",
+  "modal.choose": "Elegir",
+  "modal.best": "Mejor opción",
+  "modal.popular": "Popular",
+  "modal.note": "Puedes cancelar en cualquier momento desde el portal.",
+
+  "term.1m": "1 mes",
+  "term.3m": "3 meses (-10%)",
+  "term.6m": "6 meses (-15%)",
+  "term.12m": "12 meses (-25%)",
+
   "features.header": "Incluye",
   "features.items": [
-    "Conversación comprensiva y cercana",
-    "Motivación y coaching (plan, foco, micro-pasos)",
-    "Objetivos y hábitos con recordatorios",
-    "Informes y estadísticas semanales",
-    "Voces y sonidos (incluido para dormir)"
-  ],
-  "plan.free.name": "Gratis",
-  "plan.plus.name": "Mindra+",
-  "plan.pro.name": "Mindra Pro"
+    "Chat ilimitado en planes de pago",
+    "Metas, hábitos y recordatorios",
+    "Llamadas de voz y Face-to-Face (minutos según el plan)",
+    "Check-ins diarios (mañana y noche)",
+    "Multi-idioma (EN/ES)"
+  ]
 }

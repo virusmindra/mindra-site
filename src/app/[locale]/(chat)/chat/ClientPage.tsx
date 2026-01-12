@@ -619,6 +619,42 @@ export default function ClientPage() {
 
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
+  const [serverUserId, setServerUserId] = useState<string | null>(null);
+  const [authed, setAuthed] = useState(false);
+  const [me, setMe] = useState<any>(null);
+
+  const VOICE_KEY = "mindra_premium_voice";
+  const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
+
+
+useEffect(() => {
+  fetch("/api/me")
+    .then((r) => r.json())
+    .then((j) => {
+      setMe(j);
+      if (j?.authed && j?.userId) {
+        setAuthed(true);
+        setServerUserId(j.userId);
+
+        // ✅ если нет tts или минут не осталось — выключаем тумблер
+        if (!j?.tts || (j?.voiceSecondsLeft ?? 0) <= 0) {
+          setPremiumVoiceEnabled(false);
+          try { localStorage.setItem(VOICE_KEY, "0"); } catch {}
+        }
+      } else {
+        setAuthed(false);
+        setServerUserId(null);
+      }
+    })
+    .catch(() => {
+      setAuthed(false);
+      setServerUserId(null);
+      setMe(null);
+    });
+}, []);
+
+const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
+
   const [callOpen, setCallOpen] = useState(false);
 
   const [lastGoalSuggestion, setLastGoalSuggestion] = useState<{ text: string } | null>(null);
@@ -766,7 +802,8 @@ const markHabitDone = async (habitId: string) => {
     updatedAt: Date.now(),
   }));
 
-  const uid = getOrCreateWebUid();
+  const uid = serverUserId ?? getOrCreateWebUid();
+
   const locale = getLocaleFromPath();
 
   try {
@@ -889,7 +926,8 @@ const createPendingReminder = async () => {
 
 const saveAsHabit = async (habitText: string) => {
   try {
-    const uid = getOrCreateWebUid();
+    const uid = serverUserId ?? getOrCreateWebUid();
+
 
     const res = await fetch('/api/habits', {
       method: 'POST',
@@ -946,7 +984,8 @@ const markGoalDone = async (goalId: string) => {
   }));
 
   try {
-    const uid = getOrCreateWebUid();
+    const uid = serverUserId ?? getOrCreateWebUid();
+
     const locale = getLocaleFromPath();
 
     const res = await fetch(
@@ -1005,7 +1044,8 @@ const markGoalDone = async (goalId: string) => {
 
   const saveAsGoal = async (goalText: string) => {
     try {
-      const uid = getOrCreateWebUid();
+      const uid = serverUserId ?? getOrCreateWebUid();
+
 
       const res = await fetch('/api/goals', {
         method: 'POST',
@@ -1068,9 +1108,7 @@ const markGoalDone = async (goalId: string) => {
     }
   };
 
-const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
 
-const VOICE_KEY = "mindra_premium_voice";
 const audioRef = useRef<HTMLAudioElement | null>(null);
 
 useEffect(() => {
@@ -1104,7 +1142,8 @@ const handleSend = async (text: string) => {
     return;
   }
 
-  const uid = getOrCreateWebUid();
+  const uid = serverUserId ?? getOrCreateWebUid();
+
   const locale = getLocaleFromPath();
   const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
   const isGoalDiary = Boolean(current.id?.startsWith("goal:"));
@@ -1395,7 +1434,7 @@ return (
         {/* ✅ Fullscreen Call Overlay */}
         {callOpen && (
           <CallOverlay
-            userId={getOrCreateWebUid()}
+            userId={serverUserId ?? getOrCreateWebUid()}
             lang={locale.toLowerCase().startsWith("es") ? "es" : "en"}
             wantVoice={premiumVoiceEnabled}
             onClose={() => {

@@ -21,11 +21,13 @@ export async function canUsePremiumVoice(prisma: PrismaClient, userId: string, w
     dailyDate = tk;
   }
 
-  const plan = sub.plan; // FREE|PLUS|PRO
+ const rawPlan = String(sub.plan ?? "FREE").toUpperCase();
+const plan = (rawPlan in PLAN_LIMITS ? rawPlan : "FREE") as keyof typeof PLAN_LIMITS;
+
   const left = getVoiceLeftSeconds(ent);
 
   const dailyLimit =
-    ent.dailyLimitSeconds > 0 ? ent.dailyLimitSeconds : PLAN_LIMITS[plan].dailySecondsDefault;
+  ent.dailyLimitSeconds > 0 ? ent.dailyLimitSeconds : PLAN_LIMITS[plan].dailySecondsDefault;
 
   if (left <= 0) return { ok: false as const, reason: "monthly_exhausted" as const, left };
   if (wantSeconds > left) return { ok: false as const, reason: "insufficient_left" as const, left };
@@ -63,13 +65,15 @@ export async function debitPremiumVoice(
       dailyDate = tk;
     }
 
-    const plan = sub.plan;
+    const rawPlan = String(sub.plan ?? "FREE").toUpperCase();
+const plan = (rawPlan in PLAN_LIMITS ? rawPlan : "FREE") as keyof typeof PLAN_LIMITS;
+
     const left = Math.max(0, ent.voiceSecondsTotal - ent.voiceSecondsUsed);
     if (left < sec) throw new Error("Not enough voice seconds");
 
     const dailyLimit =
-      ent.dailyLimitSeconds > 0 ? ent.dailyLimitSeconds : PLAN_LIMITS[plan].dailySecondsDefault;
-
+  ent.dailyLimitSeconds > 0 ? ent.dailyLimitSeconds : PLAN_LIMITS[plan].dailySecondsDefault;
+  
     if (ent.dailyLimitEnabled && dailyLimit > 0 && dailyUsed + sec > dailyLimit) {
       throw new Error("Daily limit reached");
     }

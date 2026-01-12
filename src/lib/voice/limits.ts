@@ -10,11 +10,16 @@ export function getVoiceLeftSeconds(ent: { voiceSecondsTotal: number; voiceSecon
   return Math.max(0, ent.voiceSecondsTotal - ent.voiceSecondsUsed);
 }
 
-// MVP: по New York. Потом можно взять UserSettings.tz.
 export function todayKeyNY() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const y = parts.find(p => p.type === "year")?.value ?? "1970";
+  const m = parts.find(p => p.type === "month")?.value ?? "01";
+  const d = parts.find(p => p.type === "day")?.value ?? "01";
+  return `${y}-${m}-${d}`; // YYYY-MM-DD
 }
