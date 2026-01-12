@@ -559,39 +559,40 @@ const avatarSrc = useMemo(() => {
 
 return (
   <div className="fixed inset-0 z-[9999] bg-black" onPointerDown={ensureAudioRunning}>
-    {/* ✅ BACKGROUND: Mindra avatar full-screen (crossfade idle/talk) */}
-    <div className="h-full w-full object-contain bg-black">
-      {/* idle layer */}
-      <video
-        src={avatarSrc.idle}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        className={[
-          "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
-          avatarState === "speaking" ? "opacity-0" : "opacity-100",
-        ].join(" ")}
-      />
+    {/* ✅ BACKGROUND: Mindra avatar full-screen (letterbox, no crop) */}
+<div className="absolute inset-0 bg-black overflow-hidden">
+  {/* idle layer */}
+  <video
+    src={avatarSrc.idle}
+    autoPlay
+    loop
+    muted
+    playsInline
+    preload="auto"
+    className={[
+      "absolute inset-0 w-full h-full object-contain transition-opacity duration-200",
+      avatarState === "speaking" ? "opacity-0" : "opacity-100",
+    ].join(" ")}
+  />
 
-      {/* talk layer */}
-      <video
-        src={avatarSrc.talk}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        className={[
-          "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
-          avatarState === "speaking" ? "opacity-100" : "opacity-0",
-        ].join(" ")}
-      />
+  {/* talk layer */}
+  <video
+    src={avatarSrc.talk}
+    autoPlay
+    loop
+    muted
+    playsInline
+    preload="auto"
+    className={[
+      "absolute inset-0 w-full h-full object-contain transition-opacity duration-200",
+      avatarState === "speaking" ? "opacity-100" : "opacity-0",
+    ].join(" ")}
+  />
 
-      {/* лёгкая затемнялка для читаемости UI */}
-      <div className="absolute inset-0 bg-black/25" />
-    </div>
+  {/* overlay */}
+  <div className="absolute inset-0 bg-black/25" />
+</div>
+
 
     {/* ✅ USER CAMERA: small PiP bottom-right */}
     <div className="absolute right-4 bottom-[150px] z-30 w-[120px] h-[170px] rounded-2xl overflow-hidden border border-white/15 bg-black shadow-lg">
