@@ -177,10 +177,10 @@ const proItems = useMemo(() => {
 
     {/* MODAL term picker */}
 {pickerOpen && pickedPlan && (
-  <div className="fixed inset-0 z-50 flex items-start justify-center pt-32 md:pt-36 px-4">
+  <div className="fixed inset-0 z-50 flex items-start justify-center pt-28 md:pt-32 px-4">
     {/* overlay */}
     <button
-      className="absolute inset-0 bg-black/70"
+      className="absolute inset-0 bg-black/60"
       onClick={() => setPickerOpen(false)}
       aria-label="Close"
     />
@@ -189,7 +189,8 @@ const proItems = useMemo(() => {
     <div
       className={[
         "relative w-full max-w-xl rounded-2xl border border-[var(--border)] p-6 shadow-2xl",
-        "bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50", // ✅ SOLID (не прозрачная)
+        "bg-white text-zinc-900",          // light
+        "dark:bg-zinc-900 dark:text-white" // dark ✅
       ].join(" ")}
       onClick={(e) => e.stopPropagation()}
     >
