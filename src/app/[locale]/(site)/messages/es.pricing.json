@@ -1,31 +1,6 @@
 {
   "pricing.title": "Precios",
-  "pricing.subtitle": "Elige un plan y luego el período con descuento.",
-  "plan.free.name": "Gratis",
-  "plan.free.desc": "Funciones básicas con límites justos.",
-  "plan.plus.name": "Mindra+",
-  "plan.plus.from": "$19.99 / mes",
-  "plan.plus.desc": "Chat ilimitado + límites mensuales de metas/hábitos + 120 minutos de voz.",
-  "plan.pro.name": "Mindra Pro",
-  "plan.pro.from": "$39.99 / mes",
-  "plan.pro.desc": "Ilimitado en todo + 300 minutos de voz.",
-
-  "cta.buyPlus": "Comprar Plus",
-  "cta.buyPro": "Comprar Pro",
-
-  "modal.title": "Elige el período",
-  "modal.subtitle": "Has elegido",
-  "modal.perMonth": "Aprox.",
-  "modal.total": "Total",
-  "modal.choose": "Elegir",
-  "modal.best": "Mejor opción",
-  "modal.popular": "Popular",
-  "modal.note": "Puedes cancelar en cualquier momento desde el portal.",
-
-  "term.1m": "1 mes",
-  "term.3m": "3 meses (-10%)",
-  "term.6m": "6 meses (-15%)",
-  "term.12m": "12 meses (-25%)",
+  "pricing.subtitle": "Elige un plan — y luego selecciona el período con descuento.",
 
   "features.header": "Incluye",
   "features.items": [
@@ -34,5 +9,40 @@
     "Llamadas de voz y Face-to-Face (minutos según el plan)",
     "Check-ins diarios (mañana y noche)",
     "Multi-idioma (EN/ES)"
-  ]
+  ],
+
+  "plan.free.name": "Gratis",
+  "plan.free.desc": "Funciones básicas con límites justos.",
+  "plan.free.bullets.chat": "10 mensajes de chat / mes",
+  "plan.free.bullets.goals": "3 metas / mes",
+  "plan.free.bullets.habits": "3 hábitos / mes",
+  "plan.free.bullets.reminders": "3 recordatorios / mes",
+  "plan.free.bullets.callTrial": "Prueba de llamada: 3 min",
+
+  "plan.plus.name": "Mindra+",
+  "plan.plus.price": "$19.99 / mes",
+  "plan.plus.desc": "Chat ilimitado + 30 metas/mes + 30 hábitos/mes + recordatorios ilimitados + 120 min de voz/mes.",
+
+  "plan.pro.name": "Mindra Pro",
+  "plan.pro.price": "$39.99 / mes",
+  "plan.pro.desc": "Chat ilimitado + metas/hábitos/recordatorios ilimitados + 300 min de voz/mes.",
+
+  "cta.startFree": "Empezar gratis",
+  "cta.choose": "Elegir plan",
+
+  "picker.title.plus": "Elige el período para Mindra+",
+  "picker.title.pro": "Elige el período para Mindra Pro",
+  "picker.subtitle": "Elige la mejor opción — períodos más largos tienen descuento.",
+  "picker.close": "Cerrar",
+  "picker.note": "Puedes administrar la suscripción cuando quieras en Cuenta → Customer Portal.",
+
+  "term.1M": "1 mes",
+  "term.3M": "3 meses",
+  "term.6M": "6 meses",
+  "term.12M": "12 meses",
+
+  "term.discount.none": "Sin descuento",
+  "term.discount.3M": "-10%",
+  "term.discount.6M": "-15%",
+  "term.discount.12M": "-25%"
 }

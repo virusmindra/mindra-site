@@ -1,31 +1,6 @@
 {
   "pricing.title": "Pricing",
   "pricing.subtitle": "Choose a plan — then pick a billing period with a discount.",
-  "plan.free.name": "Free",
-  "plan.free.desc": "Core features with fair limits.",
-  "plan.plus.name": "Mindra+",
-  "plan.plus.from": "$19.99 / month",
-  "plan.plus.desc": "Unlimited chat + monthly limits for goals/habits + 120 voice minutes.",
-  "plan.pro.name": "Mindra Pro",
-  "plan.pro.from": "$39.99 / month",
-  "plan.pro.desc": "Unlimited everything + 300 voice minutes.",
-
-  "cta.buyPlus": "Buy Plus",
-  "cta.buyPro": "Buy Pro",
-
-  "modal.title": "Choose billing period",
-  "modal.subtitle": "You selected",
-  "modal.perMonth": "Approx.",
-  "modal.total": "Total",
-  "modal.choose": "Choose",
-  "modal.best": "Best value",
-  "modal.popular": "Popular",
-  "modal.note": "Cancel anytime in the customer portal.",
-
-  "term.1m": "1 month",
-  "term.3m": "3 months (-10%)",
-  "term.6m": "6 months (-15%)",
-  "term.12m": "12 months (-25%)",
 
   "features.header": "Included",
   "features.items": [
@@ -34,5 +9,40 @@
     "Voice & Face-to-Face calls (minutes depend on plan)",
     "Daily check-ins (morning & evening)",
     "Multi-language (EN/ES)"
-  ]
+  ],
+
+  "plan.free.name": "Free",
+  "plan.free.desc": "Core features with fair limits.",
+  "plan.free.bullets.chat": "10 chat messages / month",
+  "plan.free.bullets.goals": "3 goals / month",
+  "plan.free.bullets.habits": "3 habits / month",
+  "plan.free.bullets.reminders": "3 reminders / month",
+  "plan.free.bullets.callTrial": "3 min call trial",
+
+  "plan.plus.name": "Mindra+",
+  "plan.plus.price": "$19.99 / month",
+  "plan.plus.desc": "Unlimited chat + 30 goals/month + 30 habits/month + unlimited reminders + 120 voice minutes/month.",
+
+  "plan.pro.name": "Mindra Pro",
+  "plan.pro.price": "$39.99 / month",
+  "plan.pro.desc": "Unlimited chat + unlimited goals/habits/reminders + 300 voice minutes/month.",
+
+  "cta.startFree": "Start free",
+  "cta.choose": "Choose plan",
+
+  "picker.title.plus": "Choose billing period for Mindra+",
+  "picker.title.pro": "Choose billing period for Mindra Pro",
+  "picker.subtitle": "Pick the best option — longer periods include discounts.",
+  "picker.close": "Close",
+  "picker.note": "You can manage your subscription anytime in Account → Customer Portal.",
+
+  "term.1M": "1 month",
+  "term.3M": "3 months",
+  "term.6M": "6 months",
+  "term.12M": "12 months",
+
+  "term.discount.none": "No discount",
+  "term.discount.3M": "-10%",
+  "term.discount.6M": "-15%",
+  "term.discount.12M": "-25%"
 }
