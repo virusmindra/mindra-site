@@ -301,19 +301,12 @@ const sendTurn = async (audioBlob: Blob, mime: string) => {
   }
 };
 
-const [callStyle, setCallStyle] = useState<CallStyle>("winter");
+const [callStyle, setCallStyle] = useState<"carnaval" | "winter">("carnaval");
 
 useEffect(() => {
   if (typeof window === "undefined") return;
-
-  const read = () => {
-    const v = localStorage.getItem(CALL_STYLE_KEY);
-    setCallStyle(v === "carnaval" ? "carnaval" : "winter");
-  };
-
-  read();
-  window.addEventListener("mindra_call_style_changed", read);
-  return () => window.removeEventListener("mindra_call_style_changed", read);
+  const v = localStorage.getItem("mindra_call_style");
+  setCallStyle(v === "winter" ? "winter" : "carnaval");
 }, []);
 
 const avatarSrc = useMemo(() => {
@@ -567,7 +560,7 @@ const avatarSrc = useMemo(() => {
 return (
   <div className="fixed inset-0 z-[9999] bg-black" onPointerDown={ensureAudioRunning}>
     {/* ✅ BACKGROUND: Mindra avatar full-screen (crossfade idle/talk) */}
-    <div className="absolute inset-0">
+    <div className="h-full w-full object-contain bg-black">
       {/* idle layer */}
       <video
         src={avatarSrc.idle}

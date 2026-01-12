@@ -29,14 +29,19 @@ export default function SettingsPanel({
 const [premiumVoice, setPremiumVoice] = useState(false);
 const CALL_STYLE_KEY = "mindra_call_style"; // "winter" | "carnaval"
 
-const [callStyle, setCallStyle] = useState<"winter" | "carnaval">("winter");
+const [callStyle, setCallStyle] = useState<"carnaval" | "winter">("carnaval");
 
 useEffect(() => {
   if (typeof window === "undefined") return;
   const v = localStorage.getItem(CALL_STYLE_KEY);
-  if (v === "carnaval" || v === "winter") setCallStyle(v);
-  else setCallStyle("winter"); // ✅ дефолт: Outdoor (зима)
+  if (v === "carnaval" || v === "winter") {
+    setCallStyle(v);
+  } else {
+    setCallStyle("carnaval"); // ✅ дефолт: Masquerade
+    localStorage.setItem(CALL_STYLE_KEY, "carnaval"); // опционально, но правильно
+  }
 }, []);
+
 
 const setCallStyleAndPersist = (v: "winter" | "carnaval") => {
   setCallStyle(v);
