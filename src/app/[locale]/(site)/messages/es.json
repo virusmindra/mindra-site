@@ -1,73 +1,175 @@
-{"home": {
-  "hero": {
-    "eyebrow": "MINDRA — SOMEONE WHO CARES.",
-    "title": "Support, motivation, and real care — in one place",
-    "subtitle": "Mindra is your supportive AI companion. Talk when you feel overwhelmed, burned out, lonely, or stuck. Build habits, set goals, use premium voice or face-to-face calls — all in one space.",
-    "ctaStart": "Start chatting",
-    "ctaPlans": "View plans",
-    "note": "Not a medical or crisis service. Always here to listen."
+{
+  "nav": {
+    "home": "Inicio",
+    "chat": "Chat",
+    "pricing": "Precios",
+    "donate": "Donar"
   },
 
-  "what": {
-    "title": "What is Mindra?",
-    "text": "Mindra is a supportive AI project designed to help you feel heard, grounded, and motivated. It’s not about pressure or productivity — it’s about care, presence, and steady progress."
+  "brand": {
+    "tagline": "MINDRA — Someone who cares."
+  },
+
+  "hero": {
+    "title": "Apoyo, motivación y seguimiento de hábitos — en un solo lugar",
+    "subtitle": "Mindra te ayuda a hablar sobre lo que importa, mantenerte enfocado en tus metas y cuidarte. Úsala directamente en nuestro sitio web. Funciona en 11 idiomas."
+  },
+
+  "cta": {
+    "launch": "Comenzar chat",
+    "pricing": "Ver precios"
+  },
+
+  "features": {
+    "title": "Lo que Mindra puede hacer",
+    "cards": {
+      "chat": {
+        "title": "Diálogo de apoyo",
+        "text": "Respuestas cálidas y suaves, sin juicios ni presión."
+      },
+      "coach": {
+        "title": "Motivación y acompañamiento",
+        "text": "Planes de acción, pequeños pasos y seguimientos regulares."
+      },
+      "goals": {
+        "title": "Metas y hábitos",
+        "text": "Añade metas, sigue hábitos y recibe recordatorios."
+      },
+      "reports": {
+        "title": "Reportes y estadísticas",
+        "text": "Resúmenes semanales, puntos y rachas de progreso."
+      },
+      "voice": {
+        "title": "Respuestas por voz",
+        "text": "Voz premium para una presencia más profunda y calmada."
+      },
+      "premium": {
+        "title": "Funciones premium",
+        "text": "Voz premium, llamadas, límites más altos y funciones avanzadas."
+      },
+      "face": {
+        "title": "Llamadas cara a cara (Beta)",
+        "text": "Habla con Mindra en tiempo real con voz y presencia visual. Esta función está en desarrollo y actualmente disponible solo como versión beta."
+      },
+      "habits": {
+        "title": "Hábitos diarios",
+        "text": "Seguimiento de hábitos diseñado para apoyar la constancia, no la culpa."
+      },
+      "reminders": {
+        "title": "Recordatorios y chequeos",
+        "text": "Recordatorios inteligentes y chequeos diarios para mantenerte conectado contigo mismo."
+      }
+    }
+  },
+
+  "home": {
+    "hero": {
+      "eyebrow": "MINDRA — SOMEONE WHO CARES",
+      "title": "Apoyo, motivación y cuidado real — en un solo lugar",
+      "subtitle": "Mindra es tu compañera de IA de apoyo. Habla cuando te sientas abrumado, agotado, solo o bloqueado. Crea hábitos, establece metas, usa voz premium o llamadas cara a cara — todo en un mismo espacio.",
+      "ctaStart": "Comenzar chat",
+      "ctaPlans": "Ver planes",
+      "note": "No es un servicio médico ni de crisis. Siempre aquí para escucharte."
+    },
+
+    "cta": {
+      "startChat": "Comenzar chat",
+      "viewPlans": "Ver planes"
+    },
+
+    "what": {
+      "title": "¿Qué es Mindra?",
+      "text": "Mindra es un proyecto de IA de apoyo diseñado para ayudarte a sentirte escuchado, centrado y motivado. No se trata de presión ni productividad — se trata de cuidado, presencia y progreso constante."
+    },
+
+    "how": {
+      "steps": {
+        "1": {
+          "title": "Habla libremente",
+          "text": "Comparte lo que tengas en mente — estrés, dudas, agotamiento o pensamientos cotidianos."
+        },
+        "2": {
+          "title": "Recibe apoyo",
+          "text": "Obtén respuestas tranquilas y empáticas, guía y apoyo emocional."
+        },
+        "3": {
+          "title": "Avanza a tu ritmo",
+          "text": "Establece metas, crea hábitos, sigue tu progreso y crece a tu propio ritmo."
+        }
+      }
+    },
+
+    "features": {
+      "title": "Todo lo que ofrece Mindra",
+      "subtitle": "Todas las funciones trabajan juntas — sin fragmentación, sin presión.",
+      "cards": {
+        "chat": {
+          "title": "Chat de apoyo",
+          "text": "Conversaciones cálidas y sin juicios cuando te sientes abrumado, cansado o solo."
+        },
+        "voice": {
+          "title": "Voz premium",
+          "text": "Respuestas de voz naturales y calmantes para una presencia emocional más profunda."
+        },
+        "face": {
+          "title": "Llamadas cara a cara (Beta)",
+          "text": "Habla con Mindra en tiempo real con voz y presencia visual. Función en desarrollo, disponible actualmente como beta."
+        },
+        "goals": {
+          "title": "Metas y hábitos",
+          "text": "Establece metas, crea hábitos y sigue tu progreso sin presión."
+        },
+        "habits": {
+          "title": "Hábitos diarios",
+          "text": "Seguimiento de hábitos diseñado para apoyar la constancia, no la culpa."
+        },
+        "reminders": {
+          "title": "Recordatorios y chequeos",
+          "text": "Recordatorios inteligentes y chequeos diarios para mantenerte conectado contigo mismo."
+        }
+      }
+    },
+
+    "final": {
+      "title": "No tienes que pasar por esto solo",
+      "subtitle": "Mindra está aquí cuando necesitas apoyo, claridad o simplemente alguien que escuche.",
+      "ctaStart": "Comenzar ahora",
+      "ctaPlans": "Ver precios",
+      "note": "Compañera de IA de apoyo. No es terapia ni atención médica."
+    }
   },
 
   "how": {
     "steps": {
       "1": {
-        "title": "Talk freely",
-        "text": "Share what’s on your mind — stress, doubts, burnout, or everyday thoughts."
+        "title": "Habla libremente",
+        "text": "Comparte lo que tengas en mente — estrés, dudas, agotamiento o pensamientos cotidianos."
       },
       "2": {
-        "title": "Get support",
-        "text": "Receive calm, empathetic responses, guidance, and emotional support."
+        "title": "Recibe apoyo",
+        "text": "Obtén respuestas tranquilas y empáticas, guía y apoyo emocional."
       },
       "3": {
-        "title": "Move forward",
-        "text": "Set goals, build habits, track progress, and grow at your own pace."
+        "title": "Avanza a tu ritmo",
+        "text": "Establece metas, crea hábitos, sigue tu progreso y crece a tu propio ritmo."
       }
     }
   },
 
-  "features": {
-    "title": "Everything Mindra offers",
-    "subtitle": "All features work together — no fragments, no pressure.",
-
-    "cards": {
-      "chat": {
-        "title": "Supportive chat",
-        "text": "Warm, judgment-free conversations when you feel overwhelmed, tired, or alone."
-      },
-      "voice": {
-        "title": "Premium voice",
-        "text": "Natural, calming voice responses for deeper emotional presence."
-      },
-      "face": {
-        "title": "Face-to-face calls",
-        "text": "Talk to Mindra in real-time with visual presence and voice."
-      },
-      "goals": {
-        "title": "Goals & habits",
-        "text": "Set goals, build habits, and track progress without pressure."
-      },
-      "habits": {
-        "title": "Daily habits",
-        "text": "Gentle habit tracking designed to support consistency, not guilt."
-      },
-      "reminders": {
-        "title": "Reminders & check-ins",
-        "text": "Smart reminders and daily check-ins to keep you connected with yourself."
-      }
-    }
-  },
-
-  "final": {
-    "title": "You don’t have to go through it alone",
-    "subtitle": "Mindra is here when you need support, clarity, or simply someone who listens.",
-    "ctaStart": "Start now",
-    "ctaPlans": "See pricing",
-    "note": "Supportive AI companion. Not therapy or medical care."
+  "support": {
+    "title": "Por qué el apoyo importa",
+    "intro": "Mindra está creciendo para apoyar a las personas y ayudar con metas y hábitos. Cualquier contribución acelera el desarrollo, la localización y nuevas funciones.",
+    "goal": {
+      "title": "Objetivo de financiación — App Mindra",
+      "text": "Estamos construyendo la aplicación móvil de Mindra. Funciones clave en el lanzamiento:"
+    },
+    "features": {
+      "1": "Llamadas de video cara a cara con Mindra (beta).",
+      "2": "Todas las funciones principales en un solo lugar: chat, metas, hábitos, recordatorios y reportes.",
+      "3": "11 idiomas, interfaz amigable y base para modo offline futuro."
+    },
+    "cta": "Apoyar el desarrollo",
+    "desc": "Contáctanos por correo electrónico. Respondemos lo antes posible."
   },
 
   "footer": {
@@ -75,17 +177,17 @@
     "copyrightAria": "Derechos de autor",
     "legalNavAria": "Navegación legal",
     "privacy": "Política de Privacidad",
-    "terms": "Términos del Servicio",
+    "terms": "Términos de Servicio",
     "refunds": "Política de Reembolsos",
     "support": "Soporte",
     "portal": "Portal del Cliente",
-    "disclaimer": "Mindra no es un servicio médico ni de crisis. En emergencias, contacta a los servicios locales de emergencia.",
+    "disclaimer": "Mindra no es un servicio médico ni de crisis. En emergencias, contacta a los servicios de emergencia locales.",
     "contact": "Contacto"
   },
 
   "cookie": {
     "bannerAria": "Aviso de cookies",
-    "text": "Utilizamos cookies para operar el servicio, entender su uso y mejorar Mindra.",
+    "text": "Usamos cookies para operar el servicio, entender el uso y mejorar Mindra.",
     "more": "Política de Privacidad",
     "accept": "Aceptar",
     "acceptAria": "Aceptar cookies",
@@ -96,7 +198,7 @@
   "privacy": {
     "title": "Política de Privacidad",
     "updated": "Última actualización",
-    "contact": "Para solicitudes de privacidad, contacta a:",
+    "contact": "Para solicitudes de privacidad, contacta:",
     "sections": [
       {
         "h": "Quiénes somos",
@@ -112,11 +214,11 @@
         ]
       },
       {
-        "h": "No procesamos datos de salud",
-        "p": "Mindra no recopila ni procesa intencionalmente datos médicos, psicológicos o de salud. El usuario es responsable de la información que decida compartir."
+        "h": "No es un servicio médico",
+        "p": "Mindra no es un servicio médico, psicológico, psiquiátrico ni terapéutico. No confíes en Mindra para decisiones médicas o de crisis."
       },
       {
-        "h": "Finalidades del tratamiento",
+        "h": "Fines del procesamiento",
         "ul": [
           "Proporcionar y mantener el servicio.",
           "Gestión de suscripciones y facturación.",
@@ -126,17 +228,17 @@
       },
       {
         "h": "Bases legales",
-        "p": "Consentimiento, ejecución de contrato, intereses legítimos y obligaciones legales."
+        "p": "Consentimiento, ejecución del contrato, intereses legítimos y obligaciones legales."
       },
       {
         "h": "Conservación de datos",
-        "p": "Los datos se conservan durante la vigencia de la cuenta y un período razonable posterior, salvo que la ley exija un plazo mayor."
+        "p": "Los datos se conservan durante la vida de la cuenta y un período razonable posterior, salvo que la ley exija más tiempo."
       },
       {
         "h": "Servicios de terceros",
         "ul": [
           "Stripe para pagos y facturación.",
-          "Proveedores de analítica para comprender el uso del servicio."
+          "Proveedores de analítica para información de uso."
         ]
       },
       {
@@ -145,42 +247,42 @@
       },
       {
         "h": "Transferencias internacionales",
-        "p": "Los datos pueden procesarse fuera de tu país con las garantías adecuadas."
+        "p": "Los datos pueden procesarse fuera de tu país con las salvaguardas adecuadas."
       },
       {
         "h": "Cambios",
-        "p": "Esta Política de Privacidad puede actualizarse. La versión vigente siempre estará publicada aquí."
+        "p": "Esta Política de Privacidad puede actualizarse. La versión más reciente siempre se publicará aquí."
       }
     ]
   },
 
   "terms": {
-    "title": "Términos del Servicio",
+    "title": "Términos de Servicio",
     "updated": "Última actualización",
-    "contact": "Para consultas, contacta a:",
+    "contact": "Para preguntas, contacta:",
     "sections": [
       {
         "h": "Descripción del servicio",
-        "p": "Mindra es un servicio digital de apoyo personal y motivación diseñado para ofrecer conversación, estructura y acompañamiento."
+        "p": "Mindra es un servicio digital de apoyo personal y motivación diseñado para ofrecer conversación, estructura y apoyo emocional."
       },
       {
-        "h": "No es un servicio médico ni psicológico",
-        "p": "Mindra no proporciona asesoramiento médico, psicológico, psiquiátrico ni terapéutico, ni diagnósticos o tratamientos. No sustituye a profesionales licenciados."
+        "h": "No es un servicio médico o psicológico",
+        "p": "Mindra no proporciona asesoramiento, diagnóstico ni tratamiento médico, psicológico o psiquiátrico. No sustituye a profesionales licenciados."
       },
       {
         "h": "Responsabilidad del usuario",
-        "p": "Reconoces que todas las decisiones y acciones tomadas a partir del uso de Mindra son de tu exclusiva responsabilidad."
+        "p": "Reconoces que todas las decisiones y acciones basadas en el uso de Mindra son tu exclusiva responsabilidad."
       },
       {
         "h": "Cuenta y elegibilidad",
-        "p": "Debes tener al menos 16 años (o la edad mínima requerida por la ley en tu jurisdicción) para utilizar el servicio."
+        "p": "Debes tener al menos 16 años (o la edad mínima requerida por la ley en tu jurisdicción) para usar el servicio."
       },
       {
         "h": "Suscripciones y pagos",
         "ul": [
-          "Las suscripciones pueden renovarse automáticamente hasta su cancelación.",
-          "Los pagos se procesan a través de Stripe.",
-          "Puedes gestionar tu suscripción mediante el Portal del Cliente o contactando al Soporte."
+          "Las suscripciones pueden renovarse automáticamente salvo cancelación.",
+          "Los pagos son procesados por Stripe.",
+          "Puedes gestionar suscripciones mediante el Portal del Cliente o contactando a Soporte."
         ]
       },
       {
@@ -188,16 +290,20 @@
         "p": "Todas las compras están sujetas a la Política de Reembolsos. El uso del servicio generalmente hace que las compras no sean reembolsables."
       },
       {
+        "h": "Uso aceptable",
+        "p": "Se prohíben actividades ilegales, abuso, hacking, malware y violaciones de derechos."
+      },
+      {
         "h": "Limitación de responsabilidad",
-        "p": "En la máxima medida permitida por la ley, Mindra Group LLC no será responsable por daños indirectos, incidentales, emocionales o consecuentes."
+        "p": "En la máxima medida permitida por la ley, Mindra Group LLC no es responsable por daños indirectos, incidentales, emocionales o consecuentes."
       },
       {
         "h": "Terminación",
-        "p": "El acceso puede suspenderse o cancelarse en caso de violaciones o por requerimientos legales."
+        "p": "El acceso puede suspenderse o terminarse en caso de violaciones o requisitos legales."
       },
       {
         "h": "Ley aplicable",
-        "p": "Estos Términos se rigen por las leyes del estado de Florida, Estados Unidos."
+        "p": "Estos Términos se rigen por las leyes del estado de Florida, EE. UU."
       }
     ]
   },
@@ -205,29 +311,28 @@
   "refunds": {
     "title": "Política de Reembolsos",
     "updated": "Última actualización",
-    "contact": "Para solicitudes de reembolso, contacta a:",
+    "contact": "Para solicitudes de reembolso, contacta:",
     "sections": [
       {
         "h": "Todas las ventas son finales",
-        "p": "Todas las compras de suscripciones y funciones digitales de Mindra son finales y no reembolsables."
+        "p": "Todas las compras de suscripciones y funciones digitales de Mindra son finales y no reembolsables, salvo que la ley lo exija."
       },
       {
         "h": "Uso del servicio",
-        "p": "Si utilizas cualquier parte del servicio después de la compra — incluyendo mensajes de chat, voz premium, llamadas cara a cara, metas, hábitos o recordatorios — renuncias a cualquier derecho de reembolso. Esto incluye el uso de incluso un solo mensaje, segundo o minuto."
+        "p": "Si utilizas cualquier parte del servicio después de la compra —incluyendo mensajes, voz premium, llamadas cara a cara, metas, hábitos o recordatorios— renuncias a cualquier derecho a reembolso. Esto incluye incluso un solo mensaje, segundo o minuto."
       },
       {
         "h": "Voz premium y llamadas",
-        "p": "Debido al consumo inmediato de recursos, cualquier uso de funciones de voz premium o llamadas cara a cara hace que la compra sea estrictamente no reembolsable."
+        "p": "Debido al consumo inmediato de recursos, cualquier uso de funciones de voz premium o cara a cara hace que la compra sea estrictamente no reembolsable."
       },
       {
-        "h": "Excepción por renovación automática",
-        "p": "Un reembolso solo podrá considerarse si una suscripción se renovó automáticamente, el servicio no fue utilizado después de la renovación y la suscripción fue cancelada de inmediato. Cualquier reembolso se concede únicamente a discreción de Mindra Group LLC."
+        "h": "Excepción por renovación automática (caso por caso)",
+        "p": "Un reembolso puede considerarse solo si la suscripción se renovó automáticamente, el servicio no fue utilizado tras la renovación y la suscripción se canceló de inmediato. Cualquier decisión se toma únicamente a discreción de Mindra Group LLC."
       },
       {
         "h": "Sin obligación de reembolso",
-        "p": "Mindra Group LLC no tiene obligación de emitir reembolsos y puede rechazar cualquier solicitud permitida por la ley."
+        "p": "Mindra Group LLC no tiene obligación de emitir reembolsos y puede rechazar cualquier solicitud en la máxima medida permitida por la ley."
       }
     ]
   }
-}
 }
