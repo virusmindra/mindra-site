@@ -41,7 +41,7 @@ export default function PricingPage({ params: { locale } }: { params: { locale: 
     setPickerOpen(true);
   };
 
-  const startCheckout = async (plan: Plan, term: Term) => {
+const startCheckout = async (plan: Plan, term: Term) => {
   try {
     setLoading(true);
 
@@ -51,20 +51,29 @@ export default function PricingPage({ params: { locale } }: { params: { locale: 
       body: JSON.stringify({ plan, term, locale }),
     });
 
-    const data = (await res.json()) as { url?: string; error?: string };
+    // ✅ не падаем, даже если сервер вернул HTML/пусто
+    const text = await res.text();
+    let data: { url?: string; error?: string; detail?: string } | null = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
 
-    if (!res.ok || !data.url) {
-      console.error("Checkout error:", data?.error);
-      alert(data?.error ?? "Checkout failed");
+    if (!res.ok || !data?.url) {
+      console.error("Checkout error status:", res.status);
+      console.error("Checkout error body:", text);
+
+      alert(data?.error || data?.detail || text || "Checkout failed");
       return;
     }
 
-    // ✅ редирект в Stripe Checkout
     window.location.href = data.url;
   } finally {
     setLoading(false);
   }
 };
+
 
 
 const plusItems = useMemo(() => {

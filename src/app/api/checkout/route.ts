@@ -32,72 +32,84 @@ function normTerm(x: any): Term | null {
 }
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as
-    | { plan?: unknown; term?: unknown; locale?: string }
-    | null;
+  try {
+    const body = (await req.json().catch(() => null)) as
+      | { plan?: unknown; term?: unknown; locale?: string }
+      | null;
 
-  const plan = normPlan(body?.plan);
-  const term = normTerm(body?.term);
+    const plan = normPlan(body?.plan);
+    const term = normTerm(body?.term);
 
-  const locale =
-    String(body?.locale ?? "en").toLowerCase().startsWith("es") ? "es" : "en";
+    const locale =
+      String(body?.locale ?? "en").toLowerCase().startsWith("es") ? "es" : "en";
 
-  if (!plan || !term) {
-    return NextResponse.json(
-      { error: `Invalid plan/term: plan=${String(body?.plan)} term=${String(body?.term)}` },
-      { status: 400 }
-    );
-  }
+    if (!plan || !term) {
+      return NextResponse.json(
+        { error: `Invalid plan/term: plan=${String(body?.plan)} term=${String(body?.term)}` },
+        { status: 400 }
+      );
+    }
 
-  const key = `${plan}:${term}` as const;
-  const priceId = (PRICE_MAP[key] ?? "").trim();
+    const key = `${plan}:${term}` as const;
+    const priceId = (PRICE_MAP[key] ?? "").trim();
 
-  if (!priceId) {
-    // ВОТ ТУТ ты сразу увидишь: это missing env или реально нет ключа
-    const missing = Object.entries(PRICE_MAP)
-      .filter(([, v]) => !String(v ?? "").trim())
-      .map(([k]) => k);
+    if (!priceId) {
+      const missing = Object.entries(PRICE_MAP)
+        .filter(([, v]) => !String(v ?? "").trim())
+        .map(([k]) => k);
 
-    return NextResponse.json(
-      {
-        error: `Unknown plan/term or missing Stripe price env for ${key}. Missing: ${missing.join(", ")}`,
-      },
-      { status: 400 }
-    );
-  }
+      return NextResponse.json(
+        {
+          error: `Missing Stripe price env for ${key}. Missing: ${missing.join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
 
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
 
-  let sub = await prisma.subscription.findUnique({ where: { userId } });
-  let customerId = sub?.stripeCustomer ?? null;
+    let sub = await prisma.subscription.findUnique({ where: { userId } });
+    let customerId = sub?.stripeCustomer ?? null;
 
-  if (!customerId) {
-    const c = await stripe.customers.create({ metadata: { userId } });
-    customerId = c.id;
+    if (!customerId) {
+      const c = await stripe.customers.create({ metadata: { userId } });
+      customerId = c.id;
 
-    await prisma.subscription.upsert({
-      where: { userId },
-      create: { userId, stripeCustomer: customerId, status: "incomplete", plan: "FREE" as any },
-      update: { stripeCustomer: customerId },
+      await prisma.subscription.upsert({
+        where: { userId },
+        create: { userId, stripeCustomer: customerId, status: "incomplete", plan: "FREE" as any },
+        update: { stripeCustomer: customerId },
+      });
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? req.nextUrl.origin;
+
+    const success_url = `${baseUrl}/account?checkout=success&locale=${locale}`;
+    const cancel_url = `${baseUrl}/${locale}/pricing?checkout=cancel`;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      client_reference_id: userId,
+      metadata: { userId, plan, term, locale },
+      subscription_data: { metadata: { userId, plan, term, locale } },
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url,
+      cancel_url,
     });
+
+    return NextResponse.json({ url: session.url }, { status: 200 });
+  } catch (e: any) {
+    // ✅ лог в серверные логи
+    console.error("CHECKOUT_500:", e?.message, e);
+
+    // ✅ и JSON на клиент
+    return NextResponse.json(
+      { error: "checkout_500", detail: String(e?.message ?? e) },
+      { status: 500 }
+    );
   }
-
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? req.nextUrl.origin;
-
-  const success_url = `${baseUrl}/account?checkout=success&locale=${locale}`;
-  const cancel_url = `${baseUrl}/${locale}/pricing?checkout=cancel`;
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    client_reference_id: userId,
-    metadata: { userId, plan, term, locale },
-    subscription_data: { metadata: { userId, plan, term, locale } },
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url,
-    cancel_url,
-  });
-
-  return NextResponse.json({ url: session.url }, { status: 200 });
 }
