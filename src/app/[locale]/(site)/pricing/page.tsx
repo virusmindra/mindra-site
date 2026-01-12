@@ -41,11 +41,31 @@ export default function PricingPage({ params: { locale } }: { params: { locale: 
     setPickerOpen(true);
   };
 
-  const startCheckout = (plan: Plan, term: Term) => {
-  setLoading(true);
-  const url = `/api/checkout?plan=${encodeURIComponent(plan)}&term=${encodeURIComponent(term)}&locale=${encodeURIComponent(locale)}`;
-  router.push(url);
+  const startCheckout = async (plan: Plan, term: Term) => {
+  try {
+    setLoading(true);
+
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan, term, locale }),
+    });
+
+    const data = (await res.json()) as { url?: string; error?: string };
+
+    if (!res.ok || !data.url) {
+      console.error("Checkout error:", data?.error);
+      alert(data?.error ?? "Checkout failed");
+      return;
+    }
+
+    // ✅ редирект в Stripe Checkout
+    window.location.href = data.url;
+  } finally {
+    setLoading(false);
+  }
 };
+
 
 const plusItems = useMemo(() => {
   const raw = (messages["plan.plus.items"] ?? []) as unknown;
