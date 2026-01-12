@@ -217,35 +217,34 @@ const proItems = useMemo(() => {
       <div className="mt-5 space-y-2">
         {TERMS.map(({ term, discountLabelKey }) => (
           <button
-  key={term}
-  onClick={() => {
-    setPickerOpen(false);
-    startCheckout(pickedPlan, term);
-  }}
-  className={[
-    "w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left transition",
-    "bg-white hover:bg-zinc-50 text-zinc-900",                 // ✅ light
-    "dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-white", // ✅ dark
-  ].join(" ")}
->
-  <div className="flex items-center justify-between gap-3">
-    <div className="font-medium">
-      {t(`term.${term}`)}
-    </div>
-
-    {/* ✅ скидка всегда видима */}
-    <span
-      className={[
-        "text-xs px-2 py-1 rounded-full border",
-        "border-zinc-200 text-zinc-600 bg-white",                 // light
-        "dark:border-zinc-700 dark:text-zinc-200 dark:bg-zinc-950" // dark
-      ].join(" ")}
+      key={term}
+      onClick={() => {
+        setPickerOpen(false);
+        startCheckout(pickedPlan, term);
+      }}
+      className="
+        w-full rounded-xl
+        border border-zinc-200
+        bg-white hover:bg-zinc-50
+        px-4 py-3 text-left transition
+      "
     >
-      {t(discountLabelKey)}
-    </span>
-  </div>
-</button>
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-medium text-zinc-900">
+          {t(`term.${term}`)}
+        </div>
 
+        <span
+          className="
+            text-xs px-2 py-1 rounded-full
+            border border-zinc-200
+            bg-white text-zinc-600
+          "
+        >
+          {t(discountLabelKey)}
+        </span>
+      </div>
+    </button>
         ))}
       </div>
 
