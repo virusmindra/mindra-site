@@ -217,18 +217,22 @@ const proItems = useMemo(() => {
       <div className="mt-5 space-y-2">
         {TERMS.map(({ term, discountLabelKey }) => (
           <button
-            key={term}
-            onClick={() => {
-              setPickerOpen(false);
-              startCheckout(pickedPlan, term);
-            }}
-            className="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/10 transition"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-medium text-[var(--text)]">{t(`term.${term}`)}</div>
-              <div className="text-sm text-[var(--muted)]">{t(discountLabelKey)}</div>
-            </div>
-          </button>
+  key={term}
+  onClick={() => {
+    setPickerOpen(false);
+    startCheckout(pickedPlan, term);
+  }}
+  className={[
+    "w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left transition",
+    "bg-white hover:bg-zinc-50",
+    "dark:bg-zinc-950/40 dark:hover:bg-zinc-950/60" // ✅ чтобы не было белого по белому
+  ].join(" ")}
+>
+  <div className="flex items-center justify-between gap-3">
+    <div className="font-medium">{t(`term.${term}`)}</div>
+    <div className="text-sm text-[var(--muted)]">{t(discountLabelKey)}</div>
+  </div>
+</button>
         ))}
       </div>
 
