@@ -55,6 +55,10 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
   const streamRef = useRef<MediaStream | null>(null); // preview audio+video
   const audioOnlyRef = useRef<MediaStream | null>(null); // recorder only audio
 
+  const speakingRef = useRef(false);
+  const lastTtsEndedAtRef = useRef<number>(0);
+  const TTS_COOLDOWN_MS = 600; // можно 400-800, я бы 600
+
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const stopGuardTimerRef = useRef<number | null>(null);
@@ -187,6 +191,13 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
         // когда отправляем — не трогаем
         if (recState === "sending") return;
 
+        // ✅ не слушаем, пока Mindra говорит
+        if (speakingRef.current) return;
+
+        // ✅ и чуть-чуть после окончания речи тоже
+        if (performance.now() - lastTtsEndedAtRef.current < TTS_COOLDOWN_MS) return;
+
+
         analyserRef.current.getByteTimeDomainData(buf);
 
         // RMS
@@ -277,11 +288,21 @@ const sendTurn = async (audioBlob: Blob, mime: string) => {
         a.playbackRate = 0.9;
 
         setAvatarState("speaking");
+speakingRef.current = true;
 
-        a.onended = () => {
-          if (ttsAudioRef.current === a) ttsAudioRef.current = null;
-          setAvatarState("idle");
-        };
+a.onended = () => {
+  if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+
+  // ✅ помечаем момент окончания TTS
+  lastTtsEndedAtRef.current = performance.now();
+
+  // ✅ плавно возвращаемся в idle
+  window.setTimeout(() => {
+    speakingRef.current = false;
+    setAvatarState("idle");
+  }, 300); // можно 250-400
+};
+
 
         ttsAudioRef.current = a;
         a.play().catch(() => {});
@@ -325,6 +346,9 @@ const avatarSrc = useMemo(() => {
 
       if (recState === "sending") return;
       if (!micOn) return;
+      
+      if (speakingRef.current) return;
+      if (performance.now() - lastTtsEndedAtRef.current < TTS_COOLDOWN_MS) return;
 
       if (!audioOnlyRef.current) {
         setNotice(text.noMic);
@@ -490,6 +514,8 @@ const avatarSrc = useMemo(() => {
       } catch {}
       streamRef.current = null;
       audioOnlyRef.current = null;
+      speakingRef.current = false;
+      lastTtsEndedAtRef.current = performance.now();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -529,6 +555,16 @@ const avatarSrc = useMemo(() => {
     t.enabled = next;
     setCamOn(next);
   };
+
+  const leaveFeedback = () => {
+  // вариант 1: открыть /feedback страницу
+  window.open("/feedback", "_blank");
+
+  // вариант 2: просто mailto
+  // window.location.href = "mailto:hello@mindra.group?subject=Mindra%20Call%20Feedback";
+  
+  // вариант 3: показать мини-модалку/тост (если есть)
+};
 
   const endCall = () => {
     // ✅ СЮДА — stopVAD() тоже
@@ -643,7 +679,13 @@ return (
         >
           ✕
         </button>
-
+<button
+  onClick={leaveFeedback}
+  className="w-12 h-12 rounded-full bg-[var(--accent)]/90 border border-white/15 text-white"
+  title="Feedback"
+>
+  💜
+</button>
         <button
           onClick={toggleMic}
           className="w-12 h-12 rounded-full bg-white/10 border border-white/15 text-white"
@@ -657,7 +699,7 @@ return (
       <div className="mt-4 text-center text-white/70 text-sm">
         {!camReady ? (notice || text.loading) : null}
         {camReady && notice ? notice : null}
-        {camReady && !notice ? (recState === "recording" ? "● Recording…" : text.listening) : null}
+        {camReady && !notice ? (recState === "recording" ? "● Recording…" : null) : null}
       </div>
 
       {/* ✅ push-to-talk только если autoTalk OFF */}
@@ -695,7 +737,7 @@ return (
           }}
           className="text-white/60 text-xs underline underline-offset-4"
         >
-          {autoTalk ? "Auto: ON" : "Auto: OFF"}
+          {autoTalk ? "Beta mode: ON" : "Beta mode: OFF"}
         </button>
       </div>
     </div>
