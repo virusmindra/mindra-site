@@ -195,23 +195,30 @@ const proItems = useMemo(() => {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--text)]">
-            {t("modal.title", {
-              plan: pickedPlan === "PLUS" ? t("plan.plus.name") : t("plan.pro.name"),
-            })}
-          </h3>
-          <p className="text-sm text-[var(--muted)]">{t("modal.subtitle")}</p>
-        </div>
+  <div>
+    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      {t("modal.title", {
+        plan: pickedPlan === "PLUS"
+          ? t("plan.plus.name")
+          : t("plan.pro.name"),
+      })}
+    </h3>
 
-        <button
-          onClick={() => setPickerOpen(false)}
-          className="rounded-lg border border-[var(--border)] px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10"
-          aria-label={t("modal.close")}
-          title={t("modal.close")}
-        >
-          ✕
-        </button>
+    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      {t("modal.subtitle")}
+    </p>
+  </div>
+
+  <button
+    onClick={() => setPickerOpen(false)}
+    className="rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 py-1
+               text-zinc-600 dark:text-zinc-300
+               hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+    aria-label={t("modal.close")}
+    title={t("modal.close")}
+  >
+    ✕
+  </button>
       </div>
 
       <div className="mt-5 space-y-2">
