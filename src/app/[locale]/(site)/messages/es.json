@@ -1,39 +1,74 @@
-{
-  "nav.home": "Inicio",
-  "nav.chat": "Chat",
-  "nav.pricing": "Precios",
-  "nav.donate": "Donar",
+{"home": {
+  "hero": {
+    "eyebrow": "MINDRA — SOMEONE WHO CARES.",
+    "title": "Support, motivation, and real care — in one place",
+    "subtitle": "Mindra is your supportive AI companion. Talk when you feel overwhelmed, burned out, lonely, or stuck. Build habits, set goals, use premium voice or face-to-face calls — all in one space.",
+    "ctaStart": "Start chatting",
+    "ctaPlans": "View plans",
+    "note": "Not a medical or crisis service. Always here to listen."
+  },
 
-  "brand.tagline": "Mindra — Someone who cares.",
+  "what": {
+    "title": "What is Mindra?",
+    "text": "Mindra is a supportive AI project designed to help you feel heard, grounded, and motivated. It’s not about pressure or productivity — it’s about care, presence, and steady progress."
+  },
 
-  "hero.title": "Apoyo, motivación y claridad — cuando más lo necesitas",
-  "hero.subtitle": "Mindra es un compañero de apoyo con IA que te ayuda a hablar lo que sientes, mantener el equilibrio y avanzar con calma. Chat, metas, hábitos, recordatorios, voz premium y llamadas cara a cara — todo en un solo lugar.",
-  "cta.launch": "Comenzar a chatear",
-  "cta.pricing": "Ver precios",
+  "how": {
+    "steps": {
+      "1": {
+        "title": "Talk freely",
+        "text": "Share what’s on your mind — stress, doubts, burnout, or everyday thoughts."
+      },
+      "2": {
+        "title": "Get support",
+        "text": "Receive calm, empathetic responses, guidance, and emotional support."
+      },
+      "3": {
+        "title": "Move forward",
+        "text": "Set goals, build habits, track progress, and grow at your own pace."
+      }
+    }
+  },
 
-  "features.title": "Cómo Mindra puede ayudarte",
-  "features.cards.chat.title": "Chat de apoyo",
-  "features.cards.chat.text": "Conversaciones cálidas y tranquilas cuando te sientes agotado, abrumado o solo.",
-  "features.cards.coach.title": "Guía suave",
-  "features.cards.coach.text": "Pequeños pasos, reflexiones y seguimientos para recuperar el enfoque.",
-  "features.cards.goals.title": "Metas y hábitos",
-  "features.cards.goals.text": "Define metas, crea hábitos y sigue tu progreso sin presión.",
-  "features.cards.reports.title": "Conciencia del progreso",
-  "features.cards.reports.text": "Comprende patrones, constancia y avances con el tiempo.",
-  "features.cards.voice.title": "Voz premium",
-  "features.cards.voice.text": "Respuestas de voz natural y audio calmante para una mayor conexión.",
-  "features.cards.premium.title": "Llamadas cara a cara",
-  "features.cards.premium.text": "Cuando el texto no es suficiente — habla directamente y siéntete acompañado.",
+  "features": {
+    "title": "Everything Mindra offers",
+    "subtitle": "All features work together — no fragments, no pressure.",
 
-  "support.title": "Por qué existe Mindra",
-  "support.intro": "Mindra fue creada para momentos en los que la vida pesa — agotamiento, estrés, soledad o pérdida de dirección. No se trata de arreglarte. Se trata de estar contigo.",
-  "support.goal.title": "Nuestra misión",
-  "support.goal.text": "Ofrecer apoyo constante, respetuoso y humano — sin juicios, presión ni expectativas.",
-  "support.features.1": "Un espacio tranquilo para hablar y ordenar pensamientos.",
-  "support.features.2": "Herramientas para dar estructura cuando todo parece caótico.",
-  "support.features.3": "Presencia que no desaparece cuando las cosas se ponen difíciles.",
-  "support.cta": "Apoyar el desarrollo",
-  "support.desc": "¿Tienes preguntas o inquietudes? Escríbenos — respondemos lo antes posible.",
+    "cards": {
+      "chat": {
+        "title": "Supportive chat",
+        "text": "Warm, judgment-free conversations when you feel overwhelmed, tired, or alone."
+      },
+      "voice": {
+        "title": "Premium voice",
+        "text": "Natural, calming voice responses for deeper emotional presence."
+      },
+      "face": {
+        "title": "Face-to-face calls",
+        "text": "Talk to Mindra in real-time with visual presence and voice."
+      },
+      "goals": {
+        "title": "Goals & habits",
+        "text": "Set goals, build habits, and track progress without pressure."
+      },
+      "habits": {
+        "title": "Daily habits",
+        "text": "Gentle habit tracking designed to support consistency, not guilt."
+      },
+      "reminders": {
+        "title": "Reminders & check-ins",
+        "text": "Smart reminders and daily check-ins to keep you connected with yourself."
+      }
+    }
+  },
+
+  "final": {
+    "title": "You don’t have to go through it alone",
+    "subtitle": "Mindra is here when you need support, clarity, or simply someone who listens.",
+    "ctaStart": "Start now",
+    "ctaPlans": "See pricing",
+    "note": "Supportive AI companion. Not therapy or medical care."
+  },
 
   "footer": {
     "footerLabel": "Pie de página del sitio web",
@@ -194,4 +229,5 @@
       }
     ]
   }
+}
 }
