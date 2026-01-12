@@ -9,34 +9,66 @@ import { getUserId } from "@/lib/auth";
 type Plan = "PLUS" | "PRO";
 type Term = "1M" | "3M" | "6M" | "12M";
 
-const PRICE_MAP: Record<`${Plan}:${Term}`, string> = {
-  "PLUS:1M": process.env.STRIPE_PRICE_PLUS_1M!,
-  "PLUS:3M": process.env.STRIPE_PRICE_PLUS_3M!,
-  "PLUS:6M": process.env.STRIPE_PRICE_PLUS_6M!,
-  "PLUS:12M": process.env.STRIPE_PRICE_PLUS_12M!,
+const PRICE_MAP: Record<`${Plan}:${Term}`, string | undefined> = {
+  "PLUS:1M": process.env.STRIPE_PRICE_PLUS_1M,
+  "PLUS:3M": process.env.STRIPE_PRICE_PLUS_3M,
+  "PLUS:6M": process.env.STRIPE_PRICE_PLUS_6M,
+  "PLUS:12M": process.env.STRIPE_PRICE_PLUS_12M,
 
-  "PRO:1M": process.env.STRIPE_PRICE_PRO_1M!,
-  "PRO:3M": process.env.STRIPE_PRICE_PRO_3M!,
-  "PRO:6M": process.env.STRIPE_PRICE_PRO_6M!,
-  "PRO:12M": process.env.STRIPE_PRICE_PRO_12M!,
+  "PRO:1M": process.env.STRIPE_PRICE_PRO_1M,
+  "PRO:3M": process.env.STRIPE_PRICE_PRO_3M,
+  "PRO:6M": process.env.STRIPE_PRICE_PRO_6M,
+  "PRO:12M": process.env.STRIPE_PRICE_PRO_12M,
 };
 
-export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as { plan?: Plan; term?: Term; locale?: string } | null;
-  const plan = body?.plan;
-  const term = body?.term;
-  const locale = String(body?.locale ?? "en").toLowerCase().startsWith("es") ? "es" : "en";
+function normPlan(x: any): Plan | null {
+  const v = String(x ?? "").trim().toUpperCase();
+  return v === "PLUS" || v === "PRO" ? (v as Plan) : null;
+}
 
-  if (!plan || !term) return NextResponse.json({ error: "Missing plan/term" }, { status: 400 });
+function normTerm(x: any): Term | null {
+  const v = String(x ?? "").trim().toUpperCase();
+  return v === "1M" || v === "3M" || v === "6M" || v === "12M" ? (v as Term) : null;
+}
+
+export async function POST(req: NextRequest) {
+  const body = (await req.json().catch(() => null)) as
+    | { plan?: unknown; term?: unknown; locale?: string }
+    | null;
+
+  const plan = normPlan(body?.plan);
+  const term = normTerm(body?.term);
+
+  const locale =
+    String(body?.locale ?? "en").toLowerCase().startsWith("es") ? "es" : "en";
+
+  if (!plan || !term) {
+    return NextResponse.json(
+      { error: `Invalid plan/term: plan=${String(body?.plan)} term=${String(body?.term)}` },
+      { status: 400 }
+    );
+  }
 
   const key = `${plan}:${term}` as const;
-  const priceId = PRICE_MAP[key];
-  if (!priceId) return NextResponse.json({ error: "Unknown plan/term" }, { status: 400 });
+  const priceId = (PRICE_MAP[key] ?? "").trim();
+
+  if (!priceId) {
+    // ВОТ ТУТ ты сразу увидишь: это missing env или реально нет ключа
+    const missing = Object.entries(PRICE_MAP)
+      .filter(([, v]) => !String(v ?? "").trim())
+      .map(([k]) => k);
+
+    return NextResponse.json(
+      {
+        error: `Unknown plan/term or missing Stripe price env for ${key}. Missing: ${missing.join(", ")}`,
+      },
+      { status: 400 }
+    );
+  }
 
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  // ensure customer
   let sub = await prisma.subscription.findUnique({ where: { userId } });
   let customerId = sub?.stripeCustomer ?? null;
 
@@ -53,7 +85,6 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? req.nextUrl.origin;
 
-  // ✅ у тебя нет /[locale]/account, есть /account
   const success_url = `${baseUrl}/account?checkout=success&locale=${locale}`;
   const cancel_url = `${baseUrl}/${locale}/pricing?checkout=cancel`;
 
@@ -66,7 +97,6 @@ export async function POST(req: NextRequest) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url,
     cancel_url,
-    allow_promotion_codes: false,
   });
 
   return NextResponse.json({ url: session.url }, { status: 200 });
