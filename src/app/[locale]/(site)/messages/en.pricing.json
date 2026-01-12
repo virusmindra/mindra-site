@@ -13,7 +13,7 @@
 
   "plan.free.name": "Free",
   "plan.free.desc": "Core features with fair limits.",
-  "plan.free.bullets.chat": "10 chat messages / month",
+  "plan.free.bullets.chat": "10 chat messages / day",
   "plan.free.bullets.goals": "3 goals / month",
   "plan.free.bullets.habits": "3 habits / month",
   "plan.free.bullets.reminders": "3 reminders / month",
@@ -21,28 +21,42 @@
 
   "plan.plus.name": "Mindra+",
   "plan.plus.price": "$19.99 / month",
-  "plan.plus.desc": "Unlimited chat + 30 goals/month + 30 habits/month + unlimited reminders + 120 voice minutes/month.",
+  "plan.plus.desc": "Perfect for daily support and progress.",
+  "plan.plus.items": [
+    "Unlimited chat",
+    "30 goals / month",
+    "30 habits / month",
+    "Unlimited reminders",
+    "120 voice minutes / month"
+  ],
 
   "plan.pro.name": "Mindra Pro",
   "plan.pro.price": "$39.99 / month",
-  "plan.pro.desc": "Unlimited chat + unlimited goals/habits/reminders + 300 voice minutes/month.",
+  "plan.pro.desc": "Best for power users — no limits.",
+  "plan.pro.items": [
+    "Unlimited chat",
+    "Unlimited goals",
+    "Unlimited habits",
+    "Unlimited reminders",
+    "300 voice minutes / month"
+  ],
 
   "cta.startFree": "Start free",
-  "cta.choose": "Choose plan",
+  "cta.choosePlan": "Choose plan",
+  "cta.loading": "Loading…",
 
-  "picker.title.plus": "Choose billing period for Mindra+",
-  "picker.title.pro": "Choose billing period for Mindra Pro",
-  "picker.subtitle": "Pick the best option — longer periods include discounts.",
-  "picker.close": "Close",
-  "picker.note": "You can manage your subscription anytime in Account → Customer Portal.",
+  "modal.close": "Close",
+  "modal.title": "Choose billing period for {plan}",
+  "modal.subtitle": "Longer periods include discounts.",
+  "modal.footer": "You can manage your subscription anytime in Account → Customer Portal.",
 
   "term.1M": "1 month",
   "term.3M": "3 months",
   "term.6M": "6 months",
   "term.12M": "12 months",
 
-  "term.discount.none": "No discount",
-  "term.discount.3M": "-10%",
-  "term.discount.6M": "-15%",
-  "term.discount.12M": "-25%"
+  "term.noDiscount": "No discount",
+  "term.discount10": "-10%",
+  "term.discount15": "-15%",
+  "term.discount25": "-25%"
 }

@@ -177,17 +177,20 @@ const proItems = useMemo(() => {
 
     {/* MODAL term picker */}
 {pickerOpen && pickedPlan && (
-  <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 md:pt-28 px-4">
+  <div className="fixed inset-0 z-50 flex items-start justify-center pt-32 md:pt-36 px-4">
     {/* overlay */}
     <button
-      className="absolute inset-0 bg-black/60"
+      className="absolute inset-0 bg-black/70"
       onClick={() => setPickerOpen(false)}
       aria-label="Close"
     />
 
     {/* modal */}
     <div
-      className="relative w-full max-w-xl rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-2xl"
+      className={[
+        "relative w-full max-w-xl rounded-2xl border border-[var(--border)] p-6 shadow-2xl",
+        "bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50", // ✅ SOLID (не прозрачная)
+      ].join(" ")}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-start justify-between gap-4">
