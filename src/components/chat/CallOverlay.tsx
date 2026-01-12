@@ -319,8 +319,8 @@ useEffect(() => {
 const avatarSrc = useMemo(() => {
   const base = callStyle === "carnaval" ? "carnaval" : "winter";
   return {
-    idle: `/voice/${base}_idle.mp4`,
-    talk: `/voice/${base}_talk.mp4`,
+    idle: `/video/${base}_idle.mp4`,
+    talk: `/video/${base}_talk.mp4`,
   };
 }, [callStyle]);
 
