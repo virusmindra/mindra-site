@@ -1,27 +1,197 @@
 {
   "nav.home": "Inicio",
   "nav.chat": "Chat",
-
-  "brand.tagline": "MINDRA — tu amigo y coach de IA",
   "nav.pricing": "Precios",
   "nav.donate": "Donar",
 
-  "hero.title": "Apoyo, motivación y hábitos — en el bot y en la web",
-  "hero.subtitle": "Mindra te ayuda a hablar de lo importante, mantener el foco en tus metas y cuidarte. Úsalo en Telegram o directamente en el sitio. Funciona en 11 idiomas.",
-  "cta.launch": "Abrir en Telegram",
+  "brand.tagline": "Mindra — Someone who cares.",
+
+  "hero.title": "Apoyo, motivación y claridad — cuando más lo necesitas",
+  "hero.subtitle": "Mindra es un compañero de apoyo con IA que te ayuda a hablar lo que sientes, mantener el equilibrio y avanzar con calma. Chat, metas, hábitos, recordatorios, voz premium y llamadas cara a cara — todo en un solo lugar.",
+  "cta.launch": "Comenzar a chatear",
   "cta.pricing": "Ver precios",
 
-  "features.title": "Lo que puede hacer Mindra",
-  "features.cards.chat.title": "Diálogo de apoyo",
-  "features.cards.chat.text": "Respuestas cálidas y cuidadosas — sin juicios ni presión.",
-  "features.cards.coach.title": "Motivación y coaching",
-  "features.cards.coach.text": "Planes de acción, micro-pasos y check-ins regulares.",
+  "features.title": "Cómo Mindra puede ayudarte",
+  "features.cards.chat.title": "Chat de apoyo",
+  "features.cards.chat.text": "Conversaciones cálidas y tranquilas cuando te sientes agotado, abrumado o solo.",
+  "features.cards.coach.title": "Guía suave",
+  "features.cards.coach.text": "Pequeños pasos, reflexiones y seguimientos para recuperar el enfoque.",
   "features.cards.goals.title": "Metas y hábitos",
-  "features.cards.goals.text": "Añade metas, controla hábitos y recibe recordatorios.",
-  "features.cards.reports.title": "Informes y estadísticas",
-  "features.cards.reports.text": "Resumen semanal, puntos y rachas por progreso.",
-  "features.cards.voice.title": "Respuestas por voz",
-  "features.cards.voice.text": "Varias voces (incl. ElevenLabs) y sonidos para dormir.",
-  "features.cards.premium.title": "Retos Premium",
-  "features.cards.premium.text": "Retos semanales, pines y marcado automático de logros."
+  "features.cards.goals.text": "Define metas, crea hábitos y sigue tu progreso sin presión.",
+  "features.cards.reports.title": "Conciencia del progreso",
+  "features.cards.reports.text": "Comprende patrones, constancia y avances con el tiempo.",
+  "features.cards.voice.title": "Voz premium",
+  "features.cards.voice.text": "Respuestas de voz natural y audio calmante para una mayor conexión.",
+  "features.cards.premium.title": "Llamadas cara a cara",
+  "features.cards.premium.text": "Cuando el texto no es suficiente — habla directamente y siéntete acompañado.",
+
+  "support.title": "Por qué existe Mindra",
+  "support.intro": "Mindra fue creada para momentos en los que la vida pesa — agotamiento, estrés, soledad o pérdida de dirección. No se trata de arreglarte. Se trata de estar contigo.",
+  "support.goal.title": "Nuestra misión",
+  "support.goal.text": "Ofrecer apoyo constante, respetuoso y humano — sin juicios, presión ni expectativas.",
+  "support.features.1": "Un espacio tranquilo para hablar y ordenar pensamientos.",
+  "support.features.2": "Herramientas para dar estructura cuando todo parece caótico.",
+  "support.features.3": "Presencia que no desaparece cuando las cosas se ponen difíciles.",
+  "support.cta": "Apoyar el desarrollo",
+  "support.desc": "¿Tienes preguntas o inquietudes? Escríbenos — respondemos lo antes posible.",
+
+  "footer": {
+    "footerLabel": "Pie de página del sitio web",
+    "copyrightAria": "Derechos de autor",
+    "legalNavAria": "Navegación legal",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos del Servicio",
+    "refunds": "Política de Reembolsos",
+    "support": "Soporte",
+    "portal": "Portal del Cliente",
+    "disclaimer": "Mindra no es un servicio médico ni de crisis. En emergencias, contacta a los servicios locales de emergencia.",
+    "contact": "Contacto"
+  },
+
+  "cookie": {
+    "bannerAria": "Aviso de cookies",
+    "text": "Utilizamos cookies para operar el servicio, entender su uso y mejorar Mindra.",
+    "more": "Política de Privacidad",
+    "accept": "Aceptar",
+    "acceptAria": "Aceptar cookies",
+    "details": "Detalles",
+    "moreAria": "Más sobre cookies"
+  },
+
+  "privacy": {
+    "title": "Política de Privacidad",
+    "updated": "Última actualización",
+    "contact": "Para solicitudes de privacidad, contacta a:",
+    "sections": [
+      {
+        "h": "Quiénes somos",
+        "p": "Mindra es un servicio digital operado por Mindra Group LLC (la “Empresa”)."
+      },
+      {
+        "h": "Qué datos recopilamos",
+        "ul": [
+          "Dirección de correo electrónico (para acceso, pagos y soporte).",
+          "Metadatos de pago y facturación procesados de forma segura por Stripe. No almacenamos datos de tarjetas.",
+          "Datos técnicos como dirección IP, tipo de navegador, cookies y eventos analíticos.",
+          "Contenido proporcionado voluntariamente por el usuario en chats o configuraciones."
+        ]
+      },
+      {
+        "h": "No procesamos datos de salud",
+        "p": "Mindra no recopila ni procesa intencionalmente datos médicos, psicológicos o de salud. El usuario es responsable de la información que decida compartir."
+      },
+      {
+        "h": "Finalidades del tratamiento",
+        "ul": [
+          "Proporcionar y mantener el servicio.",
+          "Gestión de suscripciones y facturación.",
+          "Mejora del producto y análisis.",
+          "Seguridad, cumplimiento legal y prevención de abusos."
+        ]
+      },
+      {
+        "h": "Bases legales",
+        "p": "Consentimiento, ejecución de contrato, intereses legítimos y obligaciones legales."
+      },
+      {
+        "h": "Conservación de datos",
+        "p": "Los datos se conservan durante la vigencia de la cuenta y un período razonable posterior, salvo que la ley exija un plazo mayor."
+      },
+      {
+        "h": "Servicios de terceros",
+        "ul": [
+          "Stripe para pagos y facturación.",
+          "Proveedores de analítica para comprender el uso del servicio."
+        ]
+      },
+      {
+        "h": "Tus derechos",
+        "p": "Puedes solicitar acceso, corrección o eliminación de tus datos personales contactándonos."
+      },
+      {
+        "h": "Transferencias internacionales",
+        "p": "Los datos pueden procesarse fuera de tu país con las garantías adecuadas."
+      },
+      {
+        "h": "Cambios",
+        "p": "Esta Política de Privacidad puede actualizarse. La versión vigente siempre estará publicada aquí."
+      }
+    ]
+  },
+
+  "terms": {
+    "title": "Términos del Servicio",
+    "updated": "Última actualización",
+    "contact": "Para consultas, contacta a:",
+    "sections": [
+      {
+        "h": "Descripción del servicio",
+        "p": "Mindra es un servicio digital de apoyo personal y motivación diseñado para ofrecer conversación, estructura y acompañamiento."
+      },
+      {
+        "h": "No es un servicio médico ni psicológico",
+        "p": "Mindra no proporciona asesoramiento médico, psicológico, psiquiátrico ni terapéutico, ni diagnósticos o tratamientos. No sustituye a profesionales licenciados."
+      },
+      {
+        "h": "Responsabilidad del usuario",
+        "p": "Reconoces que todas las decisiones y acciones tomadas a partir del uso de Mindra son de tu exclusiva responsabilidad."
+      },
+      {
+        "h": "Cuenta y elegibilidad",
+        "p": "Debes tener al menos 16 años (o la edad mínima requerida por la ley en tu jurisdicción) para utilizar el servicio."
+      },
+      {
+        "h": "Suscripciones y pagos",
+        "ul": [
+          "Las suscripciones pueden renovarse automáticamente hasta su cancelación.",
+          "Los pagos se procesan a través de Stripe.",
+          "Puedes gestionar tu suscripción mediante el Portal del Cliente o contactando al Soporte."
+        ]
+      },
+      {
+        "h": "Reembolsos",
+        "p": "Todas las compras están sujetas a la Política de Reembolsos. El uso del servicio generalmente hace que las compras no sean reembolsables."
+      },
+      {
+        "h": "Limitación de responsabilidad",
+        "p": "En la máxima medida permitida por la ley, Mindra Group LLC no será responsable por daños indirectos, incidentales, emocionales o consecuentes."
+      },
+      {
+        "h": "Terminación",
+        "p": "El acceso puede suspenderse o cancelarse en caso de violaciones o por requerimientos legales."
+      },
+      {
+        "h": "Ley aplicable",
+        "p": "Estos Términos se rigen por las leyes del estado de Florida, Estados Unidos."
+      }
+    ]
+  },
+
+  "refunds": {
+    "title": "Política de Reembolsos",
+    "updated": "Última actualización",
+    "contact": "Para solicitudes de reembolso, contacta a:",
+    "sections": [
+      {
+        "h": "Todas las ventas son finales",
+        "p": "Todas las compras de suscripciones y funciones digitales de Mindra son finales y no reembolsables."
+      },
+      {
+        "h": "Uso del servicio",
+        "p": "Si utilizas cualquier parte del servicio después de la compra — incluyendo mensajes de chat, voz premium, llamadas cara a cara, metas, hábitos o recordatorios — renuncias a cualquier derecho de reembolso. Esto incluye el uso de incluso un solo mensaje, segundo o minuto."
+      },
+      {
+        "h": "Voz premium y llamadas",
+        "p": "Debido al consumo inmediato de recursos, cualquier uso de funciones de voz premium o llamadas cara a cara hace que la compra sea estrictamente no reembolsable."
+      },
+      {
+        "h": "Excepción por renovación automática",
+        "p": "Un reembolso solo podrá considerarse si una suscripción se renovó automáticamente, el servicio no fue utilizado después de la renovación y la suscripción fue cancelada de inmediato. Cualquier reembolso se concede únicamente a discreción de Mindra Group LLC."
+      },
+      {
+        "h": "Sin obligación de reembolso",
+        "p": "Mindra Group LLC no tiene obligación de emitir reembolsos y puede rechazar cualquier solicitud permitida por la ley."
+      }
+    ]
+  }
 }

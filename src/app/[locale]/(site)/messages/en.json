@@ -1,39 +1,40 @@
 {
   "nav.home": "Home",
   "nav.chat": "Chat",
-
-  "brand.tagline": "MINDRA — your warm AI friend & coach",
   "nav.pricing": "Pricing",
   "nav.donate": "Donate",
 
-  "hero.title": "Support, motivation and habit tracking — in one bot and on the web",
-  "hero.subtitle": "Mindra helps you talk about what matters, stay focused on goals, and take care of yourself. Use it in Telegram or directly on our website. Works in 11 languages.",
-  "cta.launch": "Launch in Telegram",
+  "brand.tagline": "Mindra — Someone who cares.",
+
+  "hero.title": "Support, motivation, and clarity — when you need it most",
+  "hero.subtitle": "Mindra is a supportive AI companion that helps you talk things through, stay grounded, and gently move forward. Chat, goals, habits, reminders, premium voice, and face-to-face calls — all in one place.",
+  "cta.launch": "Start chatting",
   "cta.pricing": "See pricing",
 
-  "features.title": "What Mindra can do",
-  "features.cards.chat.title": "Supportive dialogue",
-  "features.cards.chat.text": "Warm, gentle replies — without judgment or pressure.",
-  "features.cards.coach.title": "Motivation & coaching",
-  "features.cards.coach.text": "Action plans, micro-steps, and regular check-ins.",
+  "features.title": "What Mindra helps you with",
+  "features.cards.chat.title": "Supportive chat",
+  "features.cards.chat.text": "Warm, calm conversations when you feel overwhelmed, tired, or alone.",
+  "features.cards.coach.title": "Gentle guidance",
+  "features.cards.coach.text": "Small steps, reflections, and check-ins to help you regain focus.",
   "features.cards.goals.title": "Goals & habits",
-  "features.cards.goals.text": "Add goals, track habits, and get reminders.",
-  "features.cards.reports.title": "Reports & stats",
-  "features.cards.reports.text": "Weekly summaries, points and streaks for progress.",
-  "features.cards.voice.title": "Voice responses",
-  "features.cards.voice.text": "Multiple voices (incl. ElevenLabs) and sleep sounds.",
-  "features.cards.premium.title": "Premium challenges",
-  "features.cards.premium.text": "Weekly challenges, pins, and auto-completion tracking.",
+  "features.cards.goals.text": "Set goals, build habits, and track progress without pressure.",
+  "features.cards.reports.title": "Progress awareness",
+  "features.cards.reports.text": "Understand patterns, consistency, and momentum over time.",
+  "features.cards.voice.title": "Premium voice",
+  "features.cards.voice.text": "Natural voice replies and calming audio for deeper presence.",
+  "features.cards.premium.title": "Face-to-face calls",
+  "features.cards.premium.text": "When text isn’t enough — talk directly and feel supported.",
 
-  "support.title": "Why support matters",
-  "support.intro": "Mindra is growing to gently support people and help with goals and habits. Any contribution speeds up development, localization and new features.",
-  "support.goal.title": "Funding goal — Mindra App",
-  "support.goal.text": "We’re building the Mindra mobile app. Key features at launch:",
-  "support.features.1": "Face-to-face video calls with Mindra — pick an appearance and talk.",
-  "support.features.2": "All Telegram-bot features in one place: chat, goals, habits, reports.",
-  "support.features.3": "11 languages, friendly UI, and a basis for future offline mode.",
+  "support.title": "Why Mindra exists",
+  "support.intro": "Mindra was created for moments when life feels heavy — burnout, stress, loneliness, or loss of direction. It’s not about fixing you. It’s about being there.",
+  "support.goal.title": "Our mission",
+  "support.goal.text": "To offer consistent, respectful, and human-like support — without judgment, pressure, or expectations.",
+  "support.features.1": "A calm place to talk things through.",
+  "support.features.2": "Tools to gently structure life when everything feels messy.",
+  "support.features.3": "Presence that doesn’t disappear when things get hard.",
   "support.cta": "Support development",
-  "support.desc": "Contact us by email or Telegram. We reply as soon as possible.",
+  "support.desc": "Questions or concerns? Reach out — we reply as soon as possible.",
+
   "footer": {
     "footerLabel": "Website footer",
     "copyrightAria": "Copyright",
@@ -43,13 +44,13 @@
     "refunds": "Refund Policy",
     "support": "Support",
     "portal": "Customer Portal",
-    "disclaimer": "Mindra is not a medical or crisis service. In emergencies, call local services.",
+    "disclaimer": "Mindra is not a medical or crisis service. In emergencies, contact local emergency services.",
     "contact": "Contact"
   },
 
   "cookie": {
     "bannerAria": "Cookie notice",
-    "text": "We use cookies for analytics and to improve the service",
+    "text": "We use cookies to operate the service, understand usage, and improve Mindra.",
     "more": "Privacy Policy",
     "accept": "Accept",
     "acceptAria": "Accept cookies",
@@ -62,30 +63,59 @@
     "updated": "Last updated",
     "contact": "For privacy requests, contact:",
     "sections": [
-      {"h":"Who we are","p":"Mindra is a product of Mindra Group LLC (the “Company”)."},
-      {"h":"What data we collect","ul":[
-        "Email (e.g., when paying or using forms).",
-        "Payment metadata from Stripe. Full card details are processed only by Stripe — we do not store them.",
-        "Technical data (cookies, IP, user-agent, analytics events).",
-        "Telegram bot data (user_id, language, settings, subscription facts). Telegram also processes data independently as a platform."
-      ]},
-      {"h":"Purposes","ul":[
-        "Providing the service and premium access.",
-        "Discounts/promo codes (managed via Stripe coupons/promotion codes).",
-        "Analytics and product improvement.",
-        "User support, legal compliance, and abuse prevention."
-      ]},
-      {"h":"Legal bases","p":"Consent; contract performance; legitimate interest; legal obligations."},
-      {"h":"Retention period","p":"For the lifetime of the account/subscription and a reasonable period after (usually up to 24 months), or longer if required by law/disputes."},
-      {"h":"Sharing with third parties","ul":[
-        "Stripe (payments, billing, coupons/promo codes).",
-        "Analytics providers (e.g., GA).",
-        "Telegram (as part of bot usage)."
-      ],"p":"We use appropriate data protection agreements (including DPAs if necessary)."},
-      {"h":"User rights","p":"You can request access/correction/deletion of your data via email."},
-      {"h":"Cookies","p":"Cookies are used for analytics and service improvement. Manage them in your browser settings."},
-      {"h":"International transfers","p":"Data may be processed outside your country with adequate safeguards."},
-      {"h":"Changes","p":"This policy may be updated; the new version will be published with the update date."}
+      {
+        "h": "Who we are",
+        "p": "Mindra is a digital service operated by Mindra Group LLC (the “Company”)."
+      },
+      {
+        "h": "What data we collect",
+        "ul": [
+          "Email address (for account access, payments, and support).",
+          "Payment and billing metadata processed securely by Stripe. We do not store card details.",
+          "Technical data such as IP address, browser type, cookies, and analytics events.",
+          "User-provided content voluntarily shared in chats or settings."
+        ]
+      },
+      {
+        "h": "No health data processing",
+        "p": "Mindra does not intentionally collect or process medical, psychological, or health data. Users are responsible for any information they choose to share."
+      },
+      {
+        "h": "Purposes of processing",
+        "ul": [
+          "Providing and maintaining the service.",
+          "Subscription management and billing.",
+          "Product improvement and analytics.",
+          "Security, legal compliance, and abuse prevention."
+        ]
+      },
+      {
+        "h": "Legal bases",
+        "p": "Consent, contract performance, legitimate interests, and legal obligations."
+      },
+      {
+        "h": "Data retention",
+        "p": "Data is retained for the duration of the account and a reasonable period afterward, unless longer retention is required by law."
+      },
+      {
+        "h": "Third-party services",
+        "ul": [
+          "Stripe for payments and billing.",
+          "Analytics providers for usage insights."
+        ]
+      },
+      {
+        "h": "Your rights",
+        "p": "You may request access, correction, or deletion of your personal data by contacting us."
+      },
+      {
+        "h": "International transfers",
+        "p": "Data may be processed outside your country with appropriate safeguards."
+      },
+      {
+        "h": "Changes",
+        "p": "This Privacy Policy may be updated. The latest version will always be published here."
+      }
     ]
   },
 
@@ -94,40 +124,74 @@
     "updated": "Last updated",
     "contact": "For questions, contact:",
     "sections": [
-      {"h":"Service description","p":"Mindra is a digital motivation and support service (Telegram bot, website, and related features) by Mindra Group LLC."},
-      {"h":"Account and age","p":"You confirm that you are at least 16 years old (or as required by law in your jurisdiction) and legally able to enter into contracts."},
-      {"h":"Subscriptions and payments","ul":[
-        "Subscriptions may auto-renew until canceled.",
-        "Payments are processed by Stripe. You agree to Stripe’s terms.",
-        "Manage your subscription via the Stripe Customer Portal (/billing/portal) or by contacting Support."
-      ]},
-      {"h":"Refunds","p":"See Refund Policy. Usually, a 7-day period applies for the first purchase if conditions are met."},
-      {"h":"Acceptable use","p":"Illegal activity, abuse, hacking, malware, and rights violations are prohibited."},
-      {"h":"Intellectual property","p":"Mindra’s content/software (except user-generated content) belongs to the Company and/or its licensors."},
-      {"h":"Disclaimer of warranties","p":"The service is provided “as is” and “as available,” without warranties."},
-      {"h":"Limitation of liability","p":"To the extent permitted by law, liability is limited to the amount you paid in the last 12 months."},
-      {"h":"Termination of access","p":"Access may be suspended/terminated in case of violations or legal requirements."},
-      {"h":"Governing law","p":"Florida, USA law applies (excluding conflict rules), unless mandatory law requires otherwise."},
-      {"h":"Changes","p":"We may update these Terms; the new version applies from publication."}
+      {
+        "h": "Service description",
+        "p": "Mindra is a digital self-support and motivation service designed to provide conversation, structure, and emotional support."
+      },
+      {
+        "h": "Not a medical or psychological service",
+        "p": "Mindra does not provide medical, psychological, psychiatric, or therapeutic advice, diagnosis, or treatment. It is not a substitute for licensed professionals."
+      },
+      {
+        "h": "User responsibility",
+        "p": "You acknowledge that all decisions and actions taken based on your use of Mindra are your sole responsibility."
+      },
+      {
+        "h": "Account and eligibility",
+        "p": "You must be at least 16 years old (or the minimum age required by law in your jurisdiction) to use the service."
+      },
+      {
+        "h": "Subscriptions and payments",
+        "ul": [
+          "Subscriptions may auto-renew unless canceled.",
+          "Payments are processed by Stripe.",
+          "You can manage subscriptions via the Customer Portal or by contacting Support."
+        ]
+      },
+      {
+        "h": "Refunds",
+        "p": "All purchases are subject to the Refund Policy. Use of the service generally makes purchases non-refundable."
+      },
+      {
+        "h": "Limitation of liability",
+        "p": "To the maximum extent permitted by law, Mindra Group LLC is not liable for indirect, incidental, emotional, or consequential damages."
+      },
+      {
+        "h": "Termination",
+        "p": "Access may be suspended or terminated in case of violations or legal requirements."
+      },
+      {
+        "h": "Governing law",
+        "p": "These Terms are governed by the laws of Florida, USA."
+      }
     ]
   },
 
   "refunds": {
     "title": "Refund Policy",
     "updated": "Last updated",
-    "contact": "For refunds, contact:",
+    "contact": "For refund requests, contact:",
     "sections": [
-      {"h":"General","p":"We want you to be satisfied with Mindra."},
-      {"h":"7-day period for first purchase","ul":[
-        "You may request a refund within 7 days of your first subscription purchase, if no abuse occurred.",
-        "Renewals are generally non-refundable unless required by law."
-      ]},
-      {"h":"Exceptions","ul":[
-        "Digital content and already activated features may not be refundable.",
-        "Abuse, Terms violations, or fraud void the right to a refund."
-      ]},
-      {"h":"How to request","p":"Contact us using the email used for purchase; we may ask for payment details for verification."},
-      {"h":"Timelines","p":"After approval, refunds usually take 5–10 business days to appear on the original payment method (bank timelines may vary)."}
+      {
+        "h": "All sales are final",
+        "p": "All purchases of Mindra subscriptions and digital features are final and non-refundable."
+      },
+      {
+        "h": "Use of the service",
+        "p": "If you use any part of the service after purchase — including chat messages, premium voice, face-to-face calls, goals, habits, or reminders — you waive any right to a refund. This includes the use of even a single message, second, or minute."
+      },
+      {
+        "h": "Premium voice and calls",
+        "p": "Due to immediate resource consumption, any use of premium voice or face-to-face features makes the purchase strictly non-refundable."
+      },
+      {
+        "h": "Auto-renewal exception",
+        "p": "A refund may be considered only if a subscription auto-renewed, the service was not used after renewal, and the subscription was promptly canceled. Any refund is granted solely at the discretion of Mindra Group LLC."
+      },
+      {
+        "h": "No obligation to refund",
+        "p": "Mindra Group LLC is under no obligation to issue refunds and may deny any request permitted by law."
+      }
     ]
   }
 }
