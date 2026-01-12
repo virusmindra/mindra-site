@@ -224,15 +224,28 @@ const proItems = useMemo(() => {
   }}
   className={[
     "w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left transition",
-    "bg-white hover:bg-zinc-50",
-    "dark:bg-zinc-950/40 dark:hover:bg-zinc-950/60" // ✅ чтобы не было белого по белому
+    "bg-white hover:bg-zinc-50 text-zinc-900",                 // ✅ light
+    "dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-white", // ✅ dark
   ].join(" ")}
 >
   <div className="flex items-center justify-between gap-3">
-    <div className="font-medium">{t(`term.${term}`)}</div>
-    <div className="text-sm text-[var(--muted)]">{t(discountLabelKey)}</div>
+    <div className="font-medium">
+      {t(`term.${term}`)}
+    </div>
+
+    {/* ✅ скидка всегда видима */}
+    <span
+      className={[
+        "text-xs px-2 py-1 rounded-full border",
+        "border-zinc-200 text-zinc-600 bg-white",                 // light
+        "dark:border-zinc-700 dark:text-zinc-200 dark:bg-zinc-950" // dark
+      ].join(" ")}
+    >
+      {t(discountLabelKey)}
+    </span>
   </div>
 </button>
+
         ))}
       </div>
 
