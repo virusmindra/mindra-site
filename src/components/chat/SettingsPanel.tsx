@@ -27,6 +27,24 @@ export default function SettingsPanel({
   const VOICE_KEY = "mindra_premium_voice";
 
 const [premiumVoice, setPremiumVoice] = useState(false);
+const CALL_STYLE_KEY = "mindra_call_style"; // "winter" | "carnaval"
+
+const [callStyle, setCallStyle] = useState<"winter" | "carnaval">("winter");
+
+useEffect(() => {
+  if (typeof window === "undefined") return;
+  const v = localStorage.getItem(CALL_STYLE_KEY);
+  if (v === "carnaval" || v === "winter") setCallStyle(v);
+  else setCallStyle("winter"); // ✅ дефолт: Outdoor (зима)
+}, []);
+
+const setCallStyleAndPersist = (v: "winter" | "carnaval") => {
+  setCallStyle(v);
+  try {
+    localStorage.setItem(CALL_STYLE_KEY, v);
+    window.dispatchEvent(new Event("mindra_call_style_changed"));
+  } catch {}
+};
 
 useEffect(() => {
   if (typeof window === "undefined") return;
@@ -60,6 +78,10 @@ const togglePremiumVoice = (v: boolean) => {
           premiumVoiceHint: "Respuestas de voz (ElevenLabs). Requiere iniciar sesión.",
           on: "On",
           off: "Off",
+          callStyle: "Estilo de llamada",
+          callStyleHint: "Aspecto del avatar para llamadas.",
+          mask: "Máscara",
+          outdoor: "Exterior",
         }
       : {
           title: "Settings",
@@ -75,6 +97,11 @@ const togglePremiumVoice = (v: boolean) => {
           premiumVoiceHint: "Voice replies (ElevenLabs). Requires sign-in.",
           on: "On",
           off: "Off",
+          callStyle: "Call style",
+          callStyleHint: "Avatar look for Face-to-Face calls.",
+          mask: "Mask",
+          outdoor: "Outdoor",
+
         };
 
   const uid =
@@ -99,6 +126,41 @@ const togglePremiumVoice = (v: boolean) => {
                 <div className="mt-2 text-xs text-[var(--muted)]">{voiceNotice}</div>
               ) : null}
             </div>
+            {/* CALL STYLE */}
+<div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <div className="text-sm font-medium text-[var(--text)]">{T.callStyle}</div>
+      <div className="text-xs text-[var(--muted)]">{T.callStyleHint}</div>
+    </div>
+
+    <div className="inline-flex rounded-full bg-[var(--card)] border border-[var(--border)] p-1 text-[11px]">
+      <button
+        onClick={() => setCallStyleAndPersist("carnaval")}
+        className={[
+          "px-2 py-0.5 rounded-full transition",
+          callStyle === "carnaval"
+            ? "bg-[var(--accent)] text-white"
+            : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
+        ].join(" ")}
+      >
+        🎭 {T.mask}
+      </button>
+
+      <button
+        onClick={() => setCallStyleAndPersist("winter")}
+        className={[
+          "px-2 py-0.5 rounded-full transition",
+          callStyle === "winter"
+            ? "bg-[var(--accent)] text-white"
+            : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
+        ].join(" ")}
+      >
+        ❄️ {T.outdoor}
+      </button>
+    </div>
+  </div>
+</div>
 
             {/* segmented like Language/Theme */}
             <div className="inline-flex rounded-full bg-[var(--card)] border border-[var(--border)] p-1 text-[11px]">

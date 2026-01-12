@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
 type AvatarState = "idle" | "listening" | "speaking";
+
+type CallStyle = "winter" | "carnaval";
 
 type Props = {
   userId: string;
@@ -57,6 +60,8 @@ export default function CallOverlay({ userId, lang, wantVoice, onClose }: Props)
   const stopGuardTimerRef = useRef<number | null>(null);
 
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const CALL_STYLE_KEY = "mindra_call_style";
 
   const [camReady, setCamReady] = useState(false);
   const [micOn, setMicOn] = useState(true);
@@ -296,7 +301,28 @@ const sendTurn = async (audioBlob: Blob, mime: string) => {
   }
 };
 
+const [callStyle, setCallStyle] = useState<CallStyle>("winter");
 
+useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  const read = () => {
+    const v = localStorage.getItem(CALL_STYLE_KEY);
+    setCallStyle(v === "carnaval" ? "carnaval" : "winter");
+  };
+
+  read();
+  window.addEventListener("mindra_call_style_changed", read);
+  return () => window.removeEventListener("mindra_call_style_changed", read);
+}, []);
+
+const avatarSrc = useMemo(() => {
+  const base = callStyle === "carnaval" ? "carnaval" : "winter";
+  return {
+    idle: `/voice/${base}_idle.mp4`,
+    talk: `/voice/${base}_talk.mp4`,
+  };
+}, [callStyle]);
 
 
   const startRecording = async () => {
@@ -538,131 +564,147 @@ const sendTurn = async (audioBlob: Blob, mime: string) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black" onPointerDown={ensureAudioRunning}>
-      {/* background user cam */}
-      <div className="absolute inset-0">
-        <video ref={videoRef} playsInline muted className="h-full w-full object-cover opacity-60" />
-        {!camOn && <div className="absolute inset-0 bg-black" />}
-        <div className="absolute inset-0 bg-black/35" />
+return (
+  <div className="fixed inset-0 z-[9999] bg-black" onPointerDown={ensureAudioRunning}>
+    {/* ✅ BACKGROUND: Mindra avatar full-screen (crossfade idle/talk) */}
+    <div className="absolute inset-0">
+      {/* idle layer */}
+      <video
+        src={avatarSrc.idle}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className={[
+          "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+          avatarState === "speaking" ? "opacity-0" : "opacity-100",
+        ].join(" ")}
+      />
+
+      {/* talk layer */}
+      <video
+        src={avatarSrc.talk}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className={[
+          "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+          avatarState === "speaking" ? "opacity-100" : "opacity-0",
+        ].join(" ")}
+      />
+
+      {/* лёгкая затемнялка для читаемости UI */}
+      <div className="absolute inset-0 bg-black/25" />
+    </div>
+
+    {/* ✅ USER CAMERA: small PiP bottom-right */}
+    <div className="absolute right-4 bottom-[150px] z-30 w-[120px] h-[170px] rounded-2xl overflow-hidden border border-white/15 bg-black shadow-lg">
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        className="h-full w-full object-cover"
+      />
+      {!camOn && <div className="absolute inset-0 bg-black" />}
+    </div>
+
+    {/* subtitles/last turn */}
+    {(lastTranscript || lastReply) && (
+      <div className="absolute left-0 right-0 bottom-[120px] z-20 px-4">
+        <div className="mx-auto max-w-2xl space-y-2">
+          {lastTranscript && (
+            <div className="rounded-xl bg-black/35 border border-white/10 px-4 py-2 text-white/90 text-sm">
+              <span className="text-white/60 mr-2">You:</span>
+              {lastTranscript}
+            </div>
+          )}
+          {lastReply && (
+            <div className="rounded-xl bg-black/35 border border-white/10 px-4 py-2 text-white/90 text-sm">
+              <span className="text-white/60 mr-2">Mindra:</span>
+              {lastReply}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* bottom controls */}
+    <div className="absolute bottom-0 left-0 right-0 z-20 pb-[max(24px,env(safe-area-inset-bottom))]">
+      <div className="mx-auto max-w-md flex items-center justify-center gap-6">
+        <button
+          onClick={toggleCam}
+          className="w-12 h-12 rounded-full bg-white/10 border border-white/15 text-white"
+          title="Camera"
+        >
+          {camOn ? "📷" : "🚫"}
+        </button>
+
+        <button
+          onClick={endCall}
+          className="w-16 h-16 rounded-full bg-red-600 text-white text-xl"
+          title="End"
+        >
+          ✕
+        </button>
+
+        <button
+          onClick={toggleMic}
+          className="w-12 h-12 rounded-full bg-white/10 border border-white/15 text-white"
+          title="Mic"
+        >
+          {micOn ? "🎤" : "🔇"}
+        </button>
       </div>
 
-      {/* center Mindra face placeholder */}
-      <div className="relative z-10 h-full w-full flex items-center justify-center">
-        <div className="w-[280px] h-[280px] rounded-full overflow-hidden border border-white/15 bg-black">
-  <video
-    key={avatarState} // 👈 критично для смены loop
-    src={
-      avatarState === "speaking"
-        ? "/video/mindra_talk.mp4"
-        : "/video/mindra_idle.mp4"
-    }
-    autoPlay
-    loop
-    muted
-    playsInline
-    className="w-full h-full object-cover"
-  />
-</div>
+      {/* status */}
+      <div className="mt-4 text-center text-white/70 text-sm">
+        {!camReady ? (notice || text.loading) : null}
+        {camReady && notice ? notice : null}
+        {camReady && !notice ? (recState === "recording" ? "● Recording…" : text.listening) : null}
       </div>
 
-      {/* subtitles/last turn */}
-      {(lastTranscript || lastReply) && (
-        <div className="absolute left-0 right-0 bottom-[120px] z-20 px-4">
-          <div className="mx-auto max-w-2xl space-y-2">
-            {lastTranscript && (
-              <div className="rounded-xl bg-black/35 border border-white/10 px-4 py-2 text-white/90 text-sm">
-                <span className="text-white/60 mr-2">You:</span>
-                {lastTranscript}
-              </div>
-            )}
-            {lastReply && (
-              <div className="rounded-xl bg-black/35 border border-white/10 px-4 py-2 text-white/90 text-sm">
-                <span className="text-white/60 mr-2">Mindra:</span>
-                {lastReply}
-              </div>
-            )}
-          </div>
+      {/* ✅ push-to-talk только если autoTalk OFF */}
+      {!autoTalk && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={toggleTalk}
+            className={[
+              "rounded-full px-6 py-2 text-sm font-medium",
+              "border border-white/15",
+              "bg-white/10 hover:bg-white/15 text-white",
+              recState === "recording" ? "scale-[1.03]" : "",
+            ].join(" ")}
+          >
+            {recState === "sending"
+              ? text.sending
+              : recState === "recording"
+              ? `● ${text.stop}`
+              : text.tap}
+          </button>
         </div>
       )}
 
-      {/* bottom controls */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 pb-[max(24px,env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-md flex items-center justify-center gap-6">
-          <button
-            onClick={toggleCam}
-            className="w-12 h-12 rounded-full bg-white/10 border border-white/15 text-white"
-            title="Camera"
-          >
-            {camOn ? "📷" : "🚫"}
-          </button>
-
-          <button
-            onClick={endCall}
-            className="w-16 h-16 rounded-full bg-red-600 text-white text-xl"
-            title="End"
-          >
-            ✕
-          </button>
-
-          <button
-            onClick={toggleMic}
-            className="w-12 h-12 rounded-full bg-white/10 border border-white/15 text-white"
-            title="Mic"
-          >
-            {micOn ? "🎤" : "🔇"}
-          </button>
-        </div>
-
-        {/* status */}
-        <div className="mt-4 text-center text-white/70 text-sm">
-          {!camReady ? (notice || text.loading) : null}
-          {camReady && notice ? notice : null}
-          {camReady && !notice ? (
-            recState === "recording" ? "● Recording…" : text.listening
-          ) : null}
-        </div>
-
-        {/* ✅ кнопка push-to-talk: показываем ТОЛЬКО если autoTalk выключен */}
-        {!autoTalk && (
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={toggleTalk}
-              className={[
-                "rounded-full px-6 py-2 text-sm font-medium",
-                "border border-white/15",
-                "bg-white/10 hover:bg-white/15 text-white",
-                recState === "recording" ? "scale-[1.03]" : "",
-              ].join(" ")}
-            >
-              {recState === "sending"
-                ? text.sending
-                : recState === "recording"
-                ? `● ${text.stop}`
-                : text.tap}
-            </button>
-          </div>
-        )}
-
-        {/* маленький переключатель (можешь убрать позже) */}
-        <div className="mt-3 flex justify-center">
-          <button
-            onClick={() => {
-              const next = !autoTalk;
-              setAutoTalk(next);
-              if (!next) {
-                // ручной режим -> стопнем VAD чтобы не мешал
-                stopVAD();
-              } else if (audioOnlyRef.current && micOn) {
-                startVAD(audioOnlyRef.current);
-              }
-            }}
-            className="text-white/60 text-xs underline underline-offset-4"
-          >
-            {autoTalk ? "Auto: ON" : "Auto: OFF"}
-          </button>
-        </div>
+      {/* авто-переключатель (можно потом спрятать) */}
+      <div className="mt-3 flex justify-center">
+        <button
+          onClick={() => {
+            const next = !autoTalk;
+            setAutoTalk(next);
+            if (!next) {
+              stopVAD();
+            } else if (audioOnlyRef.current && micOn) {
+              startVAD(audioOnlyRef.current);
+            }
+          }}
+          className="text-white/60 text-xs underline underline-offset-4"
+        >
+          {autoTalk ? "Auto: ON" : "Auto: OFF"}
+        </button>
       </div>
     </div>
-  );
+  </div>
+);
 }
