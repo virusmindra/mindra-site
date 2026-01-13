@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { enablePush } from '@/lib/push/client';
+import { disablePush, isPushSubscribed } from "@/lib/push/client";
 
 type Settings = {
   tz: string;
@@ -9,7 +10,10 @@ type Settings = {
   quietStart: number;
   quietEnd: number;
   quietBypassMin: number;
+
+  notifyPush?: boolean;
 };
+
 
 const DEFAULTS: Settings = {
   tz: 'UTC',
@@ -17,6 +21,7 @@ const DEFAULTS: Settings = {
   quietStart: 22,
   quietEnd: 8,
   quietBypassMin: 30,
+  notifyPush: true,
 };
 
 function clampInt(v: any, min: number, max: number) {
@@ -52,6 +57,8 @@ export default function QuietHoursCard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [pushEnabled, setPushEnabled] = useState(false);
+
   const [pushBusy, setPushBusy] = useState(false);
   const [pushOk, setPushOk] = useState<boolean | null>(null);
 
@@ -69,6 +76,12 @@ export default function QuietHoursCard() {
       setErr(res.error);
       setS(DEFAULTS);
     }
+
+    const subscribed = await isPushSubscribed().catch(() => false);
+const wantPush = Boolean((res.ok ? (res.settings as any)?.notifyPush : DEFAULTS.notifyPush) ?? true);
+
+// показываем ON только если и в настройках ON, и браузер реально подписан
+setPushEnabled(wantPush && subscribed);
 
     setLoading(false);
   };
@@ -88,20 +101,29 @@ export default function QuietHoursCard() {
     if (!res.ok) setErr(res.error || 'Ошибка сохранения');
   };
 
-  const handleEnablePush = async () => {
-    setPushBusy(true);
-    setErr(null);
+  const togglePush = async (next: boolean) => {
+  setPushBusy(true);
+  setErr(null);
 
-    try {
-      await enablePush();
+  try {
+    if (next) {
+      await enablePush(); // создаст/обновит push_subscriptions на сервере (у тебя уже так)
+      await save({ ...s, notifyPush: true } as any);
+      setPushEnabled(true);
       setPushOk(true);
-    } catch (e: any) {
-      setPushOk(false);
-      setErr(String(e?.message ?? e));
-    } finally {
-      setPushBusy(false);
+    } else {
+      await disablePush();
+      await save({ ...s, notifyPush: false } as any);
+      setPushEnabled(false);
+      setPushOk(true);
     }
-  };
+  } catch (e: any) {
+    setPushOk(false);
+    setErr(String(e?.message ?? e));
+  } finally {
+    setPushBusy(false);
+  }
+};
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-4">
@@ -122,23 +144,41 @@ export default function QuietHoursCard() {
       )}
 
       {/* PUSH */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm text-[var(--text)]">
-          Разрешить push-уведомления
-          {pushOk === true && <span className="ml-2 text-xs text-green-500">✅ включено</span>}
-          {pushOk === false && <span className="ml-2 text-xs text-red-500">❌ ошибка</span>}
-        </div>
+<div className="flex items-center justify-between gap-3">
+  <div className="text-sm text-[var(--text)]">
+    Push-уведомления
+    {pushOk === true && <span className="ml-2 text-xs text-green-500">✅</span>}
+    {pushOk === false && <span className="ml-2 text-xs text-red-500">❌</span>}
+  </div>
 
-        <button
-          onClick={handleEnablePush}
-          disabled={pushBusy}
-          className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
-        >
-          {pushBusy ? 'Включаю…' : 'Включить Push'}
-        </button>
-      </div>
+  <div className="inline-flex rounded-full bg-[var(--card)] border border-[var(--border)] p-1 text-[11px]">
+    <button
+      onClick={() => togglePush(false)}
+      disabled={pushBusy}
+      className={[
+        "px-2 py-0.5 rounded-full transition",
+        !pushEnabled
+          ? "bg-[var(--accent)] text-white"
+          : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
+      ].join(" ")}
+    >
+      Off
+    </button>
 
-      <div className="h-px bg-[var(--border)]" />
+    <button
+      onClick={() => togglePush(true)}
+      disabled={pushBusy}
+      className={[
+        "px-2 py-0.5 rounded-full transition",
+        pushEnabled
+          ? "bg-[var(--accent)] text-white"
+          : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
+      ].join(" ")}
+    >
+      On
+    </button>
+  </div>
+</div>
 
       {/* QUIET HOURS */}
       <div className="flex items-start justify-between gap-4">
@@ -203,6 +243,17 @@ export default function QuietHoursCard() {
           onBlur={() => save({ ...s, quietBypassMin: clampInt(s.quietBypassMin, 0, 180) })}
         />
       </label>
+      <button
+  onClick={async () => {
+    const r = await fetch("/api/push/test", { method: "POST" });
+    const j = await r.json().catch(() => null);
+    alert(r.ok ? "Sent ✅ (check notification)" : `Failed: ${j?.error || r.status}`);
+  }}
+  className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
+>
+  Test push
+</button>
+
 
       <label className="text-sm space-y-1 block">
         <div className="text-xs text-[var(--muted)]">Timezone (IANA)</div>

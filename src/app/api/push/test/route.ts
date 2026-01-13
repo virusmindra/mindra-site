@@ -1,30 +1,31 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/prisma";
+import { requireUserId } from "@/server/auth";
 import webpush from "web-push";
 
-const subject = process.env.VAPID_SUBJECT || process.env.NEXT_PUBLIC_VAPID_SUBJECT || "";
-const pub = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
-const priv = process.env.VAPID_PRIVATE_KEY || process.env.NEXT_PUBLIC_VAPID_PRIVATE_KEY || "";
+export async function POST() {
+  const userId = await requireUserId();
 
-if (subject && pub && priv) {
-  webpush.setVapidDetails(subject, pub, priv);
-}
-
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const subject = process.env.VAPID_SUBJECT || "";
+  const pub = process.env.VAPID_PUBLIC_KEY || "";
+  const priv = process.env.VAPID_PRIVATE_KEY || "";
 
   if (!subject || !pub || !priv) {
     return NextResponse.json({ ok: false, error: "Missing VAPID envs on server" }, { status: 500 });
   }
 
+  webpush.setVapidDetails(subject, pub, priv);
+
   const subs = await prisma.pushSubscription.findMany({
-    take: 5,
+    where: { userId },
     orderBy: { updatedAt: "desc" },
   });
+
+  if (!subs.length) {
+    return NextResponse.json({ ok: false, error: "No subscriptions for user" }, { status: 400 });
+  }
 
   let ok = 0;
   let fail = 0;
@@ -33,7 +34,11 @@ export async function GET(req: Request) {
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } } as any,
-        JSON.stringify({ title: "Mindra ✅ Push test", body: "Если ты это видишь — пуши работают", url: "/en/chat" })
+        JSON.stringify({
+          title: "Mindra ✅ Push test",
+          body: "Если ты это видишь — пуши работают",
+          url: "/en/chat",
+        })
       );
       ok++;
     } catch {

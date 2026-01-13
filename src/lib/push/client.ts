@@ -75,18 +75,28 @@ export async function enablePush() {
   return true;
 }
 
+export async function isPushSubscribed(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (!("serviceWorker" in navigator)) return false;
+
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  return !!sub;
+}
+
 export async function disablePush() {
-  const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const supported =
+    "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   if (!supported) return { ok: true as const };
 
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return { ok: true as const };
 
-  // удаляем из браузера
+  // 1) unsubscribe browser
   await sub.unsubscribe().catch(() => {});
 
-  // удаляем из базы (по endpoint)
+  // 2) delete in DB by endpoint
   await fetch("/api/push/unsubscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -95,3 +105,4 @@ export async function disablePush() {
 
   return { ok: true as const };
 }
+
