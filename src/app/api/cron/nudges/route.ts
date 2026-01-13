@@ -65,7 +65,7 @@ function pickRandom(arr: string[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export const MORNING_EN = [
+ const MORNING_EN = [
   "🌞 Good morning! How are you feeling today? 💜",
   "☕ Morning! What’s your main focus today?",
   "✨ New day, new chances. What would make today a win for you?",
@@ -117,8 +117,7 @@ export const MORNING_EN = [
   "💛 Good morning. I’m with you. What’s the first thing you need?",
 ];
 
-
-export const EVENING_EN = [
+const EVENING_EN = [
   "🌙 Hey. How are you feeling tonight? 💜",
   "✨ How did your day go? Want to tell me?",
   "😊 What was one good moment today?",
@@ -171,7 +170,7 @@ export const EVENING_EN = [
   "💜 Sleep soon? Tell me how you feel, I’ll stay with you a bit.",
 ];
 
-export const MORNING_ES = [
+const MORNING_ES = [
   "🌞 ¡Buenos días! ¿Cómo te sientes hoy? 💜",
   "☕ ¡Buenos días! ¿Cuál es tu enfoque principal hoy?",
   "✨ Nuevo día, nuevas oportunidades. ¿Qué haría que hoy sea un buen día para ti?",
@@ -225,7 +224,7 @@ export const MORNING_ES = [
 ];
 
 
-export const EVENING_ES = [
+const EVENING_ES = [
   "🌙 Hola… ¿Cómo te sientes esta noche? 💜",
   "✨ ¿Cómo fue tu día? ¿Me cuentas?",
   "😊 ¿Cuál fue un momento bonito hoy?",
