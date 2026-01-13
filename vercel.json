@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/reminders?secret=6909fd97c6c8b61053dcd129fb5dcd9102fa9f891a46a89895efd798e6766e37",
-      "schedule": "*/2 * * * *"
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/nudges?secret=6909fd97c6c8b61053dcd129fb5dcd9102fa9f891a46a89895efd798e6766e37",
+      "schedule": "* * * * *"
     }
   ]
 }
