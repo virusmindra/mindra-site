@@ -14,9 +14,8 @@ export async function POST() {
     return NextResponse.json({ error: "no_subscription" }, { status: 400 });
   }
 
-  // IMPORTANT: stripe v18 типы иногда ругаются — поэтому any
   const updated: any = await stripe.subscriptions.update(sub.stripeSubscription, {
-    cancel_at_period_end: true,
+    cancel_at_period_end: false,
   });
 
   const cpe =

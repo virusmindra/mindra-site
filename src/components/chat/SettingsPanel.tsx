@@ -37,20 +37,41 @@ export default function SettingsPanel({
     if (j?.url) location.href = j.url;
   };
 
-  const cancelSubscription = async () => {
+const cancelSubscription = async () => {
   if (!me?.authed) return;
-  const ok = confirm("Cancel subscription at period end? You will keep access until it ends.");
+  const ok = confirm("Are you sure you want to cancel? You will keep access until the end of your billing period.");
   if (!ok) return;
 
   const r = await fetch("/api/billing/cancel", { method: "POST" });
   const j = await r.json().catch(() => null);
-  if (!r.ok) {
+
+  if (!r.ok || !j?.ok) {
     alert(j?.error || "Cancel failed");
     return;
   }
-  alert("Done. Your subscription will end at the end of the billing period.");
-  router.refresh?.();
+
+  // обновим /api/me, чтобы UI сразу показал cancel_at_period_end
+  const m = await fetch("/api/me").then(x => x.json()).catch(() => null);
+  if (m) setMe(m);
 };
+
+const resumeSubscription = async () => {
+  if (!me?.authed) return;
+  const ok = confirm("Resume subscription? This will remove the scheduled cancellation.");
+  if (!ok) return;
+
+  const r = await fetch("/api/billing/resume", { method: "POST" });
+  const j = await r.json().catch(() => null);
+
+  if (!r.ok || !j?.ok) {
+    alert(j?.error || "Resume failed");
+    return;
+  }
+
+  const m = await fetch("/api/me").then(x => x.json()).catch(() => null);
+  if (m) setMe(m);
+};
+
 
 
   const setCallStyleAndPersist = (v: "winter" | "carnaval") => {
@@ -148,36 +169,54 @@ return (
 
     <div className="mt-6 space-y-4">
       {/* SUBSCRIPTION */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-medium text-[var(--text)]">Subscription</div>
-            <div className="text-xs text-[var(--muted)]">
-              {me?.authed
-                ? `Plan: ${me.plan ?? "FREE"} · Status: ${me.status ?? "unknown"}`
-                : "Sign in to manage"}
-            </div>
-          </div>
+<div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <div className="text-sm font-medium text-[var(--text)]">Subscription</div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={openPortal}
-              className="px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
-              disabled={!me?.authed}
-            >
-              Manage
-            </button>
+      <div className="text-xs text-[var(--muted)]">
+        {me?.authed
+          ? `Plan: ${me.plan ?? "FREE"} · Status: ${me.status ?? "unknown"}`
+          : "Sign in to manage"}
 
-            <button
-              onClick={cancelSubscription}
-              className="px-3 py-2 rounded-xl border border-red-500/40 text-sm text-red-500 hover:bg-red-500/10"
-              disabled={!me?.authed}
-            >
-              Cancel
-            </button>
+        {me?.cancelAtPeriodEnd && me?.currentPeriodEnd ? (
+          <div className="mt-1">
+            Cancellation scheduled:{" "}
+            {new Date(me.currentPeriodEnd).toLocaleDateString()}
           </div>
-        </div>
+        ) : null}
       </div>
+    </div>
+
+    <div className="flex gap-2">
+      <button
+        onClick={openPortal}
+        className="px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
+        disabled={!me?.authed}
+      >
+        Manage
+      </button>
+
+      {me?.cancelAtPeriodEnd ? (
+        <button
+          onClick={resumeSubscription}
+          className="px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
+          disabled={!me?.authed}
+        >
+          Resume
+        </button>
+      ) : (
+        <button
+          onClick={cancelSubscription}
+          className="px-3 py-2 rounded-xl border border-red-500/40 text-sm text-red-500 hover:bg-red-500/10"
+          disabled={!me?.authed}
+        >
+          Cancel
+        </button>
+      )}
+    </div>
+  </div>
+</div>
 
       {/* PREMIUM VOICE */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
