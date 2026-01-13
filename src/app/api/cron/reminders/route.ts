@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/prisma";
 import webpush from "web-push";
+import { authorizeCron } from "@/server/cronAuth";
 
 export const runtime = "nodejs";
 
@@ -118,13 +119,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const force = searchParams.get("force") === "1";
 
-  const expected = process.env.CRON_SECRET || "";
-  const auth = req.headers.get("authorization") || "";
-  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-
-  if (!expected || bearer !== expected) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authorizeCron(req)) {
+  return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+}
 
   setupWebPushOnce();
 
