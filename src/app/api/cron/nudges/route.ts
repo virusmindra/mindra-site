@@ -386,7 +386,7 @@ if (!force && lastNudge) {
         : (kind === "morning" ? pickRandom(MORNING_EN) : pickRandom(EVENING_EN));
 
     const title = titleFor(lang, kind);
-    const url = `/${lang}/chat`;
+    const url = `/${lang}/chat?f=default`;
 
     const lastSession = await prisma.chatSession.findFirst({
   where: { userId: us.userId },

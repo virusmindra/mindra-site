@@ -626,6 +626,20 @@ export default function ClientPage() {
   const VOICE_KEY = "mindra_premium_voice";
   const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
 
+  useEffect(() => {
+  if (typeof window === "undefined") return;
+  const sp = new URLSearchParams(window.location.search);
+  const f = sp.get("f") as any;
+
+  if (f) {
+    setActiveFeature(f);
+    // optional: убрать параметр чтобы не мешал дальше
+    sp.delete("f");
+    const next = `${window.location.pathname}${sp.toString() ? "?" + sp.toString() : ""}`;
+    window.history.replaceState({}, "", next);
+  }
+}, []);
+
 
 useEffect(() => {
   fetch("/api/me")
