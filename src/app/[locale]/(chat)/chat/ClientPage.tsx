@@ -634,6 +634,14 @@ useEffect(() => {
       setMe(j);
       if (j?.authed && j?.userId) {
         setAuthed(true);
+        try {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  fetch("/api/settings/tz", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tz }),
+  }).catch(() => {});
+} catch {}
         setServerUserId(j.userId);
 
         // ✅ если нет tts или минут не осталось — выключаем тумблер
@@ -652,6 +660,41 @@ useEffect(() => {
       setMe(null);
     });
 }, []);
+
+useEffect(() => {
+  if (!authed) return;
+
+  fetch("/api/chat/latest")
+    .then((r) => r.json())
+    .then((j) => {
+      const srv = j?.session;
+      if (!srv?.id) return;
+
+      const mapped: ChatSession = {
+        id: srv.id,
+        title: srv.title || "Chat",
+        messages: (srv.messages || []).map((m: any) => ({
+          role: m.role,
+          content: m.content,
+          ts: new Date(m.createdAt).getTime(),
+        })),
+        createdAt: new Date(srv.createdAt).getTime(),
+        updatedAt: new Date(srv.updatedAt).getTime(),
+        feature: (srv.feature || "default") as any,
+      };
+
+      setSessions((prev) => {
+        const withoutDup = prev.filter((p) => p.id !== mapped.id);
+        return [mapped, ...withoutDup];
+      });
+
+      setCurrentId(mapped.id);
+      setActiveFeature(mapped.feature ?? "default");
+    })
+    .catch(() => {});
+}, [authed]);
+
+
 
 const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
 
@@ -1165,6 +1208,9 @@ const handleSend = async (text: string) => {
 
   setSending(true);
 
+  fetch("/api/activity/ping", { method: "POST" }).catch(() => {});
+
+
   // ---------- helper: localized reminder preview text ----------
   const buildReminderPreview = (loc: string, reminderText: string) => {
     const l = (loc || "en").toLowerCase();
@@ -1365,6 +1411,23 @@ const handleSend = async (text: string) => {
     setSending(false);
   }
 };
+
+useEffect(() => {
+  const ping = () => fetch("/api/activity/ping", { method: "POST" }).catch(() => {});
+
+  // при первом входе
+  ping();
+
+  // при фокусе вкладки
+  window.addEventListener("focus", ping);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") ping();
+  });
+
+  return () => {
+    window.removeEventListener("focus", ping);
+  };
+}, []);
 
 
 const locale = getLocaleFromPath();

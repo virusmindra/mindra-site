@@ -318,6 +318,33 @@ export async function GET(req: Request) {
   for (const us of users as any[]) {
     processed++;
 
+const lastActive: Date | null = us.lastActiveAtUtc ?? null;
+
+// 1) если активен последние 180 минут — скипаем
+if (!force && lastActive) {
+  const diffMin = Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000);
+  if (diffMin >= 0 && diffMin < 180) {
+    skipped++;
+    continue;
+  }
+}
+
+// 2) если уже был nudge и юзер НЕ возвращался после него — тоже скипаем
+const lastMorning: Date | null = us.lastMorningNudgeAtUtc ?? null;
+const lastEvening: Date | null = us.lastEveningNudgeAtUtc ?? null;
+const lastNudge =
+  lastMorning && lastEvening
+    ? (lastMorning > lastEvening ? lastMorning : lastEvening)
+    : (lastMorning ?? lastEvening ?? null);
+
+if (!force && lastNudge) {
+  // если нет активности или активность была ДО/в момент nudges => он не “вернулся”
+  if (!lastActive || new Date(lastActive).getTime() <= new Date(lastNudge).getTime()) {
+    skipped++;
+    continue;
+  }
+}
+
     const tz = safeTz(us.tz ?? "UTC");
     const lang = langNorm(us.lang) as "en" | "es";
 
@@ -360,6 +387,33 @@ export async function GET(req: Request) {
 
     const title = titleFor(lang, kind);
     const url = `/${lang}/chat`;
+
+    const lastSession = await prisma.chatSession.findFirst({
+  where: { userId: us.userId },
+  orderBy: { updatedAt: "desc" },
+});
+
+// если сессии нет — создаём одну "Default"
+const sessionId =
+  lastSession?.id ??
+  (await prisma.chatSession.create({
+    data: { userId: us.userId, title: "Chat", feature: "default" } as any,
+  })).id;
+
+await prisma.message.create({
+  data: {
+    sessionId,
+    role: "assistant",
+    content: body,
+    meta: { kind: `nudge_${kind}`, via: "cron" }, // optional
+  } as any,
+});
+
+await prisma.chatSession.update({
+  where: { id: sessionId },
+  data: { updatedAt: new Date() },
+});
+
 
     let sentInApp = false;
     let sentPush = false;

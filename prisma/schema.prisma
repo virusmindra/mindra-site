@@ -215,6 +215,8 @@ model UserSettings {
   lastMorningNudgeAtUtc DateTime? @map("last_morning_nudge_at_utc")
   lastEveningNudgeAtUtc DateTime? @map("last_evening_nudge_at_utc")
 
+  lastActiveAtUtc DateTime? @map("last_active_at_utc")
+
   tz             String @default("UTC")
   quietEnabled   Boolean @default(true) @map("quiet_enabled") 
   quietStart     Int    @default(22) @map("quiet_start")

@@ -1,3 +1,5 @@
+/* public/sw.js */
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -10,7 +12,7 @@ self.addEventListener("push", (event) => {
   const url =
     payload.url ||
     (payload.data && typeof payload.data === "object" ? payload.data.url : null) ||
-    "/";
+    "/en/chat";
 
   const options = {
     body: payload.body || "",
@@ -20,7 +22,6 @@ self.addEventListener("push", (event) => {
     renotify: Boolean(payload.renotify),
     data: {
       url,
-      // кладём всё что пришло в payload.data, чтобы reminderId не потерять
       ...((payload.data && typeof payload.data === "object") ? payload.data : {}),
     },
   };
@@ -31,25 +32,22 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const rawUrl = event.notification?.data?.url || "/";
-  const targetUrl = new URL(rawUrl, self.location.origin).href;
+  const data = event.notification.data || {};
+  const url = data.url || "/en/chat";
 
   event.waitUntil((async () => {
-    const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    const all = await clients.matchAll({ type: "window", includeUncontrolled: true });
 
-    for (const client of allClients) {
-      try {
-        const clientUrl = new URL(client.url);
-        const target = new URL(targetUrl);
-
-        if (clientUrl.origin === target.origin) {
-          if ("focus" in client) await client.focus();
-          if ("navigate" in client) await client.navigate(targetUrl);
-          return;
-        }
-      } catch {}
+    for (const c of all) {
+      // если есть вкладка — фокус + навигация
+      if ("focus" in c) {
+        await c.focus();
+        if ("navigate" in c) await c.navigate(url);
+        return;
+      }
     }
 
-    if (clients.openWindow) return clients.openWindow(targetUrl);
+    // иначе открыть новую
+    await clients.openWindow(url);
   })());
 });
