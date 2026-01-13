@@ -210,6 +210,11 @@ model Reminder {
 
 model UserSettings {
   userId         String @id
+
+  lang           String  @default("en") @map("lang")
+  lastMorningNudgeAtUtc DateTime? @map("last_morning_nudge_at_utc")
+  lastEveningNudgeAtUtc DateTime? @map("last_evening_nudge_at_utc")
+
   tz             String @default("UTC")
   quietEnabled   Boolean @default(true) @map("quiet_enabled") 
   quietStart     Int    @default(22) @map("quiet_start")

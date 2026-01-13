@@ -37,6 +37,18 @@ export default function SettingsPanel({
     if (j?.url) location.href = j.url;
   };
 
+  const setLang = async (next: "en" | "es") => {
+  // 1) сохраняем язык в БД
+  await fetch("/api/reminders/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lang: next }),
+  }).catch(() => {});
+
+  // 2) меняем URL
+  router.push(`/${next}/chat`);
+};
+
 const cancelSubscription = async () => {
   if (!me?.authed) return;
   const ok = confirm("Are you sure you want to cancel? You will keep access until the end of your billing period.");
@@ -336,40 +348,40 @@ return (
       </div>
 
       {/* LANGUAGE */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-medium text-[var(--text)]">{T.language}</div>
-            <div className="text-xs text-[var(--muted)]">EN / ES</div>
-          </div>
+<div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <div className="text-sm font-medium text-[var(--text)]">{T.language}</div>
+      <div className="text-xs text-[var(--muted)]">EN / ES</div>
+    </div>
 
-          <div className="inline-flex rounded-full bg-[var(--card)] border border-[var(--border)] p-1 text-[11px]">
-            <button
-              onClick={() => router.push(`/en/chat`)}
-              className={[
-                "px-2 py-0.5 rounded-full transition",
-                locale === "en"
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
-              ].join(" ")}
-            >
-              {T.english}
-            </button>
+    <div className="inline-flex rounded-full bg-[var(--card)] border border-[var(--border)] p-1 text-[11px]">
+      <button
+        onClick={() => setLang("en")}
+        className={[
+          "px-2 py-0.5 rounded-full transition",
+          locale === "en"
+            ? "bg-[var(--accent)] text-white"
+            : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
+        ].join(" ")}
+      >
+        {T.english}
+      </button>
 
-            <button
-              onClick={() => router.push(`/es/chat`)}
-              className={[
-                "px-2 py-0.5 rounded-full transition",
-                locale === "es"
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
-              ].join(" ")}
-            >
-              {T.spanish}
-            </button>
-          </div>
-        </div>
-      </div>
+      <button
+        onClick={() => setLang("es")}
+        className={[
+          "px-2 py-0.5 rounded-full transition",
+          locale === "es"
+            ? "bg-[var(--accent)] text-white"
+            : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
+        ].join(" ")}
+      >
+        {T.spanish}
+      </button>
+    </div>
+  </div>
+</div>
 
       {/* THEME */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">

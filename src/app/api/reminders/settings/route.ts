@@ -3,6 +3,7 @@ import { prisma } from "@/server/prisma";
 import { requireUserId } from "@/server/auth";
 
 const DEFAULTS = {
+  lang: "en",
   tz: "UTC",
   quietEnabled: true,
   quietStart: 22,
@@ -51,6 +52,10 @@ export async function POST(req: Request) {
 
   const tz = String(body.tz ?? DEFAULTS.tz);
 
+  const lang = String(body.lang ?? body.locale ?? DEFAULTS.lang);
+  const langNorm = lang.toLowerCase().startsWith("es") ? "es" : "en";
+
+
   const quietEnabled = Boolean(body.quietEnabled ?? body.quiet_enabled ?? DEFAULTS.quietEnabled);
 
   const clamp = (n: any, min: number, max: number) =>
@@ -72,6 +77,7 @@ export async function POST(req: Request) {
 
   const data: any = {
     tz,
+    lang: langNorm,
     quietEnabled,
     quietStart,
     quietEnd,
