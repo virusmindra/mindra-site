@@ -38,11 +38,20 @@ export default function SettingsPanel({
   };
 
   const cancelSubscription = async () => {
-    if (!me?.authed) return;
-    const ok = confirm("Are you sure you want to cancel the subscription?");
-    if (!ok) return;
-    await openPortal(); // cancel внутри Stripe portal
-  };
+  if (!me?.authed) return;
+  const ok = confirm("Cancel subscription at period end? You will keep access until it ends.");
+  if (!ok) return;
+
+  const r = await fetch("/api/billing/cancel", { method: "POST" });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) {
+    alert(j?.error || "Cancel failed");
+    return;
+  }
+  alert("Done. Your subscription will end at the end of the billing period.");
+  router.refresh?.();
+};
+
 
   const setCallStyleAndPersist = (v: "winter" | "carnaval") => {
     setCallStyle(v);

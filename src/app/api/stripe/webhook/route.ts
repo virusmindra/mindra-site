@@ -37,6 +37,49 @@ function priceToInfo(priceId?: string | null) {
   return PRICE_TO_PLAN[priceId];
 }
 
+function getUserIdFromEventObject(obj: any): string | null {
+  return (
+    obj?.client_reference_id ||
+    obj?.metadata?.userId ||
+    obj?.subscription_data?.metadata?.userId ||
+    obj?.subscription?.metadata?.userId ||
+    null
+  );
+}
+
+
+async function getOrCreateSubByCustomer(customerId: string, obj: any) {
+  let rec = await findUserByCustomer(customerId);
+  if (rec) return rec;
+
+  const userId = getUserIdFromEventObject(obj);
+  if (!userId) return null;
+
+  await ensureSubscriptionRow(userId, customerId);
+  return prisma.subscription.findUnique({ where: { userId } });
+}
+
+async function ensureSubscriptionRow(userId: string, customerId: string) {
+  await prisma.subscription.upsert({
+    where: { userId },
+    create: {
+      userId,
+      stripeCustomer: customerId,
+      plan: "FREE",
+      status: "incomplete",
+      term: null,
+    },
+    update: { stripeCustomer: customerId },
+  });
+
+  await prisma.entitlement.upsert({
+    where: { userId },
+    create: { userId }, // defaults
+    update: {},
+  });
+}
+
+
 async function findUserByCustomer(customerId: string) {
   return prisma.subscription.findFirst({ where: { stripeCustomer: customerId } });
 }
@@ -80,8 +123,9 @@ export async function POST(req: NextRequest) {
       const s: any = event.data.object;
       const customerId = String(s.customer);
 
-      const rec = await findUserByCustomer(customerId);
-      if (!rec) return NextResponse.json({ ok: true });
+      const rec = await getOrCreateSubByCustomer(customerId, event.data.object);
+if (!rec) return NextResponse.json({ ok: true });
+
 
       const priceId = s.items?.data?.[0]?.price?.id ?? null;
       const info = priceToInfo(priceId);
@@ -124,8 +168,9 @@ export async function POST(req: NextRequest) {
       const s: any = event.data.object;
       const customerId = String(s.customer);
 
-      const rec = await findUserByCustomer(customerId);
-      if (!rec) return NextResponse.json({ ok: true });
+      const rec = await getOrCreateSubByCustomer(customerId, event.data.object);
+if (!rec) return NextResponse.json({ ok: true });
+
 
       const endedAt = s.ended_at ? new Date(s.ended_at * 1000) : new Date();
 
@@ -161,8 +206,16 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const customerId = String(session.customer);
 
-      const rec = await findUserByCustomer(customerId);
-      if (!rec) return NextResponse.json({ ok: true });
+      let rec = await findUserByCustomer(customerId);
+if (!rec) {
+  const userId = getUserIdFromEventObject(event.data.object);
+  if (userId) {
+    await ensureSubscriptionRow(userId, customerId);
+    rec = await prisma.subscription.findUnique({ where: { userId } });
+  }
+}
+if (!rec) return NextResponse.json({ ok: true });
+
 
       // SUBSCRIPTION checkout -> retrieve subscription as fallback
       if (session.mode === "subscription" && session.subscription) {
@@ -247,8 +300,9 @@ export async function POST(req: NextRequest) {
       const inv: any = event.data.object;
       const customerId = String(inv.customer);
 
-      const rec = await findUserByCustomer(customerId);
-      if (!rec) return NextResponse.json({ ok: true });
+      const rec = await getOrCreateSubByCustomer(customerId, event.data.object);
+if (!rec) return NextResponse.json({ ok: true });
+
 
       // если это инвойс по подписке — подтянем subscription и синкнем период
       if (inv.subscription) {
@@ -294,8 +348,9 @@ export async function POST(req: NextRequest) {
       const inv: any = event.data.object;
       const customerId = String(inv.customer);
 
-      const rec = await findUserByCustomer(customerId);
-      if (!rec) return NextResponse.json({ ok: true });
+      const rec = await getOrCreateSubByCustomer(customerId, event.data.object);
+if (!rec) return NextResponse.json({ ok: true });
+
 
       // ставим статус, но НЕ отбираем доступ мгновенно (можешь решать сам)
       await prisma.subscription.update({

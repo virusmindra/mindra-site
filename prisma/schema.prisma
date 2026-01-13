@@ -22,6 +22,8 @@ model UserProfile {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@schema("mindra")
 }
 
@@ -63,6 +65,8 @@ model Subscription {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@schema("mindra")
 }
 
@@ -70,38 +74,19 @@ model Entitlement {
   userId             String   @id
   plus               Boolean  @default(false)
   pro                Boolean  @default(false)
-
-  /**
-   * Premium voice flag:
-   * - если false: ElevenLabs недоступен, только текст/лайт-голос (если будет)
-   * - если true: списываем секунды из voiceSecondsTotal/Used
-   */
   tts                Boolean  @default(false)
 
-  /**
-   * ✅ Единая валюта: voice seconds (ElevenLabs)
-   * Plus: 120*60
-   * Pro:  300*60
-   */
   voiceSecondsTotal  Int      @default(0)
   voiceSecondsUsed   Int      @default(0)
 
   voicePeriodStart   DateTime?
   voicePeriodEnd     DateTime?
-  
-  /**
-   * ✅ Daily-limit защита (опционально)
-   * dailyLimitSeconds=0 => использовать дефолт по плану (в коде)
-   */
+
   dailyLimitEnabled  Boolean  @default(true)
   dailyLimitSeconds  Int      @default(0)
   dailySecondsUsed   Int      @default(0)
-  dailyUsedAtDate    String   @default("") // "YYYY-MM-DD"
+  dailyUsedAtDate    String   @default("")
 
-  /**
-   * Оставляем поле для совместимости (если где-то используется),
-   * но больше НЕ делаем лимит face отдельно — это та же валюта voice minutes.
-   */
   maxFaceTimeMinutes Int      @default(0)
 
   createdAt          DateTime @default(now())
@@ -109,6 +94,8 @@ model Entitlement {
 
   voiceLedger        VoiceLedger[]
   billingEvents      BillingEvent[]
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@schema("mindra")
 }
@@ -151,6 +138,11 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+
+  subscription  Subscription?
+  entitlement   Entitlement?
+  profile       UserProfile?
+  settings      UserSettings?
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -224,15 +216,15 @@ model UserSettings {
   quietEnd       Int    @default(8)  @map("quiet_end")
   quietBypassMin Int    @default(30) @map("quiet_bypass_min")
 
-    // ✅ каналы
   notifyInApp    Boolean @default(true)  @map("notify_inapp")
   notifyPush     Boolean @default(true)  @map("notify_push")
   notifyEmail    Boolean @default(false) @map("notify_email")
   notifyTelegram Boolean @default(false) @map("notify_telegram")
 
-  // ✅ “не беспокоить” / лимиты
   pauseAll       Boolean @default(false) @map("pause_all")
   updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
   @@schema("mindra")
