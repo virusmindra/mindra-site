@@ -617,6 +617,14 @@ export default function ClientPage() {
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("open") === "chat") {
+    setActiveFeature("default");
+  }
+}, []);
+
+
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const [serverUserId, setServerUserId] = useState<string | null>(null);
@@ -678,15 +686,13 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (!authed) return;
-
   fetch("/api/chat/latest")
-    .then((r) => r.json())
-    .then((j) => {
+    .then(r => r.json())
+    .then(j => {
       const srv = j?.session;
       if (!srv?.id) return;
 
-      const mapped: ChatSession = {
+      const mapped = {
         id: srv.id,
         title: srv.title || "Chat",
         messages: (srv.messages || []).map((m: any) => ({
@@ -696,20 +702,18 @@ useEffect(() => {
         })),
         createdAt: new Date(srv.createdAt).getTime(),
         updatedAt: new Date(srv.updatedAt).getTime(),
-        feature: (srv.feature || "default") as any,
+        feature: "default" as any,
       };
 
-      setSessions((prev) => {
-        const withoutDup = prev.filter((p) => p.id !== mapped.id);
+      setSessions(prev => {
+        const withoutDup = prev.filter(p => p.id !== mapped.id);
         return [mapped, ...withoutDup];
       });
 
       setCurrentId(mapped.id);
-      setActiveFeature(mapped.feature ?? "default");
     })
     .catch(() => {});
-}, [authed]);
-
+}, []);
 
 
 const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);

@@ -214,6 +214,11 @@ model UserSettings {
   lang           String  @default("en") @map("lang")
   lastMorningNudgeAtUtc DateTime? @map("last_morning_nudge_at_utc")
   lastEveningNudgeAtUtc DateTime? @map("last_evening_nudge_at_utc")
+  
+  nudgesDisabled Boolean @default(false) @map("nudges_disabled")
+  
+  lastDayNudgeAtUtc DateTime? @map("last_day_nudge_at_utc")
+
 
   lastActiveAtUtc DateTime? @map("last_active_at_utc")
 

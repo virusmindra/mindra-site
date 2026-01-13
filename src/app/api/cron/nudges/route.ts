@@ -11,12 +11,23 @@ function mustEnv(name: string) {
   return v;
 }
 
+let pushInited = false;
 function setupWebPushOnce() {
+  if (pushInited) return;
   webpush.setVapidDetails(
     mustEnv("VAPID_SUBJECT"),
     mustEnv("VAPID_PUBLIC_KEY"),
     mustEnv("VAPID_PRIVATE_KEY")
   );
+  pushInited = true;
+}
+
+function isPaid(sub: { plan?: any; status?: string | null } | null | undefined) {
+  if (!sub) return false;
+  const plan = String(sub.plan ?? "FREE");
+  const status = String(sub.status ?? "").toLowerCase();
+  if (plan === "FREE") return false;
+  return ["active", "trialing", "past_due"].includes(status);
 }
 
 function safeTz(tz: string) {
@@ -39,7 +50,7 @@ function getPartsInTz(date: Date, timeZone: string) {
     day: "2-digit",
   }).formatToParts(date);
 
-  const get = (t: string) => parts.find(p => p.type === t)?.value;
+  const get = (t: string) => parts.find((p) => p.type === t)?.value;
   return {
     y: Number(get("year") ?? "1970"),
     m: Number(get("month") ?? "01"),
@@ -66,7 +77,8 @@ function pickRandom(arr: string[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
- const MORNING_EN = [
+// ---------------- texts ----------------
+const MORNING_EN = [
   "🌞 Good morning! How are you feeling today? 💜",
   "☕ Morning! What’s your main focus today?",
   "✨ New day, new chances. What would make today a win for you?",
@@ -278,35 +290,57 @@ const EVENING_ES = [
   "💜 ¿Te vas a dormir pronto? Cuéntame cómo estás.",
 ];
 
+const DAYCHECK_EN = [
+  "Hey 🙂 Have you eaten today?",
+  "Quick check-in — did you get something to eat? 🥣",
+  "Don’t forget about you 💛 Did you eat?",
+];
+
+const DAYCHECK_ES = [
+  "Hola 🙂 ¿Ya comiste hoy?",
+  "Mini check-in — ¿has comido algo? 🥣",
+  "No te olvides de ti 💛 ¿comiste?",
+];
 
 function langNorm(raw?: string | null) {
   const s = String(raw ?? "en").toLowerCase();
   return s.startsWith("es") ? "es" : "en";
 }
 
-function titleFor(lang: "en" | "es", kind: "morning" | "evening") {
-  if (lang === "es") return kind === "morning" ? "Mindra · Buenos días" : "Mindra · Buenas noches";
-  return kind === "morning" ? "Mindra · Good morning" : "Mindra · Good evening";
+type Kind = "morning" | "day" | "evening";
+
+function titleFor(lang: "en" | "es", kind: Kind) {
+  if (lang === "es") {
+    if (kind === "morning") return "Mindra · Buenos días";
+    if (kind === "day") return "Mindra · Check-in";
+    return "Mindra · Buenas noches";
+  }
+  if (kind === "morning") return "Mindra · Good morning";
+  if (kind === "day") return "Mindra · Check-in";
+  return "Mindra · Good evening";
 }
 
+// ---------------- route ----------------
 export async function GET(req: Request) {
-   
   const { searchParams } = new URL(req.url);
   const force = searchParams.get("force") === "1";
 
-   if (!authorizeCron(req)) {
-  return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-}
+  if (!authorizeCron(req)) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
 
   setupWebPushOnce();
 
   const now = new Date();
 
-  // Берём тех, у кого в принципе включены уведомления
   const users = await prisma.userSettings.findMany({
     where: {
       pauseAll: false,
+      nudgesDisabled: false,
       OR: [{ notifyInApp: true }, { notifyPush: true }],
+    },
+    include: {
+      user: { include: { subscription: true } },
     },
     take: 2000,
   });
@@ -318,32 +352,34 @@ export async function GET(req: Request) {
   for (const us of users as any[]) {
     processed++;
 
-const lastActive: Date | null = us.lastActiveAtUtc ?? null;
+    const paid = isPaid(us.user?.subscription);
 
-// 1) если активен последние 180 минут — скипаем
-if (!force && lastActive) {
-  const diffMin = Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000);
-  if (diffMin >= 0 && diffMin < 180) {
-    skipped++;
-    continue;
-  }
-}
+    const lastActive: Date | null = us.lastActiveAtUtc ?? null;
+    const lastMorning: Date | null = us.lastMorningNudgeAtUtc ?? null;
+    const lastDay: Date | null = us.lastDayNudgeAtUtc ?? null;
+    const lastEvening: Date | null = us.lastEveningNudgeAtUtc ?? null;
 
-// 2) если уже был nudge и юзер НЕ возвращался после него — тоже скипаем
-const lastMorning: Date | null = us.lastMorningNudgeAtUtc ?? null;
-const lastEvening: Date | null = us.lastEveningNudgeAtUtc ?? null;
-const lastNudge =
-  lastMorning && lastEvening
-    ? (lastMorning > lastEvening ? lastMorning : lastEvening)
-    : (lastMorning ?? lastEvening ?? null);
+    // если был нудж и юзер НЕ возвращался после него:
+    const nudges = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
+    const lastNudge = nudges.length
+      ? nudges.sort((a, b) => b.getTime() - a.getTime())[0]
+      : null;
 
-if (!force && lastNudge) {
-  // если нет активности или активность была ДО/в момент nudges => он не “вернулся”
-  if (!lastActive || new Date(lastActive).getTime() <= new Date(lastNudge).getTime()) {
-    skipped++;
-    continue;
-  }
-}
+    if (!force && lastNudge) {
+      const activeMs = lastActive ? lastActive.getTime() : 0;
+      const nudgeMs = lastNudge.getTime();
+
+      if (!lastActive || activeMs <= nudgeMs) {
+        if (!paid) {
+          await prisma.userSettings.update({
+            where: { userId: us.userId },
+            data: { nudgesDisabled: true } as any,
+          });
+        }
+        skipped++;
+        continue;
+      }
+    }
 
     const tz = safeTz(us.tz ?? "UTC");
     const lang = langNorm(us.lang) as "en" | "es";
@@ -352,7 +388,6 @@ if (!force && lastNudge) {
     const quietStart = Number(us.quietStart ?? 22);
     const quietEnd = Number(us.quietEnd ?? 8);
 
-    // если quiet — мы nudges не шлём (они не срочные)
     if (!force && quietEnabled && isQuietNow(now, tz, quietStart, quietEnd)) {
       skipped++;
       continue;
@@ -360,20 +395,35 @@ if (!force && lastNudge) {
 
     const { hh, mm } = getPartsInTz(now, tz);
 
-    // Окна отправки (чтобы cron мог быть хоть каждые 10-15 мин)
     const isMorningWindow = hh === 9 && mm <= 15;
     const isEveningWindow = hh === 20 && mm <= 15;
 
-    if (!force && !isMorningWindow && !isEveningWindow) {
-      skipped++;
-      continue;
-    }
+    // day: через 360 минут после lastActive, только если morning уже был сегодня и day ещё не был сегодня
+    const diffMin =
+      lastActive ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000) : null;
 
-    const kind: "morning" | "evening" = isMorningWindow ? "morning" : "evening";
+    const hadMorningToday = lastMorning ? sameLocalDay(lastMorning, now, tz) : false;
+    const hadDayToday = lastDay ? sameLocalDay(lastDay, now, tz) : false;
+    const canDay = hadMorningToday && !hadDayToday && diffMin !== null && diffMin >= 360;
 
-    // анти-дубль: 1 раз в день на каждое окно
-    const lastKey = kind === "morning" ? "lastMorningNudgeAtUtc" : "lastEveningNudgeAtUtc";
-    const lastAt: Date | null = ((us as any)[lastKey] as Date | null) ?? null;
+    let kind: Kind | null = null;
+    if (isMorningWindow) kind = "morning";
+    else if (canDay) kind = "day";
+    else if (isEveningWindow) kind = "evening";
+
+    if (!force && !kind) {
+  skipped++;
+  continue;
+}
+
+if (!kind) {
+  skipped++;
+  continue;
+}
+
+
+    const lastAt =
+      kind === "morning" ? lastMorning : kind === "day" ? lastDay : lastEvening;
 
     if (!force && lastAt && sameLocalDay(lastAt, now, tz)) {
       skipped++;
@@ -382,38 +432,46 @@ if (!force && lastNudge) {
 
     const body =
       lang === "es"
-        ? (kind === "morning" ? pickRandom(MORNING_ES) : pickRandom(EVENING_ES))
-        : (kind === "morning" ? pickRandom(MORNING_EN) : pickRandom(EVENING_EN));
+        ? kind === "morning"
+          ? pickRandom(MORNING_ES)
+          : kind === "day"
+          ? pickRandom(DAYCHECK_ES)
+          : pickRandom(EVENING_ES)
+        : kind === "morning"
+        ? pickRandom(MORNING_EN)
+        : kind === "day"
+        ? pickRandom(DAYCHECK_EN)
+        : pickRandom(EVENING_EN);
 
     const title = titleFor(lang, kind);
-    const url = `/${lang}/chat?f=default`;
+    const url = `/${lang}/chat?open=chat`;
 
+    // ---- пишем нудж в последний чат ----
     const lastSession = await prisma.chatSession.findFirst({
-  where: { userId: us.userId },
-  orderBy: { updatedAt: "desc" },
-});
+      where: { userId: us.userId },
+      orderBy: { updatedAt: "desc" },
+    });
 
-// если сессии нет — создаём одну "Default"
-const sessionId =
-  lastSession?.id ??
-  (await prisma.chatSession.create({
-    data: { userId: us.userId, title: "Chat", feature: "default" } as any,
-  })).id;
+    const sessionId =
+      lastSession?.id ??
+      (
+        await prisma.chatSession.create({
+          data: { userId: us.userId, title: "Chat" },
+        })
+      ).id;
 
-await prisma.message.create({
-  data: {
-    sessionId,
-    role: "assistant",
-    content: body,
-    meta: { kind: `nudge_${kind}`, via: "cron" }, // optional
-  } as any,
-});
+    await prisma.message.create({
+      data: {
+        sessionId,
+        role: "assistant",
+        content: body,
+      },
+    });
 
-await prisma.chatSession.update({
-  where: { id: sessionId },
-  data: { updatedAt: new Date() },
-});
-
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { updatedAt: new Date() },
+    });
 
     let sentInApp = false;
     let sentPush = false;
@@ -426,7 +484,7 @@ await prisma.chatSession.update({
           type: "promo",
           title,
           body,
-          data: { kind: `nudge_${kind}` },
+          data: { kind: `nudge_${kind}`, url },
         },
       });
       sentInApp = true;
@@ -445,7 +503,7 @@ await prisma.chatSession.update({
             JSON.stringify({
               title,
               body,
-              url,
+              url, // <- важно
               icon: "/icons/icon-192.png",
               badge: "/icons/badge-72.png",
               tag: `nudge-${kind}-${us.userId}`,
@@ -455,17 +513,17 @@ await prisma.chatSession.update({
           );
           sentPush = true;
         } catch (e: any) {
-          // опционально: чистить мёртвые подписки
-          // await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } }).catch(() => {});
-          await prisma.deliveryLog.create({
-            data: {
-              userId: us.userId,
-              channel: "push",
-              status: "fail",
-              error: String(e?.message ?? e),
-              meta: { endpoint: sub.endpoint, kind },
-            },
-          }).catch(() => {});
+          await prisma.deliveryLog
+            .create({
+              data: {
+                userId: us.userId,
+                channel: "push",
+                status: "fail",
+                error: String(e?.message ?? e),
+                meta: { endpoint: sub.endpoint, kind },
+              },
+            })
+            .catch(() => {});
         }
       }
     }
@@ -473,9 +531,12 @@ await prisma.chatSession.update({
     if (sentInApp || sentPush) {
       await prisma.userSettings.update({
         where: { userId: us.userId },
-        data: (kind === "morning"
-  ? ({ lastMorningNudgeAtUtc: now } as any)
-  : ({ lastEveningNudgeAtUtc: now } as any)),
+        data:
+          kind === "morning"
+            ? ({ lastMorningNudgeAtUtc: now } as any)
+            : kind === "day"
+            ? ({ lastDayNudgeAtUtc: now } as any)
+            : ({ lastEveningNudgeAtUtc: now } as any),
       });
       sent++;
     } else {
