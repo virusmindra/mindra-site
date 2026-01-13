@@ -135,6 +135,23 @@ const resumeSubscription = async () => {
           callStyleHint: "Aspecto del avatar para llamadas.",
           mask: "Máscara",
           outdoor: "Exterior",
+          pushTitle: "Notificaciones push",
+pushSubtitle: "Activa las notificaciones y configura las horas silenciosas.",
+push: "Notificaciones push",
+testPush: "Probar push",
+
+quietHours: "Horas silenciosas",
+quietHoursHint: "Las notificaciones no se enviarán durante este tiempo (excepto urgentes).",
+
+enabled: "Activado",
+start: "Inicio",
+end: "Fin",
+bypass: "Ignorar horas silenciosas si quedan minutos",
+timezone: "Zona horaria (IANA)",
+
+retry: "Reintentar",
+loading: "Cargando…",
+
         }
       : {
           title: "Settings",
@@ -154,6 +171,23 @@ const resumeSubscription = async () => {
           callStyleHint: "Avatar look for Face-to-Face calls.",
           mask: "Mask",
           outdoor: "Outdoor",
+          pushTitle: "Push notifications",
+pushSubtitle: "Enable push and configure quiet hours.",
+push: "Push notifications",
+testPush: "Test push",
+
+quietHours: "Quiet hours",
+quietHoursHint: "Notifications won’t be sent during this time (except urgent ones).",
+
+enabled: "Enabled",
+start: "Start",
+end: "End",
+bypass: "Bypass quiet hours if minutes left",
+timezone: "Timezone (IANA)",
+
+retry: "Retry",
+loading: "Loading…",
+
         };
 
   const uid =
@@ -374,7 +408,26 @@ return (
       </div>
 
       {/* QUIET HOURS + PUSH SETTINGS */}
-      <QuietHoursCard />
+      <QuietHoursCard
+  t={{
+    title: T.pushTitle,          // или строка
+    subtitle: T.pushSubtitle,
+    push: T.push,
+    on: T.on,
+    off: T.off,
+    test: T.testPush,
+    quietTitle: T.quietHours,
+    quietHint: T.quietHoursHint,
+    enabled: T.enabled,
+    start: T.start,
+    end: T.end,
+    bypass: T.bypass,
+    timezone: T.timezone,
+    retry: T.retry,
+    loading: T.loading,
+  }}
+/>
+
 
       {/* POINTS INSIDE SETTINGS */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">

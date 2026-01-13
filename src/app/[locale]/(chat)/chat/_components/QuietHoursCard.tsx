@@ -51,8 +51,33 @@ async function saveSettings(payload: Settings) {
   if (r.ok && j?.ok) return { ok: true as const };
   return { ok: false as const, error: j?.error || `Save failed: ${r.status}` };
 }
+ type QuietHoursT = {
+  title: string;
+  subtitle: string;
 
-export default function QuietHoursCard() {
+  push: string;
+  on: string;
+  off: string;
+  test: string;
+
+  quietTitle: string;
+  quietHint: string;
+
+  enabled: string;
+  start: string;
+  end: string;
+  bypass: string;
+  timezone: string;
+
+  retry: string;
+  loading: string;
+};
+
+type Props = {
+  t?: QuietHoursT;
+};
+
+export default function QuietHoursCard({ t }: Props) {
   const [s, setS] = useState<Settings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
