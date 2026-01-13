@@ -623,6 +623,8 @@ export default function ClientPage() {
   const [authed, setAuthed] = useState(false);
   const [me, setMe] = useState<any>(null);
 
+  const LAST_FEATURE_KEY = "mindra_last_feature";
+
   const VOICE_KEY = "mindra_premium_voice";
   const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
 
@@ -725,18 +727,52 @@ const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
 
 
   useEffect(() => {
-    const stored = loadSessions();
-    if (stored.length > 0) {
-      setSessions(stored);
-      setCurrentId(stored[0].id);
-      setActiveFeature(stored[0].feature ?? 'default');
-    } else {
-      const first = createEmptySession();
-      setSessions([first]);
-      setCurrentId(first.id);
-      setActiveFeature(first.feature ?? 'default');
+  const stored = loadSessions();
+
+  // 1) читаем принудительную вкладку из url (?f=default)
+  let forced: string | null = null;
+  if (typeof window !== "undefined") {
+    const sp = new URLSearchParams(window.location.search);
+    forced = sp.get("f");
+  }
+
+  // 2) иначе берём последнюю выбранную вкладку из localStorage
+  let last: string | null = null;
+  try { last = localStorage.getItem(LAST_FEATURE_KEY); } catch {}
+
+  const desiredFeature = (forced || last || "default") as ChatFeature;
+
+  if (stored.length > 0) {
+    setSessions(stored);
+
+    // ✅ выбираем текущую сессию под desiredFeature
+    const isDiary = (id: any) => {
+      const s = String(id || "");
+      return s.startsWith("goal:") || s.startsWith("habit:");
+    };
+
+    const pick =
+      stored.find((s) => (s.feature ?? "default") === desiredFeature && !isDiary(s.id)) ??
+      stored.find((s) => (s.feature ?? "default") === desiredFeature) ??
+      stored[0];
+
+    setCurrentId(pick?.id);
+    setActiveFeature(desiredFeature);
+
+    // если url forced был — можно убрать параметр
+    if (forced && typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      sp.delete("f");
+      const next = `${window.location.pathname}${sp.toString() ? "?" + sp.toString() : ""}`;
+      window.history.replaceState({}, "", next);
     }
-  }, []);
+  } else {
+    const first = createEmptySession(desiredFeature);
+    setSessions([first]);
+    setCurrentId(first.id);
+    setActiveFeature(desiredFeature);
+  }
+}, []);
 
   useEffect(() => {
     if (sessions.length) saveSessions(sessions);
@@ -780,6 +816,7 @@ const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
     setCurrentId(id);
     const found = sessions.find((s) => s.id === id);
     if (found) setActiveFeature(found.feature ?? 'default');
+    try { localStorage.setItem(LAST_FEATURE_KEY, found?.feature ?? "default"); } catch {}
     setLastGoalSuggestion(null);
     setLastHabitSuggestion(null);
   };
@@ -824,6 +861,7 @@ const pushToFeatureChat = (feature: ChatFeature, content: string) => {
 };
 
   const handleChangeFeature = (feature: ChatFeature) => {
+    try { localStorage.setItem(LAST_FEATURE_KEY, feature); } catch {}
     setVoiceNotice(null);
     if (feature === "call") setCallOpen(true);
   setActiveFeature(feature);
