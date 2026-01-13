@@ -150,20 +150,42 @@ setPushEnabled(wantPush && subscribed);
   }
 };
 
+  const TT: QuietHoursT = t ?? {
+    title: "Push notifications",
+    subtitle: "Enable push and configure quiet hours.",
+
+    push: "Push notifications",
+    on: "On",
+    off: "Off",
+    test: "Test push",
+
+    quietTitle: "Quiet hours",
+    quietHint: "Notifications won’t be sent during this time (except urgent ones).",
+
+    enabled: "Enabled",
+    start: "Start",
+    end: "End",
+    bypass: "Bypass quiet hours if minutes left",
+    timezone: "Timezone (IANA)",
+
+    retry: "Retry",
+    loading: "Loading…",
+  };
+
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-4">
       <div>
-        <div className="text-sm font-medium text-[var(--text)]">Push уведомления</div>
-        <div className="text-xs text-[var(--muted)] mt-1">Включи push и настрой “тихие часы”.</div>
+        <div className="text-sm font-medium text-[var(--text)]">{TT.title}</div>
+        <div className="text-xs text-[var(--muted)] mt-1">{TT.subtitle}</div>
       </div>
 
-      {loading && <div className="text-xs text-[var(--muted)]">Загрузка…</div>}
+      {loading && <div className="text-xs text-[var(--muted)]">{TT.loading}</div>}
 
       {err && (
         <div className="text-xs text-red-500">
           {err}
           <button onClick={load} className="ml-2 underline text-[var(--text)]">
-            Retry
+            {TT.retry}
           </button>
         </div>
       )}
@@ -171,7 +193,7 @@ setPushEnabled(wantPush && subscribed);
       {/* PUSH */}
 <div className="flex items-center justify-between gap-3">
   <div className="text-sm text-[var(--text)]">
-    Push-уведомления
+    {TT.push}
     {pushOk === true && <span className="ml-2 text-xs text-green-500">✅</span>}
     {pushOk === false && <span className="ml-2 text-xs text-red-500">❌</span>}
   </div>
@@ -187,7 +209,7 @@ setPushEnabled(wantPush && subscribed);
           : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
       ].join(" ")}
     >
-      Off
+      {TT.off}
     </button>
 
     <button
@@ -200,7 +222,7 @@ setPushEnabled(wantPush && subscribed);
           : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/10",
       ].join(" ")}
     >
-      On
+      {TT.on}
     </button>
   </div>
 </div>
@@ -208,9 +230,9 @@ setPushEnabled(wantPush && subscribed);
       {/* QUIET HOURS */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-medium text-[var(--text)]">Тихие часы</div>
+          <div className="text-sm font-medium text-[var(--text)]">{TT.quietTitle}</div>
           <div className="text-xs text-[var(--muted)] mt-1">
-            В это время напоминания не будут отправляться (кроме срочных).
+            {TT.quietHint}
           </div>
         </div>
 
@@ -221,13 +243,13 @@ setPushEnabled(wantPush && subscribed);
             onChange={(e) => save({ ...s, quietEnabled: e.target.checked })}
             disabled={saving}
           />
-          Вкл
+         {TT.enabled}
         </label>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm space-y-1">
-          <div className="text-xs text-[var(--muted)]">Начало (0–23)</div>
+          <div className="text-xs text-[var(--muted)]">{TT.start}(0–23)</div>
           <input
             className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
             type="number"
@@ -241,7 +263,7 @@ setPushEnabled(wantPush && subscribed);
         </label>
 
         <label className="text-sm space-y-1">
-          <div className="text-xs text-[var(--muted)]">Конец (0–23)</div>
+          <div className="text-xs text-[var(--muted)]">{TT.end} (0–23)</div>
           <input
             className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
             type="number"
@@ -256,7 +278,7 @@ setPushEnabled(wantPush && subscribed);
       </div>
 
       <label className="text-sm space-y-1 block">
-        <div className="text-xs text-[var(--muted)]">Пробивать тихие часы, если осталось минут</div>
+        <div className="text-xs text-[var(--muted)]">{TT.bypass}</div>
         <input
           className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
           type="number"
@@ -276,12 +298,12 @@ setPushEnabled(wantPush && subscribed);
   }}
   className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
 >
-  Test push
+  {TT.test}
 </button>
 
 
       <label className="text-sm space-y-1 block">
-        <div className="text-xs text-[var(--muted)]">Timezone (IANA)</div>
+        <div className="text-xs text-[var(--muted)]">{TT.timezone}</div>
         <input
           className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
           value={s.tz || ''}
