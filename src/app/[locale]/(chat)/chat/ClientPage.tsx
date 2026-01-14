@@ -617,14 +617,6 @@ export default function ClientPage() {
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
-  useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("open") === "chat") {
-    setActiveFeature("default");
-  }
-}, []);
-
-
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const [serverUserId, setServerUserId] = useState<string | null>(null);
@@ -635,21 +627,6 @@ export default function ClientPage() {
 
   const VOICE_KEY = "mindra_premium_voice";
   const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
-
-  useEffect(() => {
-  if (typeof window === "undefined") return;
-  const sp = new URLSearchParams(window.location.search);
-  const f = sp.get("f") as any;
-
-  if (f) {
-    setActiveFeature(f);
-    // optional: убрать параметр чтобы не мешал дальше
-    sp.delete("f");
-    const next = `${window.location.pathname}${sp.toString() ? "?" + sp.toString() : ""}`;
-    window.history.replaceState({}, "", next);
-  }
-}, []);
-
 
 useEffect(() => {
   fetch("/api/me")
@@ -686,6 +663,8 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
+  if (!authed) return;
+
   fetch("/api/chat/latest")
     .then(r => r.json())
     .then(j => {
@@ -733,18 +712,22 @@ const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
   useEffect(() => {
   const stored = loadSessions();
 
-  // 1) читаем принудительную вкладку из url (?f=default)
-  let forced: string | null = null;
-  if (typeof window !== "undefined") {
-    const sp = new URLSearchParams(window.location.search);
-    forced = sp.get("f");
-  }
+// 1) читаем параметры url
+let forced: string | null = null;
+let openChat = false;
 
-  // 2) иначе берём последнюю выбранную вкладку из localStorage
-  let last: string | null = null;
-  try { last = localStorage.getItem(LAST_FEATURE_KEY); } catch {}
+if (typeof window !== "undefined") {
+  const sp = new URLSearchParams(window.location.search);
+  forced = sp.get("f");
+  openChat = sp.get("open") === "chat";
+}
 
-  const desiredFeature = (forced || last || "default") as ChatFeature;
+// 2) иначе берём последнюю вкладку из localStorage
+let last: string | null = null;
+try { last = localStorage.getItem(LAST_FEATURE_KEY); } catch {}
+
+// ✅ ВАЖНО: open=chat всегда побеждает
+const desiredFeature = (openChat ? "default" : (forced || last || "default")) as ChatFeature;
 
   if (stored.length > 0) {
     setSessions(stored);
@@ -764,12 +747,13 @@ const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
     setActiveFeature(desiredFeature);
 
     // если url forced был — можно убрать параметр
-    if (forced && typeof window !== "undefined") {
-      const sp = new URLSearchParams(window.location.search);
-      sp.delete("f");
-      const next = `${window.location.pathname}${sp.toString() ? "?" + sp.toString() : ""}`;
-      window.history.replaceState({}, "", next);
-    }
+    if ((forced || openChat) && typeof window !== "undefined") {
+  const sp = new URLSearchParams(window.location.search);
+  sp.delete("f");
+  sp.delete("open");
+  const next = `${window.location.pathname}${sp.toString() ? "?" + sp.toString() : ""}`;
+  window.history.replaceState({}, "", next);
+}
   } else {
     const first = createEmptySession(desiredFeature);
     setSessions([first]);
@@ -1546,7 +1530,58 @@ return (
               </div>
             ) : null}
 
-            <Composer onSend={handleSend} disabled={sending} />
+            <Composer
+  onSend={handleSend}
+  disabled={sending}
+  onVoice={async (file) => {
+    // 1) сделаем вид, что это обычное сообщение
+    if (!current) return;
+
+    const uid = serverUserId ?? getOrCreateWebUid();
+    const locale = getLocaleFromPath();
+    const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+
+    setSending(true);
+
+    try {
+      // (опционально) можно добавить “…” сообщение в чат, но БЕЗ "голос"
+      // updateCurrentSession(prev => ({...prev, messages:[...prev.messages, {role:"assistant", content:"…", ts: Date.now()}]}))
+
+      const fd = new FormData();
+      fd.append("audio", file);
+      fd.append("sessionId", current.id);
+      fd.append("feature", activeFeature);
+      fd.append("user_id", uid);
+      fd.append("lang", lang);
+
+      const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
+      const j = await r.json().catch(() => null);
+
+      const text = (j?.text && String(j.text).trim()) ? String(j.text).trim() : "";
+
+      if (!text) {
+        updateCurrentSession((prev) => ({
+          ...prev,
+          messages: [...prev.messages, { role: "assistant", content: "I couldn't hear it 😕 Try again.", ts: Date.now() }],
+          updatedAt: Date.now(),
+        }));
+        return;
+      }
+
+      // 2) отправляем как будто юзер напечатал
+      await handleSend(text);
+    } catch (e) {
+      updateCurrentSession((prev) => ({
+        ...prev,
+        messages: [...prev.messages, { role: "assistant", content: "Voice failed 😕 Try again.", ts: Date.now() }],
+        updatedAt: Date.now(),
+      }));
+    } finally {
+      setSending(false);
+    }
+  }}
+/>
+
           </>
         )}
 
