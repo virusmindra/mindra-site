@@ -1,7 +1,7 @@
 // src/components/chat/ChatWindow.tsx
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react"; // добавь useState если нет
 import type { ChatMessage, ChatFeature } from './types';
 import ReminderConfirm from "@/components/chat/ReminderConfirm";
 
@@ -170,10 +170,34 @@ export default function ChatWindow({
 
 }: Props) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
+const scrollerRef = useRef<HTMLDivElement | null>(null);
+const [stickToBottom, setStickToBottom] = useState(true);
+
+useEffect(() => {
+  const el = scrollerRef.current;
+  if (!el) return;
+
+  const onScroll = () => {
+    // насколько близко к низу считаем "внизу"
+    const threshold = 120;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    setStickToBottom(atBottom);
+  };
+
+  onScroll();
+  el.addEventListener("scroll", onScroll, { passive: true });
+  return () => el.removeEventListener("scroll", onScroll);
+}, []);
+
+// автоскроллим только когда юзер "внизу"
+useEffect(() => {
+  if (!stickToBottom) return;
+  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages.length, stickToBottom]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+}, [messages.length]);
 
   const isGoalDiary = Boolean(currentSessionId?.startsWith('goal:'));
   const isHabitDiary = Boolean(currentSessionId?.startsWith('habit:'));
@@ -182,7 +206,7 @@ export default function ChatWindow({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+      <div ref={scrollerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
         <div className="mx-auto w-full max-w-4xl space-y-4">
           {messages.map((m, idx) => {
   const isUser = m.role === 'user';
