@@ -1585,49 +1585,46 @@ return (
 
             <Composer
   onSend={handleSend}
-  onSendImage={handleSendImage}
   disabled={sending}
-  onVoice={async (file) => {
-    // 1) сделаем вид, что это обычное сообщение
-    if (!current) return;
+  onVoiceToText={async (blob) => {
+    const fd = new FormData();
+    fd.append("audio", blob, "voice.webm");
 
-    const uid = serverUserId ?? getOrCreateWebUid();
-    const locale = getLocaleFromPath();
-    const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+    const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
+    return String(j.text || "").trim();
+  }}
+  onSendImage={async (caption, file) => {
+    // 1) покажем в чате превью как user message (чтобы было красиво)
+    const ts = Date.now();
+    updateCurrentSession((prev: any) => ({
+      ...prev,
+      messages: [
+        ...(prev.messages || []),
+        { role: "user", content: caption || "", ts, imageUrl: URL.createObjectURL(file) }, // локальный preview
+      ],
+      updatedAt: Date.now(),
+    }));
+
+    // 2) реально отправим фото на сервер (в web-chat-image)
+    const fd = new FormData();
+    fd.append("image", file);
+    fd.append("input", caption || "");
+    fd.append("sessionId", current?.id || "");
+    fd.append("feature", activeFeature);
+    fd.append("user_id", uid);
+    fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
 
     setSending(true);
-
     try {
-      // (опционально) можно добавить “…” сообщение в чат, но БЕЗ "голос"
-      // updateCurrentSession(prev => ({...prev, messages:[...prev.messages, {role:"assistant", content:"…", ts: Date.now()}]}))
-
-      const fd = new FormData();
-      fd.append("audio", file);
-      fd.append("sessionId", current.id);
-      fd.append("feature", activeFeature);
-      fd.append("user_id", uid);
-      fd.append("lang", lang);
-
-      const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
+      const r = await fetch("/api/web-chat-image", { method: "POST", body: fd });
       const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.reply) throw new Error(j?.error || "image_chat_failed");
 
-      const text = (j?.text && String(j.text).trim()) ? String(j.text).trim() : "";
-
-      if (!text) {
-        updateCurrentSession((prev) => ({
-          ...prev,
-          messages: [...prev.messages, { role: "assistant", content: "I couldn't hear it 😕 Try again.", ts: Date.now() }],
-          updatedAt: Date.now(),
-        }));
-        return;
-      }
-
-      // 2) отправляем как будто юзер напечатал
-      await handleSend(text);
-    } catch (e) {
-      updateCurrentSession((prev) => ({
+      updateCurrentSession((prev: any) => ({
         ...prev,
-        messages: [...prev.messages, { role: "assistant", content: "Voice failed 😕 Try again.", ts: Date.now() }],
+        messages: [...(prev.messages || []), { role: "assistant", content: String(j.reply), ts: Date.now() }],
         updatedAt: Date.now(),
       }));
     } finally {
@@ -1635,7 +1632,6 @@ return (
     }
   }}
 />
-
           </>
         )}
 
