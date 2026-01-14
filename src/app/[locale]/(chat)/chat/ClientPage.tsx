@@ -1586,7 +1586,7 @@ return (
             <Composer
   onSend={handleSend}
   disabled={sending}
-  onVoiceToText={async (blob) => {
+  onVoiceToText={async (blob: Blob) => {
     const fd = new FormData();
     fd.append("audio", blob, "voice.webm");
 
@@ -1595,38 +1595,48 @@ return (
     if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
     return String(j.text || "").trim();
   }}
-  onSendImage={async (caption, file) => {
-    // 1) покажем в чате превью как user message (чтобы было красиво)
-    const ts = Date.now();
+  onSendImages={async (caption: string, files: File[]) => {
+    const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+
+    // 1) показываем превью в чате (user)
+    const previews = files.map((f, i) => ({
+      role: "user" as const,
+      content: i === 0 ? (caption || "") : "", // подпись только в первом, чтобы не дублировать
+      ts: Date.now() + i,
+      imageUrl: URL.createObjectURL(f),
+    }));
+
     updateCurrentSession((prev: any) => ({
       ...prev,
-      messages: [
-        ...(prev.messages || []),
-        { role: "user", content: caption || "", ts, imageUrl: URL.createObjectURL(file) }, // локальный preview
-      ],
+      messages: [...(prev.messages || []), ...previews],
       updatedAt: Date.now(),
     }));
 
-    // 2) реально отправим фото на сервер (в web-chat-image)
-    const fd = new FormData();
-    fd.append("image", file);
-    fd.append("input", caption || "");
-    fd.append("sessionId", current?.id || "");
-    fd.append("feature", activeFeature);
-    fd.append("user_id", uid);
-    fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
-
     setSending(true);
     try {
-      const r = await fetch("/api/web-chat-image", { method: "POST", body: fd });
-      const j = await r.json().catch(() => null);
-      if (!r.ok || !j?.reply) throw new Error(j?.error || "image_chat_failed");
+      // 2) отправляем по очереди (простая и надежная схема)
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append("image", f);
+        fd.append("input", caption || "");
+        fd.append("sessionId", current?.id || "");
+        fd.append("feature", activeFeature);
+        fd.append("user_id", uid);
+        fd.append("lang", lang);
 
-      updateCurrentSession((prev: any) => ({
-        ...prev,
-        messages: [...(prev.messages || []), { role: "assistant", content: String(j.reply), ts: Date.now() }],
-        updatedAt: Date.now(),
-      }));
+        const r = await fetch("/api/web-chat-image", { method: "POST", body: fd });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j?.reply) throw new Error(j?.error || "image_chat_failed");
+
+        updateCurrentSession((prev: any) => ({
+          ...prev,
+          messages: [
+            ...(prev.messages || []),
+            { role: "assistant", content: String(j.reply), ts: Date.now() },
+          ],
+          updatedAt: Date.now(),
+        }));
+      }
     } finally {
       setSending(false);
     }
