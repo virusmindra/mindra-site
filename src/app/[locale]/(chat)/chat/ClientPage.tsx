@@ -1558,35 +1558,10 @@ return (
           </div>
         ) : (
           <>
-            <ChatWindow
-              messages={current ? current.messages : []}
-              activeFeature={activeFeature}
-              goalSuggestion={lastGoalSuggestion}
-              habitSuggestion={lastHabitSuggestion}
-              onSaveGoal={saveAsGoal}
-              onSaveHabit={saveAsHabit}
-              onMarkGoalDone={markGoalDone}
-              onMarkHabitDone={markHabitDone}
-              pendingReminder={pendingReminder}
-              onConfirmReminder={createPendingReminder}
-              onCancelReminder={() => setPendingReminder(null)}
-              reminderBusy={reminderBusy}
-              currentSessionId={current?.id}
-              locale={locale}
-              goalDone={Boolean((current as any)?.goalDone)}
-              habitDone={Boolean((current as any)?.habitDone)}
-            />
-
-            {voiceNotice ? (
-              <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
-                {voiceNotice}
-              </div>
-            ) : null}
-
             <Composer
   onSend={handleSend}
   disabled={sending}
-  onVoiceToText={async (blob: Blob) => {
+  onVoiceToText={async (blob) => {
     const fd = new FormData();
     fd.append("audio", blob, "voice.webm");
 
@@ -1595,53 +1570,56 @@ return (
     if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
     return String(j.text || "").trim();
   }}
-  onSendImages={async (caption: string, files: File[]) => {
-    const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+  onSendImages={async (caption, files) => {
+    const ts = Date.now();
+    const previews = files.map((f) => URL.createObjectURL(f));
 
-    // 1) показываем превью в чате (user)
-    const previews = files.map((f, i) => ({
-      role: "user" as const,
-      content: i === 0 ? (caption || "") : "", // подпись только в первом, чтобы не дублировать
-      ts: Date.now() + i,
-      imageUrl: URL.createObjectURL(f),
-    }));
-
+    // 1) показать превью в чате (одним сообщением)
     updateCurrentSession((prev: any) => ({
       ...prev,
-      messages: [...(prev.messages || []), ...previews],
+      messages: [
+        ...(prev.messages || []),
+        {
+          role: "user",
+          content: caption || "",
+          ts,
+          images: previews, // массив превью
+        },
+      ],
       updatedAt: Date.now(),
     }));
 
+    // 2) отправить одним FormData (images[])
+    const fd = new FormData();
+    files.forEach((f) => fd.append("images", f));
+    fd.append("input", caption || "");
+    fd.append("sessionId", current?.id || "");
+    fd.append("feature", activeFeature);
+    fd.append("user_id", uid);
+    fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
+
     setSending(true);
     try {
-      // 2) отправляем по очереди (простая и надежная схема)
-      for (const f of files) {
-        const fd = new FormData();
-        fd.append("image", f);
-        fd.append("input", caption || "");
-        fd.append("sessionId", current?.id || "");
-        fd.append("feature", activeFeature);
-        fd.append("user_id", uid);
-        fd.append("lang", lang);
+      const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.ok || !j?.reply) throw new Error(j?.error || "images_chat_failed");
 
-        const r = await fetch("/api/web-chat-image", { method: "POST", body: fd });
-        const j = await r.json().catch(() => null);
-        if (!r.ok || !j?.reply) throw new Error(j?.error || "image_chat_failed");
-
-        updateCurrentSession((prev: any) => ({
-          ...prev,
-          messages: [
-            ...(prev.messages || []),
-            { role: "assistant", content: String(j.reply), ts: Date.now() },
-          ],
-          updatedAt: Date.now(),
-        }));
-      }
+      updateCurrentSession((prev: any) => ({
+        ...prev,
+        messages: [
+          ...(prev.messages || []),
+          { role: "assistant", content: String(j.reply), ts: Date.now() },
+        ],
+        updatedAt: Date.now(),
+      }));
     } finally {
       setSending(false);
+      setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
     }
   }}
 />
+
+
           </>
         )}
 

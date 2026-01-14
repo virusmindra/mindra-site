@@ -5,6 +5,8 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   ts: number;
+  imageUrl?: string;
+  images?: string[];
 };
 
 export type ChatFeature =

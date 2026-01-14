@@ -246,6 +246,69 @@ setPushEnabled(wantPush && subscribed);
          {TT.enabled}
         </label>
       </div>
+      {/* Timezone */}
+<div className="mt-4">
+  <label className="block text-sm font-medium text-[var(--text)]">
+    {TT.timezone}
+  </label>
+
+  <select
+    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+    value={s.tz || "UTC"}
+    disabled={saving}
+    onChange={(e) => {
+      const tz = e.target.value;
+      // мгновенно сохраняем
+      save({ ...s, tz });
+    }}
+  >
+    <option value="UTC">Auto (UTC)</option>
+
+    <optgroup label="USA">
+      <option value="America/New_York">USA — East (New York)</option>
+      <option value="America/Chicago">USA — Central (Chicago)</option>
+      <option value="America/Denver">USA — Mountain (Denver)</option>
+      <option value="America/Los_Angeles">USA — West (Los Angeles)</option>
+    </optgroup>
+
+    <optgroup label="Europe">
+      <option value="Europe/London">United Kingdom</option>
+      <option value="Europe/Madrid">Spain</option>
+      <option value="Europe/Paris">France</option>
+      <option value="Europe/Berlin">Germany</option>
+      <option value="Europe/Rome">Italy</option>
+    </optgroup>
+
+    <optgroup label="English-speaking">
+      <option value="Europe/Dublin">Ireland</option>
+      <option value="Australia/Sydney">Australia (Sydney)</option>
+      <option value="Australia/Perth">Australia (Perth)</option>
+      <option value="Pacific/Auckland">New Zealand</option>
+      <option value="America/Toronto">Canada (Toronto)</option>
+      <option value="America/Vancouver">Canada (Vancouver)</option>
+    </optgroup>
+
+    <optgroup label="Latin America (Spanish/Portuguese)">
+      <option value="America/Mexico_City">Mexico</option>
+      <option value="America/Guatemala">Guatemala</option>
+      <option value="America/Havana">Cuba</option>
+      <option value="America/Bogota">Colombia</option>
+      <option value="America/Lima">Peru</option>
+      <option value="America/Caracas">Venezuela</option>
+      <option value="America/Santiago">Chile</option>
+      <option value="America/La_Paz">Bolivia</option>
+      <option value="America/Asuncion">Paraguay</option>
+      <option value="America/Montevideo">Uruguay</option>
+      <option value="America/Argentina/Buenos_Aires">Argentina</option>
+      <option value="America/Sao_Paulo">Brazil</option>
+    </optgroup>
+  </select>
+
+  <p className="mt-1 text-xs text-[var(--muted)]">
+    Used for quiet hours and smart notifications
+  </p>
+</div>
+
 
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm space-y-1">

@@ -207,6 +207,27 @@ loading: "Loading…",
       ? "web"
       : localStorage.getItem("mindra_uid") || "web";
 
+      const TZ_OPTIONS = [
+  { label: "Auto (device)", value: "" },
+  { label: "USA — New York", value: "America/New_York" },
+  { label: "USA — Los Angeles", value: "America/Los_Angeles" },
+  { label: "Latin America — Mexico City", value: "America/Mexico_City" },
+  { label: "Spain — Madrid", value: "Europe/Madrid" },
+];
+
+async function saveTz(tz: string) {
+  // Auto = не сохраняем, а удаляем/сбрасываем (если хочешь) — или просто не вызываем POST
+  if (!tz) {
+    // вариант А: просто не сохранять и использовать device tz в клиенте
+    return;
+  }
+  await fetch("/api/settings/tz", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tz }),
+  });
+}
+
 
 return (
   <div className="p-6 max-w-3xl">
@@ -439,8 +460,6 @@ return (
     loading: T.loading,
   }}
 />
-
-
       {/* POINTS INSIDE SETTINGS */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="text-sm font-medium text-[var(--text)] mb-2">{T.points}</div>

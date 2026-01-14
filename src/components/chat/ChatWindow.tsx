@@ -190,25 +190,32 @@ export default function ChatWindow({
 
   // ✅ IMAGE MESSAGE (render instead of text bubble)
   const anyMsg: any = m;
-  if (anyMsg?.imageUrl) {
-    return (
-      <div
-        key={m.ts}
-        className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}
-      >
-        <div
-          className={[
-            'rounded-2xl overflow-hidden max-w-[320px]',
-            isUser
-              ? 'border border-black/10 bg-white rounded-br-sm'
-              : 'border border-white/10 bg-zinc-900 rounded-bl-sm',
-          ].join(' ')}
-        >
-          <img src={anyMsg.imageUrl} alt="photo" className="block w-full h-auto" />
+
+if (anyMsg?.images?.length) {
+  const isUser = m.role === "user";
+  return (
+    <div key={m.ts} className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
+      <div className="max-w-[520px]">
+        {anyMsg?.content ? (
+          <div className={[
+            "mb-2 px-4 py-2 rounded-2xl text-sm md:text-base whitespace-pre-wrap",
+            isUser ? "bg-white text-zinc-900 rounded-br-sm" : "bg-zinc-900 text-zinc-50 border border-white/10 rounded-bl-sm",
+          ].join(" ")}>
+            {anyMsg.content}
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2 justify-end">
+          {anyMsg.images.map((url: string) => (
+            <div key={url} className="w-[160px] rounded-2xl overflow-hidden border border-[var(--border)]">
+              <img src={url} alt="photo" className="block w-full h-auto" />
+            </div>
+          ))}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div

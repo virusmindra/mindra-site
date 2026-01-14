@@ -381,7 +381,12 @@ export async function GET(req: Request) {
       }
     }
 
-    const tz = safeTz(us.tz ?? "UTC");
+    const rawTz = String(us.tz || "");
+const tz = safeTz(rawTz || "UTC");
+
+// если tz откатился в UTC из-за кривого значения — не шлём morning/evening
+const tzLooksBroken = rawTz && tz === "UTC" && rawTz !== "UTC";
+
     const lang = langNorm(us.lang) as "en" | "es";
 
     const quietEnabled = Boolean(us.quietEnabled ?? true);
@@ -406,10 +411,11 @@ export async function GET(req: Request) {
     const hadDayToday = lastDay ? sameLocalDay(lastDay, now, tz) : false;
     const canDay = hadMorningToday && !hadDayToday && diffMin !== null && diffMin >= 360;
 
-    let kind: Kind | null = null;
-    if (isMorningWindow) kind = "morning";
-    else if (canDay) kind = "day";
-    else if (isEveningWindow) kind = "evening";
+let kind: Kind | null = null;
+if (!tzLooksBroken && isMorningWindow) kind = "morning";
+else if (canDay) kind = "day";
+else if (!tzLooksBroken && isEveningWindow) kind = "evening";
+
 
     if (!force && !kind) {
   skipped++;
@@ -421,6 +427,10 @@ if (!kind) {
   continue;
 }
 
+if (!us.tz && kind === "morning") {
+  skipped++;
+  continue;
+}
 
     const lastAt =
       kind === "morning" ? lastMorning : kind === "day" ? lastDay : lastEvening;

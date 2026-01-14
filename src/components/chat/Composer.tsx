@@ -4,8 +4,8 @@ import { useRef, useState } from "react";
 
 type Props = {
   onSend: (t: string) => void;
-  onSendImages?: (t: string, files: File[]) => void;
-  onVoiceToText?: (blob: Blob) => Promise<string>; // вернет transcript
+  onSendImages?: (caption: string, files: File[]) => void; // 👈 вместо onSendImage
+  onVoiceToText?: (blob: Blob) => Promise<string>;
   disabled?: boolean;
 };
 
@@ -39,25 +39,26 @@ const pickMime = () => {
   return "";
 };
 
-  const doSend = () => {
+const doSend = () => {
   const t = text.trim();
 
-  // 1) если есть фотки — отправляем пачкой
+  // 1) если есть фотки — отправляем ОДНИМ запросом
   if (pendingImages.length && onSendImages) {
-    onSendImages(t, pendingImages.map((p) => p.file));
-    pendingImages.forEach((p) => URL.revokeObjectURL(p.url));
+    onSendImages(t, pendingImages.map(p => p.file));
+
+    // cleanup previews
+    pendingImages.forEach(p => URL.revokeObjectURL(p.url));
     setPendingImages([]);
     setText("");
     return;
   }
 
-  // 2) иначе текст
+  // 2) иначе обычный текст
   if (t) {
     onSend(t);
     setText("");
   }
 };
-
 
 const toggleRecord = async () => {
   if (disabled) return;
