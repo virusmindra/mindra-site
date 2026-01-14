@@ -1557,71 +1557,87 @@ return (
             />
           </div>
         ) : (
-          <>
-            <Composer
-  onSend={handleSend}
-  disabled={sending}
-  onVoiceToText={async (blob) => {
-    const fd = new FormData();
-    fd.append("audio", blob, "voice.webm");
+  <>
+    <div className="flex-1 min-h-0 overflow-hidden">
+      <ChatWindow
+        messages={current ? current.messages : []}
+        activeFeature={activeFeature}
+        goalSuggestion={lastGoalSuggestion}
+        habitSuggestion={lastHabitSuggestion}
+        onSaveGoal={saveAsGoal}
+        onSaveHabit={saveAsHabit}
+        onMarkGoalDone={markGoalDone}
+        onMarkHabitDone={markHabitDone}
+        pendingReminder={pendingReminder}
+        onConfirmReminder={createPendingReminder}
+        onCancelReminder={() => setPendingReminder(null)}
+        reminderBusy={reminderBusy}
+        currentSessionId={current?.id}
+        locale={locale}
+        goalDone={Boolean((current as any)?.goalDone)}
+        habitDone={Boolean((current as any)?.habitDone)}
+      />
+    </div>
 
-    const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
-    const j = await r.json().catch(() => null);
-    if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
-    return String(j.text || "").trim();
-  }}
-  onSendImages={async (caption, files) => {
-    const ts = Date.now();
-    const previews = files.map((f) => URL.createObjectURL(f));
+    {voiceNotice ? (
+      <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
+        {voiceNotice}
+      </div>
+    ) : null}
 
-    // 1) показать превью в чате (одним сообщением)
-    updateCurrentSession((prev: any) => ({
-      ...prev,
-      messages: [
-        ...(prev.messages || []),
-        {
-          role: "user",
-          content: caption || "",
-          ts,
-          images: previews, // массив превью
-        },
-      ],
-      updatedAt: Date.now(),
-    }));
+    <Composer
+      onSend={handleSend}
+      disabled={sending}
+      onVoiceToText={async (blob) => {
+        const fd = new FormData();
+        fd.append("audio", blob, "voice.webm");
 
-    // 2) отправить одним FormData (images[])
-    const fd = new FormData();
-    files.forEach((f) => fd.append("images", f));
-    fd.append("input", caption || "");
-    fd.append("sessionId", current?.id || "");
-    fd.append("feature", activeFeature);
-    fd.append("user_id", uid);
-    fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
+        const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
+        return String(j.text || "").trim();
+      }}
+      onSendImages={async (caption, files) => {
+        const ts = Date.now();
+        const previews = files.map((f) => URL.createObjectURL(f));
 
-    setSending(true);
-    try {
-      const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
-      const j = await r.json().catch(() => null);
-      if (!r.ok || !j?.ok || !j?.reply) throw new Error(j?.error || "images_chat_failed");
+        updateCurrentSession((prev: any) => ({
+          ...prev,
+          messages: [
+            ...(prev.messages || []),
+            { role: "user", content: caption || "", ts, images: previews },
+          ],
+          updatedAt: Date.now(),
+        }));
 
-      updateCurrentSession((prev: any) => ({
-        ...prev,
-        messages: [
-          ...(prev.messages || []),
-          { role: "assistant", content: String(j.reply), ts: Date.now() },
-        ],
-        updatedAt: Date.now(),
-      }));
-    } finally {
-      setSending(false);
-      setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
-    }
-  }}
-/>
+        const fd = new FormData();
+        files.forEach((f) => fd.append("images", f));
+        fd.append("input", caption || "");
+        fd.append("sessionId", current?.id || "");
+        fd.append("feature", activeFeature);
+        fd.append("user_id", uid);
+        fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
 
+        setSending(true);
+        try {
+          const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
+          const j = await r.json().catch(() => null);
+          if (!r.ok || !j?.ok || !j?.reply) throw new Error(j?.error || "images_chat_failed");
 
-          </>
-        )}
+          updateCurrentSession((prev: any) => ({
+            ...prev,
+            messages: [...(prev.messages || []), { role: "assistant", content: String(j.reply), ts: Date.now() }],
+            updatedAt: Date.now(),
+          }));
+        } finally {
+          setSending(false);
+          setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
+        }
+      }}
+    />
+  </>
+)}
+
 
         {/* ✅ Fullscreen Call Overlay */}
         {callOpen && (

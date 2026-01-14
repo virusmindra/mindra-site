@@ -363,19 +363,6 @@ setPushEnabled(wantPush && subscribed);
 >
   {TT.test}
 </button>
-
-
-      <label className="text-sm space-y-1 block">
-        <div className="text-xs text-[var(--muted)]">{TT.timezone}</div>
-        <input
-          className="w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-[var(--text)]"
-          value={s.tz || ''}
-          disabled={saving}
-          onChange={(e) => setS({ ...s, tz: e.target.value })}
-          onBlur={() => save({ ...s, tz: String(s.tz || 'UTC') })}
-          placeholder="America/New_York"
-        />
-      </label>
     </div>
   );
 }
