@@ -5,17 +5,21 @@ import { useRef, useState } from "react";
 export default function Composer({
   onSend,
   disabled,
+  onSendImage,
   onVoice,
 }: {
   onSend: (t: string) => void;
   disabled?: boolean;
   onVoice?: (file: File) => void;
+  onSendImage: (file: File) => void;
 }) {
   const [text, setText] = useState('');
 
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
   const [recording, setRecording] = useState(false);
-const mediaRef = useRef<MediaRecorder | null>(null);
-const chunksRef = useRef<BlobPart[]>([]);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
 
 const pickMime = () => {
   const cands = [
@@ -108,7 +112,28 @@ const toggleRecord = async () => {
 >
   {recording ? "⏹️" : "🎙️"}
 </button>
+<input
+  ref={fileRef}
+  type="file"
+  accept="image/*"
+  className="hidden"
+  onChange={(e) => {
+    const f = e.target.files?.[0];
+    if (f) onSendImage(f);
+    // сброс чтобы можно было выбрать тот же файл ещё раз
+    e.currentTarget.value = "";
+  }}
+/>
 
+<button
+  type="button"
+  disabled={disabled}
+  onClick={() => fileRef.current?.click()}
+  className="px-3 py-2 rounded-lg border border-[var(--border)] hover:bg-[var(--card)]"
+  title="Send photo"
+>
+  📷
+</button>
         <button
           onClick={() => {
             if (text.trim()) {

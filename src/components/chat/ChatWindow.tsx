@@ -185,24 +185,46 @@ export default function ChatWindow({
       <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
         <div className="mx-auto w-full max-w-4xl space-y-4">
           {messages.map((m, idx) => {
-            const isUser = m.role === 'user';
-            const isLast = idx === messages.length - 1;
+  const isUser = m.role === 'user';
+  const isLast = idx === messages.length - 1;
 
-            return (
-              <div
-                key={m.ts}
-                className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={[
-                    'px-4 py-2 rounded-2xl text-sm md:text-base leading-relaxed max-w-[80%]',
-                    'whitespace-pre-wrap',
-                    isUser
-                      ? 'bg-white text-zinc-900 rounded-br-sm'
-                      : 'bg-zinc-900 text-zinc-50 border border-white/10 rounded-bl-sm',
-                  ].join(' ')}
-                >
-                  {m.content}
+  // ✅ IMAGE MESSAGE (render instead of text bubble)
+  const anyMsg: any = m;
+  if (anyMsg?.imageUrl) {
+    return (
+      <div
+        key={m.ts}
+        className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}
+      >
+        <div
+          className={[
+            'rounded-2xl overflow-hidden max-w-[320px]',
+            isUser
+              ? 'border border-black/10 bg-white rounded-br-sm'
+              : 'border border-white/10 bg-zinc-900 rounded-bl-sm',
+          ].join(' ')}
+        >
+          <img src={anyMsg.imageUrl} alt="photo" className="block w-full h-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      key={m.ts}
+      className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
+      <div
+        className={[
+          'px-4 py-2 rounded-2xl text-sm md:text-base leading-relaxed max-w-[80%]',
+          'whitespace-pre-wrap',
+          isUser
+            ? 'bg-white text-zinc-900 rounded-br-sm'
+            : 'bg-zinc-900 text-zinc-50 border border-white/10 rounded-bl-sm',
+        ].join(' ')}
+      >
+        {m.content}
 
                   {/* Save as goal */}
                   {!isUser &&

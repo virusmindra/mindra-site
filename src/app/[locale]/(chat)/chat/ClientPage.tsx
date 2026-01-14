@@ -1452,6 +1452,59 @@ const handleSend = async (text: string) => {
   }
 };
 
+const handleSendImage = async (file: File) => {
+  if (!current) return;
+
+  const locale = getLocaleFromPath();
+  const lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+
+  // ✅ 1) показываем картинку сразу в чате (локально)
+  const localUrl = URL.createObjectURL(file);
+  const ts = Date.now();
+
+  updateCurrentSession((prev: any) => ({
+    ...prev,
+    messages: [...prev.messages, { role: "user", content: "", ts, imageUrl: localUrl }],
+    updatedAt: Date.now(),
+  }));
+
+  setSending(true);
+
+  try {
+    const fd = new FormData();
+    fd.append("image", file);
+    fd.append("text", ""); // можно потом сюда добавить подпись
+    fd.append("lang", lang);
+
+    const r = await fetch("/api/vision", { method: "POST", body: fd });
+    const j = await r.json().catch(() => null);
+
+    if (!r.ok || !j?.ok) {
+      throw new Error(j?.error || `vision failed (${r.status})`);
+    }
+
+    const replyText = String(j.reply || "").trim();
+
+    updateCurrentSession((prev: any) => ({
+      ...prev,
+      messages: [...prev.messages, { role: "assistant", content: replyText, ts: Date.now() }],
+      updatedAt: Date.now(),
+    }));
+  } catch (e: any) {
+    updateCurrentSession((prev: any) => ({
+      ...prev,
+      messages: [
+        ...prev.messages,
+        { role: "assistant", content: `Photo analyze error 😕\n${String(e?.message ?? e)}`, ts: Date.now() },
+      ],
+      updatedAt: Date.now(),
+    }));
+  } finally {
+    setSending(false);
+  }
+};
+
+
 useEffect(() => {
   const ping = () => fetch("/api/activity/ping", { method: "POST" }).catch(() => {});
 
@@ -1532,6 +1585,7 @@ return (
 
             <Composer
   onSend={handleSend}
+  onSendImage={handleSendImage}
   disabled={sending}
   onVoice={async (file) => {
     // 1) сделаем вид, что это обычное сообщение
