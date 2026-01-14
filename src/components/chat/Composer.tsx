@@ -4,17 +4,20 @@ import { useRef, useState } from "react";
 
 type Props = {
   onSend: (t: string) => void;
-  onSendImage?: (t: string, file: File) => void;
+  onSendImages?: (t: string, files: File[]) => void;
   onVoiceToText?: (blob: Blob) => Promise<string>; // вернет transcript
   disabled?: boolean;
 };
 
-export default function Composer({ onSend, onSendImage, onVoiceToText, disabled }: Props) {
+export default function Composer({ onSend, onSendImages, onVoiceToText, disabled }: Props) {
 
   const [text, setText] = useState('');
 
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
+  const MAX_PHOTOS = 5;
+
+  const [pendingImages, setPendingImages] = useState<Array<{ file: File; url: string }>>([]);
+
 
   // voice
   const [recording, setRecording] = useState(false);
@@ -39,21 +42,22 @@ const pickMime = () => {
   const doSend = () => {
   const t = text.trim();
 
-  // 1) если есть pendingImage — отправляем через onSendImage
-  if (pendingImage && onSendImage) {
-    onSendImage(t, pendingImage.file);
-    URL.revokeObjectURL(pendingImage.url);
-    setPendingImage(null);
+  // 1) если есть фотки — отправляем пачкой
+  if (pendingImages.length && onSendImages) {
+    onSendImages(t, pendingImages.map((p) => p.file));
+    pendingImages.forEach((p) => URL.revokeObjectURL(p.url));
+    setPendingImages([]);
     setText("");
     return;
   }
 
-  // 2) иначе обычный текст
+  // 2) иначе текст
   if (t) {
     onSend(t);
     setText("");
   }
 };
+
 
 const toggleRecord = async () => {
   if (disabled) return;
@@ -108,45 +112,78 @@ return (
     <div className="mx-auto max-w-3xl">
 
       {/* ✅ Pending photo preview (ABOVE input row) */}
-      {pendingImage ? (
-        <div className="pb-2">
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] p-2">
-            <img
-              src={pendingImage.url}
-              alt="preview"
-              className="h-16 w-16 rounded-lg object-cover"
-            />
-            <div className="flex-1 text-xs text-[var(--muted)]">
-              Photo attached
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                URL.revokeObjectURL(pendingImage.url);
-                setPendingImage(null);
-              }}
-              className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] hover:bg-[var(--card)]"
-            >
-              Remove
-            </button>
-          </div>
+      {pendingImages.length ? (
+  <div className="mx-auto max-w-3xl px-6 pb-2">
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-xs text-[var(--muted)]">
+        {pendingImages.length} / {MAX_PHOTOS} photos attached
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          pendingImages.forEach((p) => URL.revokeObjectURL(p.url));
+          setPendingImages([]);
+        }}
+        className="text-xs px-3 py-1 rounded-lg border border-[var(--border)]"
+      >
+        Remove all
+      </button>
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {pendingImages.map((p, idx) => (
+        <div key={p.url} className="relative">
+          <img
+            src={p.url}
+            alt="preview"
+            className="h-16 w-16 rounded-lg object-cover border border-[var(--border)]"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              URL.revokeObjectURL(p.url);
+              setPendingImages((prev) => prev.filter((_, i) => i !== idx));
+            }}
+            className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center"
+            title="Remove"
+          >
+            ✕
+          </button>
         </div>
-      ) : null}
+      ))}
+    </div>
+  </div>
+) : null}
+
 
       {/* ✅ Hidden file input */}
       <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          const url = URL.createObjectURL(f);
-          setPendingImage({ file: f, url });
-          e.currentTarget.value = "";
-        }}
-      />
+  ref={fileRef}
+  type="file"
+  accept="image/*"
+  multiple
+  className="hidden"
+  onChange={(e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setPendingImages((prev) => {
+      const left = MAX_PHOTOS - prev.length;
+      const picked = files.slice(0, left);
+
+      const mapped = picked.map((f) => ({
+        file: f,
+        url: URL.createObjectURL(f),
+      }));
+
+      return [...prev, ...mapped];
+    });
+
+    // важно: чтобы выбор того же файла снова сработал
+    e.currentTarget.value = "";
+  }}
+/>
 
       {/* Input row */}
       <div className="flex gap-2">
@@ -211,14 +248,15 @@ return (
 
         {/* ✅ Attach photo (no auto send) */}
         <button
-          type="button"
-          disabled={disabled}
-          onClick={() => fileRef.current?.click()}
-          className="shrink-0 px-3 py-2 rounded-lg border border-[var(--border)] hover:bg-[var(--card)]"
-          title="Attach photo"
-        >
-          📷
-        </button>
+  type="button"
+  disabled={disabled || pendingImages.length >= MAX_PHOTOS}
+  onClick={() => fileRef.current?.click()}
+  className="px-3 py-2 rounded-xl border border-[var(--border)] disabled:opacity-40"
+  title={pendingImages.length >= MAX_PHOTOS ? "Max 5 photos" : "Attach photo"}
+>
+  📷
+</button>
+
 
         {/* ✅ Send button: sends text OR (text+image) */}
         <button
@@ -228,7 +266,7 @@ return (
                      bg-[var(--accent)] hover:brightness-95
                      focus:outline-none focus:ring-2 focus:ring-[var(--accent-2)]/40
                      disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={disabled || (!text.trim() && !pendingImage)}
+          disabled={disabled || (!text.trim() && pendingImages.length === 0)}
         >
           Send
         </button>
