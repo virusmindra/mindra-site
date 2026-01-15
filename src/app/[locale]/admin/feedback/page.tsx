@@ -1,17 +1,16 @@
 // src/app/[locale]/admin/feedback/page.tsx
-import { prisma } from "@/server/db/prisma";
 import { redirect } from "next/navigation";
-import { isAdminUserId } from "@/lib/auth/isAdmin";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/server/auth-options";
+import { isAdminEmail } from "@/lib/auth/isAdmin";
+import { prisma } from "@/server/db/prisma";
 
-// если у тебя есть getUserId() — используй его
-import { getUserId } from "@/lib/auth";
+export const runtime = "nodejs";
 
 function normLocale(raw: string) {
   const l = String(raw || "en").toLowerCase();
   return l.startsWith("es") ? "es" : "en";
 }
-
-export const runtime = "nodejs";
 
 export default async function AdminFeedbackPage({
   params,
@@ -20,16 +19,12 @@ export default async function AdminFeedbackPage({
 }) {
   const locale = normLocale(params?.locale);
 
-  // 1) узнаем кто зашел
-  let userId: string | null = null;
-  try {
-    userId = await getUserId();
-  } catch {
-    userId = null;
-  }
+  // 1) кто зашел
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email ?? null;
 
   // 2) не админ -> на чат
-  if (!isAdminUserId(userId)) {
+  if (!isAdminEmail(email)) {
     redirect(`/${locale}/chat`);
   }
 
@@ -49,6 +44,7 @@ export default async function AdminFeedbackPage({
           rating: "Rating",
           text: "Texto",
           date: "Fecha",
+          admin: "Admin",
         }
       : {
           title: "Admin · Feedback",
@@ -58,6 +54,7 @@ export default async function AdminFeedbackPage({
           rating: "Rating",
           text: "Text",
           date: "Date",
+          admin: "Admin",
         };
 
   return (
@@ -68,6 +65,9 @@ export default async function AdminFeedbackPage({
             <h1 className="text-2xl font-semibold">{T.title}</h1>
             <p className="text-sm text-[var(--muted)] mt-1">
               Total: {items.length}
+            </p>
+            <p className="text-xs text-[var(--muted)] mt-1">
+              {T.admin}: {email}
             </p>
           </div>
 
@@ -87,14 +87,14 @@ export default async function AdminFeedbackPage({
               <table className="w-full text-sm">
                 <thead className="bg-black/10 dark:bg-white/5">
                   <tr className="text-left">
-                    <th className="px-4 py-3 w-[140px]">{T.date}</th>
+                    <th className="px-4 py-3 w-[170px]">{T.date}</th>
                     <th className="px-4 py-3 w-[90px]">{T.rating}</th>
-                    <th className="px-4 py-3 w-[180px]">{T.user}</th>
+                    <th className="px-4 py-3 w-[220px]">{T.user}</th>
                     <th className="px-4 py-3">{T.text}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((f) => (
+                  {items.map((f: any) => (
                     <tr
                       key={f.id}
                       className="border-t border-[var(--border)] align-top"
@@ -102,6 +102,7 @@ export default async function AdminFeedbackPage({
                       <td className="px-4 py-3 text-[var(--muted)] whitespace-nowrap">
                         {new Date(f.createdAt).toLocaleString()}
                       </td>
+
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-2">
                           <span className="px-2 py-1 rounded-lg border border-[var(--border)]">
@@ -114,9 +115,11 @@ export default async function AdminFeedbackPage({
                           ) : null}
                         </span>
                       </td>
+
                       <td className="px-4 py-3 text-[var(--muted)]">
                         {f.userId || "—"}
                       </td>
+
                       <td className="px-4 py-3 whitespace-pre-wrap">
                         {f.text}
                       </td>
@@ -129,7 +132,7 @@ export default async function AdminFeedbackPage({
         </div>
 
         <div className="mt-6 text-xs text-[var(--muted)]">
-          Admin only · ADMIN_USER_ID env protected
+          Admin only · protected by ADMIN_EMAIL
         </div>
       </div>
     </div>

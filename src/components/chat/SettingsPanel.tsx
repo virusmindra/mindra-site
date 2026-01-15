@@ -256,12 +256,12 @@ return (
             {new Date(me.currentPeriodEnd).toLocaleDateString()}
           </div>
         ) : null}
-        {me?.userId === "7775321566" ? (
+        {me?.email === "mindra.group.llc@gmail.com" ? (
   <button
     onClick={() => router.push(`/${locale}/admin/feedback`)}
     className="px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
   >
-    Admin feedback
+    🛠 Admin feedback
   </button>
 ) : null}
       </div>

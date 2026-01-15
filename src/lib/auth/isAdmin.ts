@@ -1,6 +1,5 @@
-// src/lib/auth/isAdmin.ts
-export function isAdminUserId(userId: string | null | undefined) {
-  const admin = process.env.ADMIN_USER_ID;
-  if (!admin) return false;
-  return String(userId || "") === String(admin);
+export function isAdminEmail(email?: string | null) {
+  const admin = process.env.ADMIN_EMAIL;
+  if (!admin || !email) return false;
+  return email.toLowerCase() === admin.toLowerCase();
 }
