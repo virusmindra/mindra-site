@@ -230,6 +230,7 @@ async function saveTz(tz: string) {
   });
 }
 
+const isAdmin = Boolean(me?.userId && String(me.userId) === String(process.env.NEXT_PUBLIC_ADMIN_USER_ID));
 
 return (
   <div className="mx-auto max-w-3xl px-6 py-6 space-y-6">
@@ -255,6 +256,14 @@ return (
             {new Date(me.currentPeriodEnd).toLocaleDateString()}
           </div>
         ) : null}
+        {me?.userId === "7775321566" ? (
+  <button
+    onClick={() => router.push(`/${locale}/admin/feedback`)}
+    className="px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-black/5 dark:hover:bg-white/10"
+  >
+    Admin feedback
+  </button>
+) : null}
       </div>
     </div>
 
