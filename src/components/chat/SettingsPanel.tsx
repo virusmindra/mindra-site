@@ -230,8 +230,6 @@ async function saveTz(tz: string) {
   });
 }
 
-const isAdmin = Boolean(me?.userId && String(me.userId) === String(process.env.NEXT_PUBLIC_ADMIN_USER_ID));
-
 return (
   <div className="mx-auto max-w-3xl px-6 py-6 space-y-6">
       <AddToHomeHint locale={locale} variant="card" />
