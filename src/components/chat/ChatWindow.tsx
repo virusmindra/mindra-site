@@ -201,7 +201,10 @@ useEffect(() => {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div ref={scrollerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+      <div
+    ref={scrollerRef}
+    className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-6"
+  >
         <div className="mx-auto w-full max-w-4xl space-y-4">
           {messages.map((m, idx) => {
   const isUser = m.role === 'user';

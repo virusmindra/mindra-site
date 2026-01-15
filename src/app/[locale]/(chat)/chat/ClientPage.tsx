@@ -1558,32 +1558,30 @@ return (
           </div>
         ) : (
   <>
-    <div className="flex-1 min-h-0 overflow-hidden">
-      <ChatWindow
-        messages={current ? current.messages : []}
-        activeFeature={activeFeature}
-        goalSuggestion={lastGoalSuggestion}
-        habitSuggestion={lastHabitSuggestion}
-        onSaveGoal={saveAsGoal}
-        onSaveHabit={saveAsHabit}
-        onMarkGoalDone={markGoalDone}
-        onMarkHabitDone={markHabitDone}
-        pendingReminder={pendingReminder}
-        onConfirmReminder={createPendingReminder}
-        onCancelReminder={() => setPendingReminder(null)}
-        reminderBusy={reminderBusy}
-        currentSessionId={current?.id}
-        locale={locale}
-        goalDone={Boolean((current as any)?.goalDone)}
-        habitDone={Boolean((current as any)?.habitDone)}
-      />
-    </div>
+  <ChatWindow
+    messages={current ? current.messages : []}
+    activeFeature={activeFeature}
+    goalSuggestion={lastGoalSuggestion}
+    habitSuggestion={lastHabitSuggestion}
+    onSaveGoal={saveAsGoal}
+    onSaveHabit={saveAsHabit}
+    onMarkGoalDone={markGoalDone}
+    onMarkHabitDone={markHabitDone}
+    pendingReminder={pendingReminder}
+    onConfirmReminder={createPendingReminder}
+    onCancelReminder={() => setPendingReminder(null)}
+    reminderBusy={reminderBusy}
+    currentSessionId={current?.id}
+    locale={locale}
+    goalDone={Boolean((current as any)?.goalDone)}
+    habitDone={Boolean((current as any)?.habitDone)}
+  />
 
-    {voiceNotice ? (
-      <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
-        {voiceNotice}
-      </div>
-    ) : null}
+  {voiceNotice ? (
+    <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
+      {voiceNotice}
+    </div>
+  ) : null}
 
     <Composer
       onSend={handleSend}
