@@ -1,5 +1,10 @@
+// src/lib/auth/isAdmin.ts
+const ADMINS = new Set([
+  "mindra.group.llc@gmail.com",
+  // можешь добавить запасную почту
+]);
+
 export function isAdminEmail(email?: string | null) {
-  const admin = process.env.ADMIN_EMAIL;
-  if (!admin || !email) return false;
-  return email.toLowerCase() === admin.toLowerCase();
+  if (!email) return false;
+  return ADMINS.has(String(email).toLowerCase());
 }
