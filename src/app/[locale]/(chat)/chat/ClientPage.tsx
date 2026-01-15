@@ -1617,20 +1617,41 @@ return (
         fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
 
         setSending(true);
-        try {
-          const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
-          const j = await r.json().catch(() => null);
-          if (!r.ok || !j?.ok || !j?.reply) throw new Error(j?.error || "images_chat_failed");
+try {
+  const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
+  const j = await r.json().catch(() => null);
 
-          updateCurrentSession((prev: any) => ({
-            ...prev,
-            messages: [...(prev.messages || []), { role: "assistant", content: String(j.reply), ts: Date.now() }],
-            updatedAt: Date.now(),
-          }));
-        } finally {
-          setSending(false);
-          setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
-        }
+  if (!r.ok || !j?.ok || !j?.reply) {
+    throw new Error(j?.error || `images_chat_failed (${r.status})`);
+  }
+
+  updateCurrentSession((prev: any) => ({
+    ...prev,
+    messages: [
+      ...(prev.messages || []),
+      { role: "assistant", content: String(j.reply), ts: Date.now() },
+    ],
+    updatedAt: Date.now(),
+  }));
+} catch (e: any) {
+  // 👇 покажи ошибку в чат, чтобы ты сразу понял, что сломалось
+  updateCurrentSession((prev: any) => ({
+    ...prev,
+    messages: [
+      ...(prev.messages || []),
+      {
+        role: "assistant",
+        content: `⚠️ Image failed: ${String(e?.message ?? e)}`,
+        ts: Date.now(),
+      },
+    ],
+    updatedAt: Date.now(),
+  }));
+} finally {
+  setSending(false);
+  setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
+}
+
       }}
     />
   </>
