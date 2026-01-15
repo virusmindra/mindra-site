@@ -13,6 +13,7 @@ import { parseNaturalTime, normLocale } from "@/lib/reminders/time";
 import { detectLangFromText } from "@/lib/lang/detectLang";
 import FaceToFacePanel from "@/components/chat/FaceToFacePanel";
 import CallOverlay from "@/components/chat/CallOverlay";
+import AddToHomeHint from "@/components/pwa/AddToHomeHint";
 
 /* ----------------------------- helpers ----------------------------- */
 function urlBase64ToUint8Array(base64String: string) {
@@ -30,6 +31,8 @@ async function enablePush() {
     alert("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
     return;
   }
+
+  const A2HS_KEY = "mindra_a2hs_seen";
 
   const reg = await navigator.serviceWorker.register("/sw.js");
 
@@ -627,6 +630,20 @@ export default function ClientPage() {
 
   const VOICE_KEY = "mindra_premium_voice";
   const [premiumVoiceEnabled, setPremiumVoiceEnabled] = useState(false);
+const A2HS_KEY = "mindra_a2hs_seen";
+   const [showA2HS, setShowA2HS] = useState(false);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(A2HS_KEY) === "1";
+      if (!seen) setShowA2HS(true);
+    } catch {}
+  }, []);
+
+  const closeA2HS = () => {
+    setShowA2HS(false);
+    try { localStorage.setItem(A2HS_KEY, "1"); } catch {}
+  };
 
 useEffect(() => {
   fetch("/api/me")
@@ -692,7 +709,7 @@ useEffect(() => {
       setCurrentId(mapped.id);
     })
     .catch(() => {});
-}, []);
+}, [authed]);
 
 
 const uid = useMemo(() => serverUserId ?? getOrCreateWebUid(), [serverUserId]);
@@ -1529,6 +1546,9 @@ const showVoiceToggle =
 
 return (
   <div className="h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
+      {showA2HS ? (
+        <AddToHomeHint locale={locale} variant="fullscreen" onClose={closeA2HS} />
+      ) : null}
     <div className="flex h-full">
       <Sidebar
         sessions={sessions}

@@ -5,12 +5,12 @@ import { useTheme } from '@/components/theme/ThemeProvider';
 import QuietHoursCard from '@/app/[locale]/(chat)/chat/_components/QuietHoursCard';
 import PointsPanel from '@/components/chat/PointsPanel';
 import { useEffect, useState } from "react";
+import AddToHomeHint from "@/components/pwa/AddToHomeHint";
 
 function normLocale(raw: string) {
   const l = String(raw || 'en').toLowerCase();
   return l.startsWith('es') ? 'es' : 'en';
 }
-
 export default function SettingsPanel({
   premiumVoiceEnabled,
   onTogglePremiumVoice,
@@ -20,6 +20,7 @@ export default function SettingsPanel({
   onTogglePremiumVoice: (v: boolean) => void;
   voiceNotice?: string | null;
 }) {
+  
   const router = useRouter();
   const params = useParams();
   const locale = normLocale(String((params as any)?.locale ?? 'en'));
@@ -230,7 +231,8 @@ async function saveTz(tz: string) {
 
 
 return (
-  <div className="p-6 max-w-3xl">
+  <div className="mx-auto max-w-3xl px-6 py-6 space-y-6">
+      <AddToHomeHint locale={locale} variant="card" />
     <h1 className="text-xl font-semibold text-[var(--text)]">{T.title}</h1>
     <p className="text-sm text-[var(--muted)] mt-1">{T.subtitle}</p>
 
