@@ -6,6 +6,7 @@ import QuietHoursCard from '@/app/[locale]/(chat)/chat/_components/QuietHoursCar
 import PointsPanel from '@/components/chat/PointsPanel';
 import { useEffect, useState } from "react";
 import AddToHomeHint from "@/components/pwa/AddToHomeHint";
+import Link from "next/link";
 
 function normLocale(raw: string) {
   const l = String(raw || 'en').toLowerCase();
@@ -476,13 +477,13 @@ return (
             <div className="text-xs text-[var(--muted)]">Leave a review — we’ll build a full page next</div>
           </div>
 
-          <button
-            onClick={() => alert("Thanks 💜 Feedback page is coming next!")}
-            className="w-12 h-12 rounded-full bg-[var(--accent)] text-white text-lg"
-            title="Leave feedback"
-          >
-            💜
-          </button>
+          <Link
+  href={`/${locale}/feedback`}
+  className="w-12 h-12 rounded-full bg-[var(--accent)] text-white text-lg grid place-items-center"
+  title="Leave feedback"
+>
+  💜
+</Link>
         </div>
       </div>
     </div>
