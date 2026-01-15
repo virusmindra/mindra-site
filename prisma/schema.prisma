@@ -250,8 +250,10 @@ model Feedback {
   locale    String?
   userId    String?
 
+  @@map("feedback")
   @@schema("mindra")
 }
+
 
 model Notification {
   id        BigInt   @id @default(autoincrement())
