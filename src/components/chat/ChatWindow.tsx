@@ -178,26 +178,21 @@ useEffect(() => {
   if (!el) return;
 
   const onScroll = () => {
-    // насколько близко к низу считаем "внизу"
     const threshold = 120;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
     setStickToBottom(atBottom);
   };
 
-  onScroll();
   el.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
   return () => el.removeEventListener("scroll", onScroll);
 }, []);
 
-// автоскроллим только когда юзер "внизу"
 useEffect(() => {
   if (!stickToBottom) return;
   bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [messages.length, stickToBottom]);
-
-  useEffect(() => {
-  bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-}, [messages.length]);
 
   const isGoalDiary = Boolean(currentSessionId?.startsWith('goal:'));
   const isHabitDiary = Boolean(currentSessionId?.startsWith('habit:'));
