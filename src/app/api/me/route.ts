@@ -9,11 +9,13 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as any)?.id as string | undefined;
+  const email = (session?.user as any)?.email as string | undefined;
 
   if (!userId) {
     return NextResponse.json({
       authed: false,
       userId: null,
+      email: null,          // ✅ ADD
       plan: "FREE",
       tts: false,
       canTts: false,
@@ -36,7 +38,6 @@ export async function GET() {
   const left = Math.max(0, total - used);
   const canTts = Boolean(ent?.tts) && left > 0;
 
-  // ✅ cancelAtPeriodEnd берём из Stripe (истина)
   let cancelAtPeriodEnd = false;
   let currentPeriodEndMs: number | null = sub?.currentPeriodEnd ? sub.currentPeriodEnd.getTime() : null;
 
@@ -44,19 +45,16 @@ export async function GET() {
     if (sub?.stripeSubscription) {
       const s: any = await stripe.subscriptions.retrieve(sub.stripeSubscription);
       cancelAtPeriodEnd = Boolean(s?.cancel_at_period_end);
-
-      // если вдруг в Stripe период точнее — обновим для UI
       if (typeof s?.current_period_end === "number") {
         currentPeriodEndMs = s.current_period_end * 1000;
       }
     }
-  } catch {
-    // если Stripe временно недоступен — просто отдаём данные из БД
-  }
+  } catch {}
 
   return NextResponse.json({
     authed: true,
     userId,
+    email: email ?? null,  // ✅ ADD
     plan: sub?.plan ?? "FREE",
     status: sub?.status ?? "unknown",
     tts: Boolean(ent?.tts),
@@ -66,8 +64,6 @@ export async function GET() {
     voiceSecondsLeft: left,
     voiceMinutesUsed: Math.floor(used / 60),
     voiceMinutesLeft: Math.floor(left / 60),
-
-    // ✅ важно: timestamp
     currentPeriodEnd: currentPeriodEndMs,
     cancelAtPeriodEnd,
   });
