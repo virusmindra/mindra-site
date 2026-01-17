@@ -16,7 +16,11 @@ type Props = {
   onNewChat: () => void;
   onSelect: (id: string) => void;
 
-  onDelete: (id: string) => void; 
+  onDelete: (id: string) => void;
+
+  // ✅ mobile drawer
+  open?: boolean;
+  onClose?: () => void;
 };
 
 function normLocale(raw: string) {
@@ -40,6 +44,7 @@ function t(locale: 'en' | 'es') {
     goals: 'Goals',
     habits: 'Habits',
     reminders: 'Reminders',
+    close: 'Close',
   };
 
   const ES = {
@@ -57,6 +62,7 @@ function t(locale: 'en' | 'es') {
     goals: 'Objetivos',
     habits: 'Hábitos',
     reminders: 'Recordatorios',
+    close: 'Cerrar',
   };
 
   return locale === 'es' ? ES : EN;
@@ -77,38 +83,69 @@ export default function Sidebar({
   onNewChat,
   onSelect,
   onDelete,
+  open = false,
+  onClose,
 }: Props) {
   const { data: session, status } = useSession();
   const authed = !!session?.user;
 
   const isEmpty = (s: ChatSession) => (s.messages?.length ?? 0) === 0;
 
-  // показываем только текущую фичу
   const displayedSessions = sessions
     .filter((s) => (s.feature ?? 'default') === activeFeature)
-    // скрываем пустые “New chat”, кроме текущего открытого
     .filter((s) => !isEmpty(s) || s.id === currentId)
-    // сортируем по обновлению
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
   const params = useParams();
   const locale = normLocale(String((params as any)?.locale ?? 'en'));
   const L = t(locale);
 
+  const closeIfMobile = () => {
+    // закрываем только на мобиле (md = 768)
+    if (typeof window !== 'undefined' && window.innerWidth < 768) onClose?.();
+  };
+
   return (
-    <aside className="w-80 flex flex-col border-r border-[var(--border)] bg-[var(--card)] h-full overflow-hidden">
+    <aside
+      className={[
+        // desktop
+        'md:static md:translate-x-0 md:w-80 md:border-r',
+        // mobile drawer
+        'fixed md:relative inset-y-0 left-0 z-50 w-[86vw] max-w-[320px]',
+        'border-r border-[var(--border)] bg-[var(--card)] h-full overflow-hidden',
+        'transform transition-transform duration-200 ease-out',
+        open ? 'translate-x-0' : '-translate-x-full',
+      ].join(' ')}
+      aria-hidden={!open && typeof window !== 'undefined' && window.innerWidth < 768}
+    >
       {/* TOP */}
       <div className="p-3 border-b border-[var(--border)] space-y-2">
+        {/* mobile close button */}
+        <div className="md:hidden flex items-center justify-between">
+          <div className="text-xs text-[var(--muted)]">Mindra</div>
+          <button
+            type="button"
+            onClick={() => onClose?.()}
+            className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-[11px] text-[var(--text)]"
+          >
+            ✕ {L.close}
+          </button>
+        </div>
+
         <Link
           href={`/${locale}`}
           className="block w-full text-left text-xs text-[var(--muted)] hover:text-[var(--text)] transition"
+          onClick={closeIfMobile}
         >
           {L.backHome}
         </Link>
 
         <button
           type="button"
-          onClick={onNewChat}
+          onClick={() => {
+            onNewChat();
+            closeIfMobile();
+          }}
           className="w-full rounded-xl px-3 py-2 text-sm font-medium bg-[var(--accent)] text-white hover:opacity-90 transition"
         >
           {L.newChat}
@@ -121,24 +158,30 @@ export default function Sidebar({
           {L.functions}
         </div>
 
-<button
-  onClick={() => onChangeFeature("call")}
-  className={[
-    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
-    activeFeature === "call"
-      ? "bg-[var(--accent)] text-white"
-      : "text-[var(--muted)] hover:bg-white/5",
-  ].join(" ")}
->
-  📞 Call
-</button>
+        <button
+          onClick={() => {
+            onChangeFeature('call' as any);
+            closeIfMobile();
+          }}
+          className={[
+            'w-full rounded-xl px-3 py-2 text-left text-sm transition',
+            activeFeature === ('call' as any)
+              ? 'bg-[var(--accent)] text-white'
+              : 'text-[var(--muted)] hover:bg-white/5',
+          ].join(' ')}
+        >
+          📞 Call
+        </button>
 
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 text-sm mt-2">
           {featureList.map((f) => (
             <button
               key={f.id}
               type="button"
-              onClick={() => onChangeFeature(f.id)}
+              onClick={() => {
+                onChangeFeature(f.id);
+                closeIfMobile();
+              }}
               className={[
                 'w-full text-left px-3 py-2 rounded-xl transition border',
                 activeFeature === f.id
@@ -159,48 +202,53 @@ export default function Sidebar({
         </div>
 
         <ul className="flex-1 px-2 pb-3 space-y-1 text-sm overflow-auto">
-  {displayedSessions.map((s) => (
-    <li key={s.id} className="group">
-      <button
-        type="button"
-        onClick={() => onSelect(s.id)}
-        className={[
-          'w-full text-left px-3 py-2 rounded-xl transition border flex items-center gap-2',
-          s.id === currentId
-            ? 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)]'
-            : 'border-transparent text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
-        ].join(' ')}
-      >
-        <span className="flex-1 min-w-0 truncate">
-          {(s.feature ?? 'default') === 'goals' && '🎯 '}
-          {(s.feature ?? 'default') === 'habits' && '🔁 '}
-          {(s.feature ?? 'default') === 'reminders' && '⏰ '}
-          {s.title || (locale === 'es' ? 'Sin título' : 'Untitled')}
-        </span>
+          {displayedSessions.map((s) => (
+            <li key={s.id} className="group">
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect(s.id);
+                  closeIfMobile();
+                }}
+                className={[
+                  'w-full text-left px-3 py-2 rounded-xl transition border flex items-center gap-2',
+                  s.id === currentId
+                    ? 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)]'
+                    : 'border-transparent text-[var(--muted)] hover:text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10',
+                ].join(' ')}
+              >
+                <span className="flex-1 min-w-0 truncate">
+                  {(s.feature ?? 'default') === 'goals' && '🎯 '}
+                  {(s.feature ?? 'default') === 'habits' && '🔁 '}
+                  {(s.feature ?? 'default') === 'reminders' && '⏰ '}
+                  {s.title || (locale === 'es' ? 'Sin título' : 'Untitled')}
+                </span>
 
-        {/* delete on hover */}
-        <span
-          className="opacity-0 group-hover:opacity-100 transition"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete(s.id);
-          }}
-          title={locale === 'es' ? 'Eliminar chat' : 'Delete chat'}
-        >
-          ✕
-        </span>
-      </button>
-    </li>
-  ))}
-</ul>
+                <span
+                  className="opacity-0 group-hover:opacity-100 transition"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDelete(s.id);
+                  }}
+                  title={locale === 'es' ? 'Eliminar chat' : 'Delete chat'}
+                >
+                  ✕
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* BOTTOM */}
       <div className="border-t border-[var(--border)] p-3 space-y-3 text-xs">
         <button
           type="button"
-          onClick={() => onChangeFeature('settings')}
+          onClick={() => {
+            onChangeFeature('settings');
+            closeIfMobile();
+          }}
           className="w-full text-left px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10 transition"
         >
           ⚙️ {L.settings}

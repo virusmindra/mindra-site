@@ -620,6 +620,19 @@ export default function ClientPage() {
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+// если перешли на desktop — закрываем drawer
+useEffect(() => {
+  const onResize = () => {
+    if (window.innerWidth >= 768) setSidebarOpen(false);
+  };
+  window.addEventListener("resize", onResize);
+  onResize();
+  return () => window.removeEventListener("resize", onResize);
+}, []);
+
+
   const forcedSessionIdRef = useRef<string | null>(null);
 
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
@@ -1572,21 +1585,67 @@ const showVoiceToggle =
 
 return (
   <div className="h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-      {showA2HS ? (
-        <AddToHomeHint locale={locale} variant="fullscreen" onClose={closeA2HS} />
-      ) : null}
+    {showA2HS ? (
+      <AddToHomeHint locale={locale} variant="fullscreen" onClose={closeA2HS} />
+    ) : null}
+
     <div className="flex h-full">
+      {/* ✅ Mobile overlay */}
+      {sidebarOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
       <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
         sessions={sessions}
         currentId={currentId}
-        onNewChat={handleNewChat}
-        onSelect={handleSelectSession}
+        onNewChat={() => {
+          handleNewChat();
+          setSidebarOpen(false);
+        }}
+        onSelect={(id) => {
+          handleSelectSession(id);
+          setSidebarOpen(false);
+        }}
         activeFeature={activeFeature}
-        onChangeFeature={handleChangeFeature}
-        onDelete={handleDeleteSession}
+        onChangeFeature={(f) => {
+          handleChangeFeature(f);
+          setSidebarOpen(false);
+        }}
+        onDelete={(id) => {
+          handleDeleteSession(id);
+          // не обязательно закрывать, но удобно
+        }}
       />
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
+        {/* ✅ Mobile top bar */}
+        <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] bg-[var(--bg)]">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text)]"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+
+          <div className="font-semibold">Mindra</div>
+
+          <div className="ml-auto text-xs text-[var(--muted)]">
+            {activeFeature === "default" ? "Chat" :
+             activeFeature === "goals" ? "Goals" :
+             activeFeature === "habits" ? "Habits" :
+             activeFeature === "reminders" ? "Reminders" :
+             activeFeature === "settings" ? "Settings" :
+             activeFeature === "call" ? "Call" : ""}
+          </div>
+        </div>
+
         {activeFeature === "settings" ? (
           <div className="flex-1 overflow-y-auto">
             <SettingsPanel
@@ -1603,7 +1662,7 @@ return (
             />
           </div>
         ) : (
-  <>
+          <>
   <ChatWindow
     messages={current ? current.messages : []}
     activeFeature={activeFeature}
