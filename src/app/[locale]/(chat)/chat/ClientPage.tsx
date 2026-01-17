@@ -620,6 +620,8 @@ export default function ClientPage() {
   const [sending, setSending] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ChatFeature>('default');
 
+  const forcedSessionIdRef = useRef<string | null>(null);
+
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const [serverUserId, setServerUserId] = useState<string | null>(null);
@@ -706,7 +708,9 @@ useEffect(() => {
         return [mapped, ...withoutDup];
       });
 
-      setCurrentId(mapped.id);
+      if (!forcedSessionIdRef.current) {
+  setCurrentId(mapped.id);
+}
     })
     .catch(() => {});
 }, [authed]);
@@ -734,9 +738,12 @@ let forced: string | null = null;
 let openChat = false;
 
 if (typeof window !== "undefined") {
-  const sp = new URLSearchParams(window.location.search);
+    const sp = new URLSearchParams(window.location.search);
   forced = sp.get("f");
   openChat = sp.get("open") === "chat";
+
+  const sid = sp.get("sid");
+  forcedSessionIdRef.current = sid ? sid : null;
 }
 
 // 2) иначе берём последнюю вкладку из localStorage
@@ -755,10 +762,14 @@ const desiredFeature = (openChat ? "default" : (forced || last || "default")) as
       return s.startsWith("goal:") || s.startsWith("habit:");
     };
 
-    const pick =
-      stored.find((s) => (s.feature ?? "default") === desiredFeature && !isDiary(s.id)) ??
-      stored.find((s) => (s.feature ?? "default") === desiredFeature) ??
-      stored[0];
+    const sid = forcedSessionIdRef.current;
+
+const pick =
+  (sid ? stored.find((s) => s.id === sid) : null) ??
+  stored.find((s) => (s.feature ?? "default") === desiredFeature && !isDiary(s.id)) ??
+  stored.find((s) => (s.feature ?? "default") === desiredFeature) ??
+  stored[0];
+
 
     setCurrentId(pick?.id);
     setActiveFeature(desiredFeature);
@@ -768,6 +779,7 @@ const desiredFeature = (openChat ? "default" : (forced || last || "default")) as
   const sp = new URLSearchParams(window.location.search);
   sp.delete("f");
   sp.delete("open");
+  sp.delete("sid");
   const next = `${window.location.pathname}${sp.toString() ? "?" + sp.toString() : ""}`;
   window.history.replaceState({}, "", next);
 }

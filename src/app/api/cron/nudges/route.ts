@@ -497,10 +497,7 @@ if (!us.tz && kind === "morning") {
         ? pickRandom(DAYCHECK_EN)
         : pickRandom(EVENING_EN);
 
-    const title = titleFor(lang, kind);
-    const url = `/${lang}/chat?open=chat`;
-
-    // ---- пишем нудж в последний чат ----
+        // ---- пишем нудж в последний чат ----
     const lastSession = await prisma.chatSession.findFirst({
       where: { userId: us.userId },
       orderBy: { updatedAt: "desc" },
@@ -526,6 +523,12 @@ if (!us.tz && kind === "morning") {
       where: { id: sessionId },
       data: { updatedAt: new Date() },
     });
+
+    const title = titleFor(lang, kind);
+
+    // ✅ ВАЖНО: ведем на конкретную сессию, а не просто на /chat
+    const url = `/${lang}/chat?open=chat&sid=${encodeURIComponent(sessionId)}`;
+
 
     let sentInApp = false;
     let sentPush = false;
