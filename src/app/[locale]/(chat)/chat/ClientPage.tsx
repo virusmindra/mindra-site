@@ -1551,6 +1551,20 @@ useEffect(() => {
   };
 }, []);
 
+useEffect(() => {
+  if (!authed || !serverUserId) return;
+
+  let anonUid: string | null = null;
+  try { anonUid = localStorage.getItem("mindra_uid"); } catch {}
+
+  fetch("/api/subscription/claim", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ anonUid }),
+  }).catch(() => {});
+}, [authed, serverUserId]);
+
+
 
 const locale = getLocaleFromPath();
 const showVoiceToggle =
