@@ -100,18 +100,23 @@ export async function POST(req: NextRequest) {
 
     // ---------- GUEST FLOW ----------
     // Не создаем Subscription в БД (userId нет). Stripe соберет email.
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      // customer_creation: "always" гарантирует customer при checkout
-      customer_creation: "always",
-      metadata: { plan, term, locale, anonUid: anonUid ?? "" },
-      subscription_data: { metadata: { plan, term, locale, anonUid: anonUid ?? "" } },
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url,
-      cancel_url,
-    });
+    // ---------- GUEST FLOW ----------
+const guestCustomer = await stripe.customers.create({
+  metadata: { anonUid: anonUid ?? "" },
+});
 
-    return NextResponse.json({ url: session.url }, { status: 200 });
+const session = await stripe.checkout.sessions.create({
+  mode: "subscription",
+  customer: guestCustomer.id,
+  metadata: { plan, term, locale, anonUid: anonUid ?? "" },
+  subscription_data: { metadata: { plan, term, locale, anonUid: anonUid ?? "" } },
+  line_items: [{ price: priceId, quantity: 1 }],
+  success_url,
+  cancel_url,
+});
+
+return NextResponse.json({ url: session.url }, { status: 200 });
+
   } catch (e: any) {
     console.error("CHECKOUT_500:", e?.message, e);
     return NextResponse.json(
