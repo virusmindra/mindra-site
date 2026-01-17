@@ -204,17 +204,20 @@ if (!rec) return NextResponse.json({ ok: true });
       return NextResponse.json({ ok: true });
     }
 
-    // ---------------------------
-    // CHECKOUT COMPLETED (subscription OR payment/lifetime)
-    // ---------------------------
-   case "checkout.session.completed": {
+ case "checkout.session.completed": {
   const session = event.data.object as Stripe.Checkout.Session;
   const customerId = String(session.customer);
 
-  const emailRaw =
+  // email может быть пустым в session -> добираем из customer
+  let emailRaw =
     (session.customer_details as any)?.email ||
     (session.customer_email as any) ||
     null;
+
+  if (!emailRaw && session.customer) {
+    const c: any = await stripe.customers.retrieve(String(session.customer));
+    emailRaw = c?.email ?? null;
+  }
 
   const emailNorm = emailRaw ? normEmail(emailRaw) : null;
 
@@ -227,7 +230,7 @@ if (!rec) return NextResponse.json({ ok: true });
   if (!rec) {
     const userId = getUserIdFromEventObject(event.data.object);
 
-    // если есть userId (authed checkout) — создадим sub row как раньше
+    // authed checkout -> создадим sub row
     if (userId) {
       await ensureSubscriptionRow(userId, customerId);
       rec = await prisma.subscription.findUnique({ where: { userId } });
@@ -244,6 +247,7 @@ if (!rec) return NextResponse.json({ ok: true });
             anonUid,
             stripeCustomer: customerId,
             stripeSessionId: session.id,
+            stripeSubId: session.subscription ? String(session.subscription) : null,
             plan: planMeta === "PRO" ? ("PRO" as any) : ("PLUS" as any),
             term: termMeta || null,
             status: "active",
@@ -253,6 +257,7 @@ if (!rec) return NextResponse.json({ ok: true });
             emailNorm,
             anonUid,
             stripeCustomer: customerId,
+            stripeSubId: session.subscription ? String(session.subscription) : undefined,
             status: "active",
           },
         });
@@ -271,7 +276,9 @@ if (!rec) return NextResponse.json({ ok: true });
     const plan: Plan = (info?.plan ?? rec.plan ?? "FREE") as any;
     const term: Term | null = (info?.term ?? rec.term ?? null) as any;
 
-    const periodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000) : null;
+    const periodStart = sub.current_period_start
+      ? new Date(sub.current_period_start * 1000)
+      : null;
     const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
 
     await prisma.subscription.update({
