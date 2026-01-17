@@ -34,10 +34,11 @@ export default function SettingsPanel({
 
   // --- helpers (inside component, чтобы видеть me) ---
   const openPortal = async () => {
-    const r = await fetch("/api/portal", { method: "POST" });
-    const j = await r.json().catch(() => null);
-    if (j?.url) location.href = j.url;
-  };
+  const r = await fetch("/api/billing/portal", { method: "POST" });
+  const j = await r.json().catch(() => null);
+  if (j?.url) window.location.href = j.url;
+  else alert(j?.error || "portal_error");
+};
 
   const setLang = async (next: "en" | "es") => {
   // 1) сохраняем язык в БД
