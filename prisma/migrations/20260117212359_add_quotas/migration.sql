@@ -1,0 +1,17 @@
+-- AlterTable
+ALTER TABLE "mindra"."Entitlement" ADD COLUMN     "goalsMonthlyLimit" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN     "goalsMonthlyLimitEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "goalsMonthlyUsed" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "goalsUsedAtMonth" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "habitsMonthlyLimit" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN     "habitsMonthlyLimitEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "habitsMonthlyUsed" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "habitsUsedAtMonth" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "remindersMonthlyLimit" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN     "remindersMonthlyLimitEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "remindersMonthlyUsed" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "remindersUsedAtMonth" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "textDailyLimitEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "textDailyLimitMessages" INTEGER NOT NULL DEFAULT 10,
+ADD COLUMN     "textDailyMessagesUsed" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "textDailyUsedAtDate" TEXT NOT NULL DEFAULT '';

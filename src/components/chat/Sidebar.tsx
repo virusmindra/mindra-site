@@ -112,7 +112,7 @@ export default function Sidebar({
         'md:static md:translate-x-0 md:w-80 md:border-r',
         // mobile drawer
         'fixed md:relative inset-y-0 left-0 z-50 w-[86vw] max-w-[320px]',
-        'border-r border-[var(--border)] bg-[var(--card)] h-full overflow-hidden',
+        'border-r border-[var(--border)] bg-[var(--bg)] shadow-2xl h-full overflow-hidden',
         'transform transition-transform duration-200 ease-out',
         open ? 'translate-x-0' : '-translate-x-full',
       ].join(' ')}

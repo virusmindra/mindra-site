@@ -72,11 +72,16 @@ model Subscription {
 
 model Entitlement {
   userId             String   @id
+
+  // plan flags
   plus               Boolean  @default(false)
   pro                Boolean  @default(false)
   tts                Boolean  @default(false)
 
-  voiceSecondsTotal  Int      @default(0)
+  // -------------------------
+  // VOICE (monthly + daily)
+  // -------------------------
+  voiceSecondsTotal  Int      @default(0)  // monthly total (FREE=180, PLUS=7200, PRO=18000)
   voiceSecondsUsed   Int      @default(0)
 
   voicePeriodStart   DateTime?
@@ -87,11 +92,50 @@ model Entitlement {
   dailySecondsUsed   Int      @default(0)
   dailyUsedAtDate    String   @default("")
 
+  // -------------------------
+  // TEXT CHAT (daily)
+  // FREE: 10/day, PLUS/PRO: unlimited
+  // -------------------------
+  textDailyLimitEnabled  Boolean @default(true)
+  textDailyLimitMessages Int     @default(10)
+  textDailyMessagesUsed  Int     @default(0)
+  textDailyUsedAtDate    String  @default("")
+
+  // -------------------------
+  // GOALS (monthly)
+  // FREE: 3/mo, PLUS: 30/mo, PRO: unlimited
+  // -------------------------
+  goalsMonthlyLimitEnabled Boolean @default(true)
+  goalsMonthlyLimit        Int     @default(3)
+  goalsMonthlyUsed         Int     @default(0)
+  goalsUsedAtMonth         String  @default("")
+
+  // -------------------------
+  // HABITS (monthly)
+  // FREE: 3/mo, PLUS: 30/mo, PRO: unlimited
+  // -------------------------
+  habitsMonthlyLimitEnabled Boolean @default(true)
+  habitsMonthlyLimit        Int     @default(3)
+  habitsMonthlyUsed         Int     @default(0)
+  habitsUsedAtMonth         String  @default("")
+
+  // -------------------------
+  // REMINDERS (monthly)
+  // FREE: 3/mo, PLUS/PRO: unlimited
+  // -------------------------
+  remindersMonthlyLimitEnabled Boolean @default(true)
+  remindersMonthlyLimit        Int     @default(3)
+  remindersMonthlyUsed         Int     @default(0)
+  remindersUsedAtMonth         String  @default("")
+
+  // facetime
   maxFaceTimeMinutes Int      @default(0)
 
+  // timestamps
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  // relations
   voiceLedger        VoiceLedger[]
   billingEvents      BillingEvent[]
 
@@ -99,7 +143,6 @@ model Entitlement {
 
   @@schema("mindra")
 }
-
 
 enum Plan {
   FREE
