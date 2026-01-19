@@ -92,8 +92,8 @@ model Entitlement {
   dailySecondsUsed   Int      @default(0)
   dailyUsedAtDate    String   @default("")
 
-  // -------------------------
-  // TEXT CHAT (daily)
+    // -------------------------
+  // TEXT CHAT (daily) — общий на все фичи
   // FREE: 10/day, PLUS/PRO: unlimited
   // -------------------------
   textDailyLimitEnabled  Boolean @default(true)
@@ -112,7 +112,6 @@ model Entitlement {
 
   // -------------------------
   // HABITS (monthly)
-  // FREE: 3/mo, PLUS: 30/mo, PRO: unlimited
   // -------------------------
   habitsMonthlyLimitEnabled Boolean @default(true)
   habitsMonthlyLimit        Int     @default(3)
@@ -121,7 +120,6 @@ model Entitlement {
 
   // -------------------------
   // REMINDERS (monthly)
-  // FREE: 3/mo, PLUS/PRO: unlimited
   // -------------------------
   remindersMonthlyLimitEnabled Boolean @default(true)
   remindersMonthlyLimit        Int     @default(3)

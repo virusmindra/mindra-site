@@ -28,74 +28,146 @@ export async function POST(req: Request) {
       });
     }
 
+    // warm Render once
     if (!warmed) {
       warmed = true;
       const warmUrl = new URL("/", URL_FULL).toString();
       fetch(warmUrl, { cache: "no-store" }).catch(() => {});
     }
 
-    // читаем body безопасно
-    const body = await req.json().catch(() => ({}));
+    // safe body
+    const body = await req.json().catch(() => ({} as any));
 
-    const input = body?.input ?? "";
-    const sessionId = body?.sessionId ?? "default";
-    const feature = body?.feature ?? "default";
+    const input = String(body?.input ?? "");
+    const sessionId = String(body?.sessionId ?? "default");
+    const feature = String(body?.feature ?? "default");
 
-    // язык ТОЛЬКО en | es (пока так)
+    // lang only en|es
     const rawLang = body?.lang ?? body?.locale ?? "en";
-    const lang = String(rawLang).toLowerCase().startsWith("es") ? "es" : "en";
+    const lang: "en" | "es" = String(rawLang).toLowerCase().startsWith("es") ? "es" : "en";
 
-// ✅ хочет ли юзер премиум-голос (ElevenLabs)
-const wantVoice = Boolean(body?.wantVoice);
+    // wants premium voice (ElevenLabs)
+    const wantVoice = Boolean(body?.wantVoice);
 
-// ✅ userId ТОЛЬКО из сессии для премиум функций (trust no client)
-const session = await getServerSession(authOptions);
-const authedUserId = (session?.user as any)?.id as string | undefined;
+    // session userId (ONLY trusted for authed)
+    const session = await getServerSession(authOptions);
+    const authedUserId = (session?.user as any)?.id as string | undefined;
 
-// ✅ anon uid (для памяти/чат-сессий анонимов)
-const anonUidRaw = body?.user_id ?? body?.uid ?? null;
-const anonUid = anonUidRaw ? String(anonUidRaw) : null;
+    // anon uid (ONLY for guests)
+    const anonUidRaw = body?.uid ?? body?.user_uid ?? body?.user_id ?? null;
+    const anonUid = anonUidRaw ? String(anonUidRaw) : null;
 
-// premium voice only: если нет сессии — не даём голос
-if (wantVoice && !authedUserId) {
-  return new Response(
-    JSON.stringify({
-      reply: "Please sign in to use premium voice.",
-      voiceBlocked: true,
-      voiceReason: "login_required",
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
-  );
-}
+    // ✅ stable userId
+    // authed -> real userId
+    // guest -> web:<uid>
+    // fallback -> web-anon
+    const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
-// ✅ userId:
-// - authed: реальный userId
-// - anon: стабильный web uid (если есть), иначе "web-anon"
-const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
+    // premium voice only: no session -> block voice (even FREE voice minutes require login)
+    if (wantVoice && !authedUserId) {
+      const msg = limitReply("monthly_voice", lang); // reuse upgrade copy
+      return new Response(
+        JSON.stringify({
+          reply:
+            lang === "es"
+              ? `💜 Inicia sesión para usar voz.\n\n${msg.message}`
+              : `💜 Please sign in to use voice.\n\n${msg.message}`,
+          voiceBlocked: true,
+          voiceReason: "login_required",
+          pricingUrl: msg.pricingUrl,
+          cta: msg.cta,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-    // ✅ 1) GATE: если хотят ElevenLabs — проверяем лимиты ДО запроса к боту
+    // ✅ TEXT LIMIT: общий на все фичи (FREE: 10/day)
+    const ent = await prisma.entitlement.upsert({
+      where: { userId },
+      create: { userId } as any,
+      update: {},
+    });
+
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
+
+    // reset daily counter on new day
+    if ((ent as any).textDailyUsedAtDate !== today) {
+      await prisma.entitlement.update({
+        where: { userId },
+        data: { textDailyUsedAtDate: today, textDailyMessagesUsed: 0 } as any,
+      });
+      (ent as any).textDailyUsedAtDate = today;
+      (ent as any).textDailyMessagesUsed = 0;
+    }
+
+    if (
+      (ent as any).textDailyLimitEnabled &&
+      (ent as any).textDailyMessagesUsed >= (ent as any).textDailyLimitMessages
+    ) {
+      const msg = limitReply("daily_text", lang);
+      return new Response(
+        JSON.stringify({
+          reply: `💜 ${msg.title}\n\n${msg.message}`,
+          limitBlocked: true,
+          limitType: msg.kind,
+          pricingUrl: msg.pricingUrl,
+          cta: msg.cta,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // increment BEFORE upstream call (counts any message in any feature)
+    await prisma.entitlement.update({
+      where: { userId },
+      data: { textDailyMessagesUsed: { increment: 1 } } as any,
+    });
+
+    // ✅ 1) VOICE GATE: check limits BEFORE bot call
     if (wantVoice) {
       const gate = await canUsePremiumVoice(prisma as any, userId, 15);
       if (!gate.ok) {
+        if (gate.reason === "monthly_exhausted") {
+          const msg = limitReply("monthly_voice", lang);
+          return new Response(
+            JSON.stringify({
+              reply: `💜 ${msg.title}\n\n${msg.message}`,
+              voiceBlocked: true,
+              voiceReason: gate.reason,
+              voiceLeftSeconds: "left" in gate ? (gate as any).left : undefined,
+              dailyLeftSeconds: (gate as any).dailyLeft ?? undefined,
+              pricingUrl: msg.pricingUrl,
+              cta: msg.cta,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // daily voice limit or other reasons (also suggest pricing)
+        const msg = limitReply("monthly_voice", lang);
         return new Response(
           JSON.stringify({
             reply:
-              gate.reason === "monthly_exhausted"
-                ? "Your premium voice minutes for this month are finished. You can continue in text or upgrade/buy more minutes."
-                : gate.reason === "daily_limit"
-                  ? "Daily voice limit reached. You can continue in text or change daily limits in settings."
-                  : "Premium voice is not available right now.",
+              gate.reason === "daily_limit"
+                ? lang === "es"
+                  ? `💜 Límite diario de voz alcanzado.\n\nPuedes seguir en texto o actualizar tu plan. 💜\n\n👉 Pricing: ${msg.pricingUrl}`
+                  : `💜 Daily voice limit reached.\n\nYou can continue in text or upgrade your plan. 💜\n\n👉 Pricing: ${msg.pricingUrl}`
+                : lang === "es"
+                  ? `💜 La voz premium no está disponible ahora.\n\n👉 Pricing: ${msg.pricingUrl}`
+                  : `💜 Premium voice is not available right now.\n\n👉 Pricing: ${msg.pricingUrl}`,
             voiceBlocked: true,
             voiceReason: gate.reason,
-            voiceLeftSeconds: "left" in gate ? gate.left : undefined,
+            voiceLeftSeconds: "left" in gate ? (gate as any).left : undefined,
             dailyLeftSeconds: (gate as any).dailyLeft ?? undefined,
+            pricingUrl: msg.pricingUrl,
+            cta: msg.cta,
           }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
       }
     }
 
-    // ✅ 2) Запрос к боту (Render)
+    // ✅ 2) Call Render bot
     let upstream: Response;
     try {
       upstream = await fetchWithTimeout(
@@ -110,7 +182,7 @@ const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
             feature,
             lang,
             source: "web",
-            wantVoice, // ✅ сигнал на Render: делать ElevenLabs или нет
+            wantVoice,
           }),
         },
         15000
@@ -144,7 +216,7 @@ const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
       data = { reply: text || "Empty response" };
     }
 
-    // ✅ 3) DEBIT: если реально есть премиум-аудио — списываем фактические секунды
+    // ✅ 3) DEBIT voice seconds if ElevenLabs audio returned
     const audioSeconds =
       (data?.tts?.provider === "elevenlabs" ? Number(data?.tts?.seconds) : NaN) ||
       Number(data?.audioSeconds);
