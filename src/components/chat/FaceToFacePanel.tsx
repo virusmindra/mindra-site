@@ -426,16 +426,36 @@ export default function FaceToFacePanel({
       fd.append("lang", lang);
       fd.append("wantVoice", want);
 
-      // ✅ Вот тут ДОЛЖЕН появиться /api/call/turn в Network
-      const res = await fetch("/api/call/turn", { method: "POST", body: fd });
+     const res = await fetch("/api/call/turn", { method: "POST", body: fd });
+    const data: any = await res.json().catch(() => ({}));
 
-      const data: TurnResponse = await res.json().catch(() => ({}));
+if (data?.limitBlocked && data?.pricingUrl) {
+  try { stopTts(); } catch {}
+  setLocalNotice(String(data.reply || "Limit reached. Please upgrade. 💜"));
+  setRecState("idle");
+  setTimeout(() => {
+    window.location.href = String(data.pricingUrl);
+  }, 300);
+  return;
+}
 
-      if (!data || data.ok === false) {
-        setLocalNotice(data?.error || "Server error 😕");
-        setRecState("idle");
-        return;
-      }
+if (data?.voiceBlocked && data?.pricingUrl) {
+  try { stopTts(); } catch {}
+  setLocalNotice(String(data.reply || "Voice limit reached. Please upgrade. 💜"));
+  setRecState("idle");
+  setTimeout(() => {
+    window.location.href = String(data.pricingUrl);
+  }, 300);
+  return;
+}
+
+
+    if (!data || data.ok === false) {
+      
+      setRecState("idle");
+      
+      return;
+    }
 
       setLastTranscript(data.transcript || "");
       setLastReply(data.reply || "");

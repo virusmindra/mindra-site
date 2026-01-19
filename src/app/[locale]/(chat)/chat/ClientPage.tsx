@@ -1426,6 +1426,32 @@ const handleSend = async (text: string) => {
       const data2 = await res2.json().catch(() => null);
       if (data2) finalData = data2;
     }
+    // ✅ LIMIT BLOCKED -> редирект на pricing и стопаем обработку
+if (finalData?.limitBlocked && finalData?.pricingUrl) {
+  // ты уже добавил сообщение пользователя выше, это ок
+  // добавим ассистента (limit message) и через 600мс редирект
+
+  const limitMsg: ChatMessage = {
+    role: "assistant",
+    content: String(finalData.reply || "💜 Limit reached. Please upgrade. 💜"),
+    ts: Date.now(),
+  };
+
+  updateCurrentSession((prev) => ({
+    ...prev,
+    feature: prev.feature ?? activeFeature,
+    messages: [...prev.messages, limitMsg],
+    updatedAt: Date.now(),
+  }));
+
+  setTimeout(() => {
+    window.location.href = String(finalData.pricingUrl);
+  }, 600);
+
+  setSending(false);
+  return;
+}
+
 
     // 2) audio autoplay (если пришёл tts)
     const ttsUrl = finalData?.tts?.audioUrl;

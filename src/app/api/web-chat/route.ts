@@ -64,8 +64,8 @@ export async function POST(req: Request) {
         JSON.stringify({
           reply:
             lang === "es"
-              ? `💜 Inicia sesión para usar voz.\n\n${msg.message}\n\n👉 ${pricingUrl} 💜`
-              : `💜 Please sign in to use voice.\n\n${msg.message}\n\n👉 ${pricingUrl} 💜`,
+              ? `💜 Inicia sesión para usar voz.\n\n${msg.message} 💜`
+              : `💜 Please sign in to use voice.\n\n${msg.message} 💜`,
           voiceBlocked: true,
           voiceReason: "login_required",
           pricingUrl,
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       const msg = limitReply("daily_text", lang);
       return new Response(
         JSON.stringify({
-          reply: `💜 ${msg.title}\n\n${msg.message}\n\n👉 ${pricingUrl} 💜`,
+          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
           limitBlocked: true,
           limitType: msg.kind,
           pricingUrl,
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
         const msg = limitReply("monthly_voice", lang);
         return new Response(
           JSON.stringify({
-            reply: `💜 ${msg.title}\n\n${msg.message}\n\n👉 ${pricingUrl} 💜`,
+            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
             voiceBlocked: true,
             voiceReason: gate.reason,
             voiceLeftSeconds: "left" in gate ? (gate as any).left : undefined,

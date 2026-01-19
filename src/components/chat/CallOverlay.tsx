@@ -264,14 +264,67 @@ const sendTurn = async (audioBlob: Blob, mime: string) => {
     fd.append("wantVoice", wantVoice ? "1" : "0");
 
     const res = await fetch("/api/call/turn", { method: "POST", body: fd });
-    const data: TurnResponse = await res.json().catch(() => ({}));
+const data: any = await res.json().catch(() => ({}));
 
-    if (!data || data.ok === false) {
-      setNotice(data?.error || "Server error 😕");
-      setRecState("idle");
-      setAvatarState("idle");
-      return;
+// ✅ 1) лимит / апгрейд -> закрываем колл и редиректим
+if (data?.limitBlocked && data?.pricingUrl) {
+  stopVAD();
+  stopTts();
+  try {
+    if (recorderRef.current && recorderRef.current.state === "recording") {
+      recorderRef.current.stop();
     }
+  } catch {}
+  try {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  } catch {}
+
+  setNotice(null);
+  setRecState("idle");
+  setAvatarState("idle");
+
+  // чуть задержка чтобы не лагало
+  setTimeout(() => {
+    onClose();
+    window.location.href = String(data.pricingUrl);
+  }, 300);
+
+  return;
+}
+
+// ✅ 2) voice blocked (минуты кончились / логин нужен) -> тоже редирект
+if (data?.voiceBlocked && data?.pricingUrl) {
+  stopVAD();
+  stopTts();
+  try {
+    if (recorderRef.current && recorderRef.current.state === "recording") {
+      recorderRef.current.stop();
+    }
+  } catch {}
+  try {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  } catch {}
+
+  setNotice(null);
+  setRecState("idle");
+  setAvatarState("idle");
+
+  setTimeout(() => {
+    onClose();
+    window.location.href = String(data.pricingUrl);
+  }, 300);
+
+  return;
+}
+
+// ✅ 3) обычная ошибка
+if (!data || data.ok === false) {
+  setNotice(data?.error || "Server error 😕");
+  setRecState("idle");
+  setAvatarState("idle");
+  return;
+}
+
 
     setLastTranscript(data.transcript || "");
     setLastReply(data.reply || "");
