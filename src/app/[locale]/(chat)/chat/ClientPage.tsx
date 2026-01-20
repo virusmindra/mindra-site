@@ -1426,14 +1426,29 @@ const handleSend = async (text: string) => {
       const data2 = await res2.json().catch(() => null);
       if (data2) finalData = data2;
     }
-    // ✅ LIMIT BLOCKED -> редирект на pricing и стопаем обработку
+
 if (finalData?.limitBlocked && finalData?.pricingUrl) {
-  // ты уже добавил сообщение пользователя выше, это ок
-  // добавим ассистента (limit message) и через 600мс редирект
+  const raw = String(finalData.reply || "💜 Daily message limit reached");
+
+  // ✅ вырезаем строки со ссылками/cta
+  const cleaned = raw
+    .split("\n")
+    .filter((line) => {
+      const s = line.trim();
+      if (!s) return true;
+      if (s.startsWith("👉")) return false;
+      if (/pricing\s*:/i.test(s)) return false;
+      if (/https?:\/\//i.test(s)) return false;
+      if (/\/[a-z]{2}\/pricing/i.test(s)) return false;
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
   const limitMsg: ChatMessage = {
     role: "assistant",
-    content: String(finalData.reply || "💜 Limit reached. Please upgrade. 💜"),
+    content: cleaned,
     ts: Date.now(),
   };
 
@@ -1451,7 +1466,6 @@ if (finalData?.limitBlocked && finalData?.pricingUrl) {
   setSending(false);
   return;
 }
-
 
     // 2) audio autoplay (если пришёл tts)
     const ttsUrl = finalData?.tts?.audioUrl;
