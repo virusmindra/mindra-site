@@ -369,6 +369,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const force = searchParams.get("force") === "1";
 
+  const forcedKind = searchParams.get("kind") as any; // "morning"|"day"|"evening"|null
+
   if (!authorizeCron(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -414,15 +416,10 @@ export async function GET(req: Request) {
       const nudgeMs = lastNudge.getTime();
 
       if (!lastActive || activeMs <= nudgeMs) {
-        if (!paid) {
-          await prisma.userSettings.update({
-            where: { userId: us.userId },
-            data: { nudgesDisabled: true } as any,
-          });
-        }
-        skipped++;
-        continue;
-      }
+  // просто пропускаем эту попытку, но НЕ выключаем навсегда
+  skipped++;
+  continue;
+}
     }
 
     const rawTz = String(us.tz || "");
@@ -456,9 +453,15 @@ const tzLooksBroken = rawTz && tz === "UTC" && rawTz !== "UTC";
     const canDay = hadMorningToday && !hadDayToday && diffMin !== null && diffMin >= 360;
 
 let kind: Kind | null = null;
-if (!tzLooksBroken && isMorningWindow) kind = "morning";
-else if (canDay) kind = "day";
-else if (!tzLooksBroken && isEveningWindow) kind = "evening";
+
+if (forcedKind === "morning" || forcedKind === "day" || forcedKind === "evening") {
+  kind = forcedKind;
+} else {
+  if (!tzLooksBroken && isMorningWindow) kind = "morning";
+  else if (canDay) kind = "day";
+  else if (!tzLooksBroken && isEveningWindow) kind = "evening";
+}
+
 
 
     if (!force && !kind) {

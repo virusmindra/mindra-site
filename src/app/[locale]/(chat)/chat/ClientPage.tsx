@@ -1430,21 +1430,19 @@ const handleSend = async (text: string) => {
 if (finalData?.limitBlocked && finalData?.pricingUrl) {
   const raw = String(finalData.reply || "💜 Daily message limit reached");
 
-  // ✅ вырезаем строки со ссылками/cta
-  const cleaned = raw
-    .split("\n")
-    .filter((line) => {
-      const s = line.trim();
-      if (!s) return true;
-      if (s.startsWith("👉")) return false;
-      if (/pricing\s*:/i.test(s)) return false;
-      if (/https?:\/\//i.test(s)) return false;
-      if (/\/[a-z]{2}\/pricing/i.test(s)) return false;
-      return true;
-    })
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  // ✅ вырезаем любые упоминания pricing/ссылок (в любом формате)
+const cleaned = raw
+  // убираем строки/кусочки с 👉 ...
+  .replace(/(^|\n)\s*👉[^\n]*(\n|$)/g, "\n")
+  // убираем "Pricing: ..." / "pricing ..." (с любыми хвостами)
+  .replace(/pricing\s*:?[^\n]*/gi, "")
+  // убираем любые /en/pricing, /es/pricing и т.п. даже если внутри строки
+  .replace(/\/[a-z]{2}\/pricing\b[^\s\n]*/gi, "")
+  // убираем любые URL
+  .replace(/https?:\/\/\S+/gi, "")
+  // чистим лишние пустые строки
+  .replace(/\n{3,}/g, "\n\n")
+  .trim();
 
   const limitMsg: ChatMessage = {
     role: "assistant",
