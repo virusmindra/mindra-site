@@ -1,114 +1,130 @@
+// src/lib/voice/debit.ts
+import type { PrismaClient } from "@prisma/client";
 import { PLAN_LIMITS, todayKeyNY, getVoiceLeftSeconds } from "./limits";
-import type { PrismaClient, Entitlement, Subscription } from "@prisma/client";
 
 type DebitType = "TTS_CHAT" | "FACE_CALL";
 
-function nextMonthPeriodNY(now = new Date()) {
-  // periodStart = now, periodEnd = 1-е число следующего месяца 00:00 NY
-  const fmt = new Intl.DateTimeFormat("en-CA", {
+function monthBoundsNY(now = new Date()) {
+  // Простой и надежный способ: считаем “месяц” в America/New_York через formatToParts
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/New_York",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  });
-  const parts = fmt.formatToParts(now);
+  }).formatToParts(now);
+
   const y = Number(parts.find(p => p.type === "year")?.value ?? "1970");
   const m = Number(parts.find(p => p.type === "month")?.value ?? "01"); // 1..12
 
-  // 1-е число след. месяца
-  const nextY = m === 12 ? y + 1 : y;
-  const nextM = m === 12 ? 1 : m + 1;
-
-  // Собираем “вроде бы” UTC дату, но нам важен только факт сравнения (end > now)
-  const periodEnd = new Date(Date.UTC(nextY, nextM - 1, 1, 0, 0, 0));
-  return { periodStart: now, periodEnd };
+  // start = 1 число текущего месяца 00:00 NY (приблизим как UTC даты по компонентам)
+  // end = 1 число следующего месяца
+  // (Для лимитов нам важна стабильная смена периода, абсолютная точность времени не критична)
+  const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+  const end = new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1, 0, 0, 0));
+  return { start, end, key: `${y}-${String(m).padStart(2, "0")}` };
 }
 
-async function ensureEntitlement(tx: PrismaClient, userId: string) {
-  // Создаем entitlement с дефолтами схемы, если нет
-  let ent = await tx.entitlement.findUnique({ where: { userId } });
-  if (!ent) ent = await tx.entitlement.create({ data: { userId } as any });
+async function ensureEntitlement(prisma: PrismaClient, userId: string) {
+  const { start, end } = monthBoundsNY(new Date());
+
+  // Создаем entitlement если нет
+  let ent = await prisma.entitlement.findUnique({ where: { userId } });
+  if (!ent) {
+    ent = await prisma.entitlement.create({
+      data: {
+        userId,
+        // FREE старт
+        tts: true,
+        plus: false,
+        pro: false,
+
+        voiceSecondsTotal: 180, // 3 минуты
+        voiceSecondsUsed: 0,
+
+        dailyLimitEnabled: true,
+        dailyLimitSeconds: 60, // можно поменять/убрать, если не надо daily для FREE
+        dailySecondsUsed: 0,
+        dailyUsedAtDate: todayKeyNY(),
+
+        maxFaceTimeMinutes: 0,
+
+        voicePeriodStart: start,
+        voicePeriodEnd: end,
+      },
+    });
+    return ent;
+  }
+
+  // Если ent есть — проверяем, не сменился ли месяц (период)
+  const prevEnd = ent.voicePeriodEnd?.getTime() ?? null;
+  const nextEnd = end.getTime();
+
+  const isNewPeriod = prevEnd === null || prevEnd !== nextEnd;
+  if (isNewPeriod) {
+    ent = await prisma.entitlement.update({
+      where: { userId },
+      data: {
+        // FREE всегда должен иметь tts=true, если ты хочешь 3 бесплатные минуты
+        // (если хочешь “только после логина” — это отдельно, но entitlement пусть будет)
+        tts: true,
+
+        // На новый месяц — сброс
+        voiceSecondsTotal: Math.max(ent.voiceSecondsTotal ?? 0, 180),
+        voiceSecondsUsed: 0,
+        dailySecondsUsed: 0,
+        dailyUsedAtDate: todayKeyNY(),
+        voicePeriodStart: start,
+        voicePeriodEnd: end,
+      },
+    });
+  }
+
+  // Если почему-то total=0 — восстановим FREE минимум
+  if ((ent.voiceSecondsTotal ?? 0) <= 0) {
+    ent = await prisma.entitlement.update({
+      where: { userId },
+      data: { voiceSecondsTotal: 180, tts: true },
+    });
+  }
+
   return ent;
 }
 
-function normalizePlan(sub?: Subscription | null) {
-  const raw = String(sub?.plan ?? "FREE").toUpperCase();
-  return (raw in PLAN_LIMITS ? raw : "FREE") as keyof typeof PLAN_LIMITS;
-}
-
-/**
- * FREE: 3 минуты/месяц (180 сек) по умолчанию.
- * PLUS/PRO: как выставит stripe-sync (voiceSecondsTotal), но мы не ломаем если уже стоит.
- */
 export async function canUsePremiumVoice(
   prisma: PrismaClient,
   userId: string,
   wantSeconds: number
 ) {
-  const sub = await prisma.subscription.findUnique({ where: { userId } }).catch(() => null);
-  const plan = normalizePlan(sub);
+  const ent = await ensureEntitlement(prisma, userId);
+  const sub = await prisma.subscription.findUnique({ where: { userId } });
 
-  // ensure entitlement
-  let ent = await ensureEntitlement(prisma as any, userId);
+  // если tts выключен — блочим
+  if (!ent.tts) return { ok: false as const, reason: "tts_disabled" as const };
 
-  // ✅ включаем tts для FREE тоже (иначе 3 минуты никогда не появятся)
-  if (!ent.tts) {
-    ent = await prisma.entitlement.update({
-      where: { userId },
-      data: { tts: true },
-    });
-  }
-
-  // ✅ месячный лимит для FREE
-  const freeMonthly = 180;
-  const shouldForceFreeTotal = plan === "FREE" && (ent.voiceSecondsTotal ?? 0) <= 0;
-
-  if (shouldForceFreeTotal) {
-    const { periodStart, periodEnd } = nextMonthPeriodNY(new Date());
-    ent = await prisma.entitlement.update({
-      where: { userId },
-      data: {
-        voiceSecondsTotal: freeMonthly,
-        voiceSecondsUsed: 0,
-        voicePeriodStart: periodStart,
-        voicePeriodEnd: periodEnd,
-        dailySecondsUsed: 0,
-        dailyUsedAtDate: "",
-      },
-    });
-  }
-
-  // ✅ monthly rollover (для FREE — по voicePeriodEnd)
-  const now = new Date();
-  if (plan === "FREE" && ent.voicePeriodEnd && now.getTime() >= ent.voicePeriodEnd.getTime()) {
-    const { periodStart, periodEnd } = nextMonthPeriodNY(now);
-    ent = await prisma.entitlement.update({
-      where: { userId },
-      data: {
-        voiceSecondsUsed: 0,
-        voiceSecondsTotal: freeMonthly,
-        voicePeriodStart: periodStart,
-        voicePeriodEnd: periodEnd,
-        dailySecondsUsed: 0,
-        dailyUsedAtDate: "",
-      },
-    });
-  }
+  const tk = todayKeyNY();
 
   // daily rollover
-  const tk = todayKeyNY();
-  let dailyUsed = ent.dailySecondsUsed;
-  let dailyDate = ent.dailyUsedAtDate;
+  let dailyUsed = ent.dailySecondsUsed ?? 0;
+  let dailyDate = ent.dailyUsedAtDate ?? "";
 
   if (dailyDate !== tk) {
     dailyUsed = 0;
     dailyDate = tk;
+    await prisma.entitlement.update({
+      where: { userId },
+      data: { dailySecondsUsed: 0, dailyUsedAtDate: tk },
+    });
   }
+
+  const rawPlan = String(sub?.plan ?? "FREE").toUpperCase();
+  const plan = (rawPlan in PLAN_LIMITS ? rawPlan : "FREE") as keyof typeof PLAN_LIMITS;
 
   const left = getVoiceLeftSeconds(ent);
 
   const dailyLimit =
-    ent.dailyLimitSeconds > 0 ? ent.dailyLimitSeconds : PLAN_LIMITS[plan].dailySecondsDefault;
+    ent.dailyLimitSeconds && ent.dailyLimitSeconds > 0
+      ? ent.dailyLimitSeconds
+      : PLAN_LIMITS[plan].dailySecondsDefault;
 
   if (left <= 0) return { ok: false as const, reason: "monthly_exhausted" as const, left };
   if (wantSeconds > left) return { ok: false as const, reason: "insufficient_left" as const, left };
@@ -122,7 +138,7 @@ export async function canUsePremiumVoice(
     };
   }
 
-  return { ok: true as const, left, tk, dailyUsed, dailyLimit, plan };
+  return { ok: true as const, left, tk, dailyUsed, dailyLimit };
 }
 
 export async function debitPremiumVoice(
@@ -131,57 +147,27 @@ export async function debitPremiumVoice(
 ) {
   const sec = Math.max(1, Math.floor(args.seconds));
   const tk = todayKeyNY();
-  const now = new Date();
 
   return prisma.$transaction(async (tx) => {
-    const sub = await tx.subscription.findUnique({ where: { userId: args.userId } }).catch(() => null);
-    const plan = normalizePlan(sub);
+    // важно: тоже ensure period / create
+    const ent0 = await ensureEntitlement(tx as any, args.userId);
 
-    let ent = await ensureEntitlement(tx as any, args.userId);
-
-    // включаем tts (FREE тоже)
-    if (!ent.tts) {
-      ent = await tx.entitlement.update({ where: { userId: args.userId }, data: { tts: true } });
-    }
-
-    // FREE init/rollover
-    if (plan === "FREE") {
-      const freeMonthly = 180;
-
-      const needInit = (ent.voiceSecondsTotal ?? 0) <= 0;
-      const expired = ent.voicePeriodEnd && now.getTime() >= ent.voicePeriodEnd.getTime();
-
-      if (needInit || expired) {
-        const { periodStart, periodEnd } = nextMonthPeriodNY(now);
-        ent = await tx.entitlement.update({
-          where: { userId: args.userId },
-          data: {
-            voiceSecondsTotal: freeMonthly,
-            voiceSecondsUsed: 0,
-            voicePeriodStart: periodStart,
-            voicePeriodEnd: periodEnd,
-            dailySecondsUsed: 0,
-            dailyUsedAtDate: "",
-          },
-        });
-      }
-    }
+    if (!ent0.tts) throw new Error("TTS disabled");
 
     // daily rollover
-    let dailyUsed = ent.dailySecondsUsed;
-    let dailyDate = ent.dailyUsedAtDate;
+    let dailyUsed = ent0.dailySecondsUsed ?? 0;
+    let dailyDate = ent0.dailyUsedAtDate ?? "";
+
     if (dailyDate !== tk) {
       dailyUsed = 0;
       dailyDate = tk;
     }
 
-    const left = Math.max(0, ent.voiceSecondsTotal - ent.voiceSecondsUsed);
+    const left = Math.max(0, (ent0.voiceSecondsTotal ?? 0) - (ent0.voiceSecondsUsed ?? 0));
     if (left < sec) throw new Error("Not enough voice seconds");
 
-    const dailyLimit =
-      ent.dailyLimitSeconds > 0 ? ent.dailyLimitSeconds : PLAN_LIMITS[plan].dailySecondsDefault;
-
-    if (ent.dailyLimitEnabled && dailyLimit > 0 && dailyUsed + sec > dailyLimit) {
+    const dailyLimit = ent0.dailyLimitSeconds && ent0.dailyLimitSeconds > 0 ? ent0.dailyLimitSeconds : 0;
+    if (ent0.dailyLimitEnabled && dailyLimit > 0 && dailyUsed + sec > dailyLimit) {
       throw new Error("Daily limit reached");
     }
 

@@ -1,13 +1,13 @@
 import { prisma } from "@/server/prisma";
 
-const FREE_SECONDS = 3 * 60;     // ✅ 3 минуты/месяц
+const FREE_SECONDS = 3 * 60;
 const PLUS_SECONDS = 120 * 60;
 const PRO_SECONDS = 300 * 60;
 
 function planToSeconds(plan: "FREE" | "PLUS" | "PRO") {
   if (plan === "PLUS") return PLUS_SECONDS;
   if (plan === "PRO") return PRO_SECONDS;
-  return 180; // ✅ FREE = 3 минуты
+  return FREE_SECONDS; // ✅ FREE = 3 минуты
 }
 
 // ✅ границы текущего месяца по New York
@@ -47,9 +47,12 @@ export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
   const isActivePaid =
     args.status === "active" || args.status === "trialing" || args.status === "past_due";
 
-  // ✅ FREE считаем “активным” (это наш free-пакет)
-  const isActive = args.plan === "FREE" ? true : isActivePaid;
-
+ const isActive =
+  args.plan === "FREE" || // ✅ FREE всегда активен
+  args.status === "active" ||
+  args.status === "trialing" ||
+  args.status === "past_due";
+  
   // ✅ для FREE делаем период = текущий месяц в NY
   const freeBounds = args.plan === "FREE" ? monthBoundsNY(new Date()) : null;
   const periodStart = args.plan === "FREE" ? freeBounds!.start : (args.periodStart ?? null);
