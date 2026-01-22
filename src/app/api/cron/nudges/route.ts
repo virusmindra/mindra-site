@@ -372,7 +372,10 @@ export async function GET(req: Request) {
   const forcedKind = searchParams.get("kind") as any; // "morning"|"day"|"evening"|null
 
   if (!authorizeCron(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   setupWebPushOnce();

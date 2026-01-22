@@ -1,12 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/cron/reminders?secret=6909fd97c6c8b61053dcd129fb5dcd9102fa9f891a46a89895efd798e6766e37",
+      "path": "/api/cron/reminders",
       "schedule": "* * * * *"
     },
     {
-      "path": "/api/cron/nudges?secret=6909fd97c6c8b61053dcd129fb5dcd9102fa9f891a46a89895efd798e6766e37",
-      "schedule": "*/5 * * * *"
+      "path": "/api/cron/nudges?kind=morning",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/nudges?kind=day",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/nudges?kind=evening",
+      "schedule": "0 20 * * *"
     }
   ]
 }
