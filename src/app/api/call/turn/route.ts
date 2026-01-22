@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     // stable userId
     const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
-    // Call voice only when authed
+    // Call only when authed
     if (!authedUserId) {
       const msg = limitReply("monthly_voice", lang);
       return NextResponse.json(
@@ -65,29 +65,48 @@ export async function POST(req: Request) {
           limitBlocked: true,
           limitType: "monthly_voice",
           pricingUrl,
+          shouldEndCall: true,
+        },
+        { status: 200 }
+      );
+    }
+
+    // ✅ ВАЖНО: Call без голоса не разрешаем (чтобы не жечь OpenAI текстом)
+    if (!wantVoice) {
+      const msg = limitReply("monthly_voice", lang);
+      return NextResponse.json(
+        {
+          ok: false,
+          voiceBlocked: true,
+          voiceReason: "voice_required",
+          reply:
+            lang === "es"
+              ? `💜 Activa “Premium voice” para usar Call. 💜\n\n${msg.message}`
+              : `💜 Turn on “Premium voice” to use Call. 💜\n\n${msg.message}`,
+          pricingUrl,
+          shouldEndCall: true,
         },
         { status: 200 }
       );
     }
 
     // ✅ voice minutes gate (call) — 15 сек запрос для проверки
-    if (wantVoice) {
-      const gate = await canUsePremiumVoice(prisma as any, userId, 15);
-      if (!gate.ok) {
-        const msg = limitReply("monthly_voice", lang);
-        return NextResponse.json(
-          {
-            ok: false,
-            voiceBlocked: true,
-            voiceReason: gate.reason,
-            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-            pricingUrl,
-            voiceLeftSeconds: (gate as any).left,
-            dailyLeftSeconds: (gate as any).dailyLeft,
-          },
-          { status: 200 }
-        );
-      }
+    const gate = await canUsePremiumVoice(prisma as any, userId, 15);
+    if (!gate.ok) {
+      const msg = limitReply("monthly_voice", lang);
+      return NextResponse.json(
+        {
+          ok: false,
+          voiceBlocked: true,
+          voiceReason: gate.reason,
+          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+          pricingUrl,
+          voiceLeftSeconds: (gate as any).left,
+          dailyLeftSeconds: (gate as any).dailyLeft,
+          shouldEndCall: true, // ✅ UI может закрыть call
+        },
+        { status: 200 }
+      );
     }
 
     // ✅ passthrough to upstream
