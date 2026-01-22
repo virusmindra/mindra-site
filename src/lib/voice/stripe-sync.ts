@@ -5,9 +5,9 @@ const PLUS_SECONDS = 120 * 60;
 const PRO_SECONDS = 300 * 60;
 
 function planToSeconds(plan: "FREE" | "PLUS" | "PRO") {
-  if (plan === "PRO") return PRO_SECONDS;
   if (plan === "PLUS") return PLUS_SECONDS;
-  return FREE_SECONDS; // ✅ FREE теперь тоже даём минуты
+  if (plan === "PRO") return PRO_SECONDS;
+  return 180; // ✅ FREE = 3 минуты
 }
 
 // ✅ границы текущего месяца по New York
@@ -83,20 +83,20 @@ export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
 
     // ✅ если НЕ активна платная подписка — но план FREE, мы НЕ обнуляем до 0
     if (!isActive) {
-      await tx.entitlement.update({
-        where: { userId: args.userId },
-        data: {
-          tts: false,
-          plus: false,
-          pro: false,
-          voiceSecondsTotal: 0,
-          voiceSecondsUsed: 0,
-          dailySecondsUsed: 0,
-          dailyUsedAtDate: "",
-          voicePeriodStart: periodStart,
-          voicePeriodEnd: periodEnd,
-        },
-      });
+  await tx.entitlement.update({
+    where: { userId: args.userId },
+    data: {
+      tts: true,
+      plus: false,
+      pro: false,
+      voiceSecondsTotal: 180,
+      voiceSecondsUsed: 0,
+      dailySecondsUsed: 0,
+      dailyUsedAtDate: "",
+      voicePeriodStart: args.periodStart ?? null,
+      voicePeriodEnd: args.periodEnd ?? null,
+    },
+  });
 
       await tx.billingEvent.create({
         data: {

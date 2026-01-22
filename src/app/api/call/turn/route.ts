@@ -30,10 +30,9 @@ export async function POST(req: Request) {
     const lang = pickLang(req);
     const pricingUrl = absPricingUrl(req, lang);
 
-    // ✅ form data (сначала читаем!)
+    // form data (сначала!)
     const form = await req.formData();
-
-    const wantVoice = form.get("wantVoice") === "1"; // сейчас может быть полезно, но можно не использовать
+    const wantVoice = form.get("wantVoice") === "1";
 
     // auth
     const session = await getServerSession(authOptions);
@@ -41,17 +40,17 @@ export async function POST(req: Request) {
 
     // guest uid (если вдруг call вызывается без логина)
     const anonUidRaw =
-      (form.get("uid") as any) ||
-      (form.get("user_id") as any) ||
-      (form.get("user_uid") as any) ||
+      (form.get("uid") as string) ||
+      (form.get("user_id") as string) ||
+      (form.get("user_uid") as string) ||
       null;
 
     const anonUid = anonUidRaw ? String(anonUidRaw) : null;
 
-    // stable userId (same idea as web-chat)
+    // stable userId
     const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
-    // ✅ voice for call only when authed
+    // Call voice only when authed
     if (!authedUserId) {
       const msg = limitReply("monthly_voice", lang);
       return NextResponse.json(
@@ -71,57 +70,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ daily message limit blocks Call too
-    const ent = await prisma.entitlement.upsert({
-      where: { userId },
-      create: { userId } as any,
-      update: {},
-    });
-
-    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-
-    if ((ent as any).textDailyUsedAtDate !== today) {
-      await prisma.entitlement.update({
-        where: { userId },
-        data: { textDailyUsedAtDate: today, textDailyMessagesUsed: 0 } as any,
-      });
-      (ent as any).textDailyUsedAtDate = today;
-      (ent as any).textDailyMessagesUsed = 0;
-    }
-
-    if (
-      (ent as any).textDailyLimitEnabled &&
-      (ent as any).textDailyMessagesUsed >= (ent as any).textDailyLimitMessages
-    ) {
-      const msg = limitReply("daily_text", lang);
-      return NextResponse.json(
-        {
-          ok: false,
-          limitBlocked: true,
-          limitType: msg.kind,
-          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-          pricingUrl,
-        },
-        { status: 200 }
-      );
-    }
-
-    // ✅ voice gate — 15 секунд “оценка” перед вызовом (можешь поставить 10-20)
-    const gate = await canUsePremiumVoice(prisma as any, userId, 15);
-    if (!gate.ok) {
-      const msg = limitReply("monthly_voice", lang);
-      return NextResponse.json(
-        {
-          ok: false,
-          voiceBlocked: true,
-          voiceReason: gate.reason,
-          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-          pricingUrl,
-          voiceLeftSeconds: (gate as any).left,
-          dailyLeftSeconds: (gate as any).dailyLeft,
-        },
-        { status: 200 }
-      );
+    // ✅ voice minutes gate (call) — 15 сек запрос для проверки
+    if (wantVoice) {
+      const gate = await canUsePremiumVoice(prisma as any, userId, 15);
+      if (!gate.ok) {
+        const msg = limitReply("monthly_voice", lang);
+        return NextResponse.json(
+          {
+            ok: false,
+            voiceBlocked: true,
+            voiceReason: gate.reason,
+            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+            pricingUrl,
+            voiceLeftSeconds: (gate as any).left,
+            dailyLeftSeconds: (gate as any).dailyLeft,
+          },
+          { status: 200 }
+        );
+      }
     }
 
     // ✅ passthrough to upstream
@@ -138,8 +104,8 @@ export async function POST(req: Request) {
         "content-type": upstream.headers.get("content-type") || "application/json",
       },
     });
-  } catch (e) {
-    console.log("[CALL TURN] error:", e);
+  } catch (e: any) {
+    console.log("[call/turn] error:", e?.message ?? e);
     return NextResponse.json({ ok: false, error: "Proxy error" }, { status: 200 });
   }
 }

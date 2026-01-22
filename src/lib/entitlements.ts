@@ -12,7 +12,7 @@ const PLAN_CFG = {
   FREE: {
     plus: false,
     pro: false,
-    tts: false,
+    tts: true,
     maxFace: 0,
 
     textDailyEnabled: true,
