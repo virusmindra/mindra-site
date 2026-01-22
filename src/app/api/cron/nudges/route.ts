@@ -364,19 +364,35 @@ function titleFor(lang: "en" | "es", kind: Kind) {
   return "Mindra · Good evening";
 }
 
+function dayKeyInTZ(d: Date, timeZone?: string | null) {
+  // если tz нет — считаем по UTC
+  if (!timeZone) return d.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const m = parts.find((p) => p.type === "month")?.value ?? "00";
+  const day = parts.find((p) => p.type === "day")?.value ?? "00";
+  return `${y}-${m}-${day}`;
+}
+
 // ---------------- route ----------------
 export async function GET(req: Request) {
+  if (!authorizeCron(req)) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const force = searchParams.get("force") === "1";
 
-  const forcedKind = searchParams.get("kind") as any; // "morning"|"day"|"evening"|null
-
-  if (!authorizeCron(req)) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+  // ✅ kind override работает только при force=1
+  const requestedKind = String(searchParams.get("kind") || "").toLowerCase();
+  const allowedKinds = new Set(["morning", "day", "evening"]);
 
   setupWebPushOnce();
 
@@ -408,7 +424,38 @@ export async function GET(req: Request) {
     const lastDay: Date | null = us.lastDayNudgeAtUtc ?? null;
     const lastEvening: Date | null = us.lastEveningNudgeAtUtc ?? null;
 
-    // если был нудж и юзер НЕ возвращался после него:
+    const rawTz = String(us.tz || "");
+    const tz = safeTz(rawTz || "UTC");
+
+    // если tz откатился в UTC из-за кривого значения — не шлём morning/evening по окнам
+    const tzLooksBroken = rawTz && tz === "UTC" && rawTz !== "UTC";
+
+    const lang = langNorm(us.lang) as "en" | "es";
+
+    const quietEnabled = Boolean(us.quietEnabled ?? true);
+    const quietStart = Number(us.quietStart ?? 22);
+    const quietEnd = Number(us.quietEnd ?? 8);
+
+    // QUIET HOURS
+    if (!force && quietEnabled && isQuietNow(now, tz, quietStart, quietEnd)) {
+      skipped++;
+      continue;
+    }
+
+    // ✅ 1) ЖЁСТКИЙ КАП: максимум 1 nudge в сутки (по local day)
+    const todayKey = dayKeyInTZ(now, tz);
+
+    const alreadySentToday = [lastMorning, lastDay, lastEvening]
+      .filter(Boolean)
+      .some((d: any) => dayKeyInTZ(new Date(d), tz) === todayKey);
+
+    if (!force && alreadySentToday) {
+      skipped++;
+      continue;
+    }
+
+    // ✅ 2) Антиспам "не возвращался после nudge" — но НЕ навсегда
+    // Если юзер не был активен после последнего nudge — ждём 24 часа, потом можно снова (и всё равно 1/день)
     const nudges = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
     const lastNudge = nudges.length
       ? nudges.sort((a, b) => b.getTime() - a.getTime())[0]
@@ -418,73 +465,56 @@ export async function GET(req: Request) {
       const activeMs = lastActive ? lastActive.getTime() : 0;
       const nudgeMs = lastNudge.getTime();
 
-      if (!lastActive || activeMs <= nudgeMs) {
-  // просто пропускаем эту попытку, но НЕ выключаем навсегда
-  skipped++;
-  continue;
-}
+      const userDidNotReturn = !lastActive || activeMs <= nudgeMs;
+      if (userDidNotReturn) {
+        const hoursSince = (now.getTime() - nudgeMs) / 3600000;
+        // ждем сутки — потом можно еще раз попробовать
+        if (hoursSince < 24) {
+          skipped++;
+          continue;
+        }
+      }
     }
 
-    const rawTz = String(us.tz || "");
-const tz = safeTz(rawTz || "UTC");
-
-// если tz откатился в UTC из-за кривого значения — не шлём morning/evening
-const tzLooksBroken = rawTz && tz === "UTC" && rawTz !== "UTC";
-
-    const lang = langNorm(us.lang) as "en" | "es";
-
-    const quietEnabled = Boolean(us.quietEnabled ?? true);
-    const quietStart = Number(us.quietStart ?? 22);
-    const quietEnd = Number(us.quietEnd ?? 8);
-
-    if (!force && quietEnabled && isQuietNow(now, tz, quietStart, quietEnd)) {
-      skipped++;
-      continue;
-    }
-
+    // ---- окна времени ----
     const { hh, mm } = getPartsInTz(now, tz);
 
     const isMorningWindow = hh === 9 && mm <= 15;
     const isEveningWindow = hh === 20 && mm <= 15;
 
-    // day: через 360 минут после lastActive, только если morning уже был сегодня и day ещё не был сегодня
-    const diffMin =
-      lastActive ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000) : null;
+    const diffMin = lastActive
+      ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000)
+      : null;
 
+    // day: через 360 минут после lastActive, только если morning уже был сегодня и day ещё не был сегодня
     const hadMorningToday = lastMorning ? sameLocalDay(lastMorning, now, tz) : false;
     const hadDayToday = lastDay ? sameLocalDay(lastDay, now, tz) : false;
     const canDay = hadMorningToday && !hadDayToday && diffMin !== null && diffMin >= 360;
 
-let kind: Kind | null = null;
+    // ---- выбираем kind ----
+    let kind: Kind | null = null;
 
-if (forcedKind === "morning" || forcedKind === "day" || forcedKind === "evening") {
-  kind = forcedKind;
-} else {
-  if (!tzLooksBroken && isMorningWindow) kind = "morning";
-  else if (canDay) kind = "day";
-  else if (!tzLooksBroken && isEveningWindow) kind = "evening";
-}
+    if (force && allowedKinds.has(requestedKind)) {
+      kind = requestedKind as Kind;
+    } else {
+      if (!tzLooksBroken && isMorningWindow) kind = "morning";
+      else if (canDay) kind = "day";
+      else if (!tzLooksBroken && isEveningWindow) kind = "evening";
+    }
 
+    if (!kind) {
+      skipped++;
+      continue;
+    }
 
+    // если tz не задан — пропускаем morning (как у тебя было)
+    if (!us.tz && kind === "morning") {
+      skipped++;
+      continue;
+    }
 
-    if (!force && !kind) {
-  skipped++;
-  continue;
-}
-
-if (!kind) {
-  skipped++;
-  continue;
-}
-
-if (!us.tz && kind === "morning") {
-  skipped++;
-  continue;
-}
-
-    const lastAt =
-      kind === "morning" ? lastMorning : kind === "day" ? lastDay : lastEvening;
-
+    // доп. защита: не отправлять тот же kind второй раз в этот же local day
+    const lastAt = kind === "morning" ? lastMorning : kind === "day" ? lastDay : lastEvening;
     if (!force && lastAt && sameLocalDay(lastAt, now, tz)) {
       skipped++;
       continue;
@@ -503,7 +533,7 @@ if (!us.tz && kind === "morning") {
         ? pickRandom(DAYCHECK_EN)
         : pickRandom(EVENING_EN);
 
-        // ---- пишем нудж в последний чат ----
+    // ---- пишем нудж в последний чат ----
     const lastSession = await prisma.chatSession.findFirst({
       where: { userId: us.userId },
       orderBy: { updatedAt: "desc" },
@@ -532,9 +562,8 @@ if (!us.tz && kind === "morning") {
 
     const title = titleFor(lang, kind);
 
-    // ✅ ВАЖНО: ведем на конкретную сессию, а не просто на /chat
+    // ✅ ведем на конкретную сессию
     const url = `/${lang}/chat?open=chat&sid=${encodeURIComponent(sessionId)}`;
-
 
     let sentInApp = false;
     let sentPush = false;
@@ -566,7 +595,7 @@ if (!us.tz && kind === "morning") {
             JSON.stringify({
               title,
               body,
-              url, // <- важно
+              url,
               icon: "/icons/icon-192.png",
               badge: "/icons/badge-72.png",
               tag: `nudge-${kind}-${us.userId}`,
@@ -607,5 +636,11 @@ if (!us.tz && kind === "morning") {
     }
   }
 
-  return NextResponse.json({ ok: true, processed, sent, skipped, now: now.toISOString() });
+  return NextResponse.json({
+    ok: true,
+    processed,
+    sent,
+    skipped,
+    now: now.toISOString(),
+  });
 }

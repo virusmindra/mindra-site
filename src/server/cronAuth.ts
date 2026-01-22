@@ -1,21 +1,28 @@
 // src/server/cronAuth.ts
 export function authorizeCron(req: Request) {
-  const secret = process.env.CRON_SECRET;
+  const secret = process.env.CRON_SECRET || "";
   if (!secret) return false;
 
-  // 1️⃣ Vercel Cron (прод)
+  // 0) query ?secret=... (удобно для ручного теста в браузере)
+  try {
+    const url = new URL(req.url);
+    const querySecret = url.searchParams.get("secret");
+    if (querySecret && querySecret === secret) return true;
+  } catch {}
+
+  // 1) Vercel Cron
   if (req.headers.get("x-vercel-cron") === "1") {
     return true;
   }
 
-  // 2️⃣ Authorization: Bearer
-  const auth = req.headers.get("authorization");
+  // 2) Bearer token
+  const auth = req.headers.get("authorization") || "";
   if (auth === `Bearer ${secret}`) {
     return true;
   }
 
-  // 3️⃣ x-cron-secret (ручной тест / render / future)
-  const custom = req.headers.get("x-cron-secret");
+  // 3) Custom header
+  const custom = req.headers.get("x-cron-secret") || "";
   if (custom === secret) {
     return true;
   }
