@@ -1,26 +1,42 @@
 import { prisma } from "@/server/prisma";
 
+const FREE_SECONDS = 3 * 60;     // ✅ 3 минуты/месяц
 const PLUS_SECONDS = 120 * 60;
 const PRO_SECONDS = 300 * 60;
 
 function planToSeconds(plan: "FREE" | "PLUS" | "PRO") {
-  if (plan === "PLUS") return PLUS_SECONDS;
   if (plan === "PRO") return PRO_SECONDS;
-  return 0;
+  if (plan === "PLUS") return PLUS_SECONDS;
+  return FREE_SECONDS; // ✅ FREE теперь тоже даём минуты
+}
+
+// ✅ границы текущего месяца по New York
+function monthBoundsNY(now = new Date()) {
+  // берём YYYY-MM в NY
+  const ym = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+  }).format(now); // "2026-01"
+
+  const [y, m] = ym.split("-").map(Number);
+
+  // start = 1 число текущего месяца 00:00 NY -> Date (в UTC)
+  const start = new Date(Date.UTC(y, m - 1, 1, 5, 0, 0)); // грубо: NY = UTC-5 зимой
+  // end = 1 число следующего месяца 00:00 NY
+  const end = new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1, 5, 0, 0));
+
+  // ⚠️ это упрощение (DST), но для “сброса раз в месяц” работает ок.
+  // Если хочешь идеально — сделаем через Temporal / luxon.
+  return { start, end };
 }
 
 type SyncArgs = {
   userId: string;
-
-  // текущий план/статус после того как ты апдейтнул Subscription в БД
   plan: "FREE" | "PLUS" | "PRO";
   status?: string | null;
-
-  // из Stripe subscription: current_period_start/end
   periodStart?: Date | null;
   periodEnd?: Date | null;
-
-  // idempotency
   stripeEventId: string;
   eventType: "SUBSCRIPTION_RENEW" | "SUBSCRIPTION_CHANGE";
 };
@@ -28,18 +44,23 @@ type SyncArgs = {
 export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
   const targetSeconds = planToSeconds(args.plan);
 
-  // какие статусы считать активными
-  const isActive =
+  const isActivePaid =
     args.status === "active" || args.status === "trialing" || args.status === "past_due";
 
+  // ✅ FREE считаем “активным” (это наш free-пакет)
+  const isActive = args.plan === "FREE" ? true : isActivePaid;
+
+  // ✅ для FREE делаем период = текущий месяц в NY
+  const freeBounds = args.plan === "FREE" ? monthBoundsNY(new Date()) : null;
+  const periodStart = args.plan === "FREE" ? freeBounds!.start : (args.periodStart ?? null);
+  const periodEnd = args.plan === "FREE" ? freeBounds!.end : (args.periodEnd ?? null);
+
   return prisma.$transaction(async (tx) => {
-    // ✅ idempotency: если Stripe event уже обработан — выходим
     const existed = await tx.billingEvent.findUnique({
       where: { stripeEventId: args.stripeEventId },
     });
     if (existed) return { ok: true, skipped: true };
 
-    // гарантируем Entitlement
     const ent = await tx.entitlement.upsert({
       where: { userId: args.userId },
       create: {
@@ -54,14 +75,14 @@ export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
         dailySecondsUsed: 0,
         dailyUsedAtDate: "",
         maxFaceTimeMinutes: 0,
-        voicePeriodStart: args.periodStart ?? null,
-        voicePeriodEnd: args.periodEnd ?? null,
+        voicePeriodStart: periodStart,
+        voicePeriodEnd: periodEnd,
       },
       update: {},
     });
 
-    // если FREE или неактивно — выключаем ттс и обнуляем лимит
-    if (!isActive || targetSeconds === 0) {
+    // ✅ если НЕ активна платная подписка — но план FREE, мы НЕ обнуляем до 0
+    if (!isActive) {
       await tx.entitlement.update({
         where: { userId: args.userId },
         data: {
@@ -69,12 +90,11 @@ export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
           plus: false,
           pro: false,
           voiceSecondsTotal: 0,
-          // used можно оставить, но логичнее обнулить
           voiceSecondsUsed: 0,
           dailySecondsUsed: 0,
           dailyUsedAtDate: "",
-          voicePeriodStart: args.periodStart ?? null,
-          voicePeriodEnd: args.periodEnd ?? null,
+          voicePeriodStart: periodStart,
+          voicePeriodEnd: periodEnd,
         },
       });
 
@@ -95,33 +115,25 @@ export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
       return { ok: true, reset: true };
     }
 
-    // ✅ определяем: новый период или нет
     const prevEnd = ent.voicePeriodEnd?.getTime() ?? null;
-    const nextEnd = args.periodEnd?.getTime() ?? null;
+    const nextEnd = periodEnd?.getTime() ?? null;
 
-    const isNewPeriod =
-      nextEnd !== null && (prevEnd === null || prevEnd !== nextEnd);
+    const isNewPeriod = nextEnd !== null && (prevEnd === null || prevEnd !== nextEnd);
 
-    // ✅ обновляем entitlement
     await tx.entitlement.update({
       where: { userId: args.userId },
       data: {
         tts: true,
         plus: args.plan === "PLUS",
         pro: args.plan === "PRO",
-
-        // total всегда актуализируем
         voiceSecondsTotal: targetSeconds,
 
-        // used сбрасываем ТОЛЬКО при новом периоде
         voiceSecondsUsed: isNewPeriod ? 0 : undefined,
-
-        // daily тоже сбрасываем при новом периоде
         dailySecondsUsed: isNewPeriod ? 0 : undefined,
         dailyUsedAtDate: isNewPeriod ? "" : undefined,
 
-        voicePeriodStart: args.periodStart ?? null,
-        voicePeriodEnd: args.periodEnd ?? null,
+        voicePeriodStart: periodStart,
+        voicePeriodEnd: periodEnd,
       },
     });
 
@@ -138,8 +150,8 @@ export async function syncVoiceEntitlementsFromStripe(args: SyncArgs) {
         meta: {
           status: args.status ?? null,
           isNewPeriod,
-          periodStart: args.periodStart?.toISOString() ?? null,
-          periodEnd: args.periodEnd?.toISOString() ?? null,
+          periodStart: periodStart?.toISOString() ?? null,
+          periodEnd: periodEnd?.toISOString() ?? null,
         },
       },
     });

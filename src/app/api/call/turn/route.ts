@@ -30,18 +30,20 @@ export async function POST(req: Request) {
     const lang = pickLang(req);
     const pricingUrl = absPricingUrl(req, lang);
 
+    // ✅ form data (сначала читаем!)
+    const form = await req.formData();
+
+    const wantVoice = form.get("wantVoice") === "1"; // сейчас может быть полезно, но можно не использовать
+
     // auth
     const session = await getServerSession(authOptions);
     const authedUserId = (session?.user as any)?.id as string | undefined;
 
-    // form data
-    const form = await req.formData();
-
     // guest uid (если вдруг call вызывается без логина)
     const anonUidRaw =
-      (form.get("uid") as string) ||
-      (form.get("user_id") as string) ||
-      (form.get("user_uid") as string) ||
+      (form.get("uid") as any) ||
+      (form.get("user_id") as any) ||
+      (form.get("user_uid") as any) ||
       null;
 
     const anonUid = anonUidRaw ? String(anonUidRaw) : null;
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
     // stable userId (same idea as web-chat)
     const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
-    // ✅ voice for call only when authed (even FREE)
+    // ✅ voice for call only when authed
     if (!authedUserId) {
       const msg = limitReply("monthly_voice", lang);
       return NextResponse.json(
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ daily message limit blocks Call too (because you want one global daily limit)
+    // ✅ daily message limit blocks Call too
     const ent = await prisma.entitlement.upsert({
       where: { userId },
       create: { userId } as any,
@@ -104,7 +106,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ voice minutes gate (call)
+    // ✅ voice gate — 15 секунд “оценка” перед вызовом (можешь поставить 10-20)
     const gate = await canUsePremiumVoice(prisma as any, userId, 15);
     if (!gate.ok) {
       const msg = limitReply("monthly_voice", lang);
@@ -137,6 +139,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
+    console.log("[CALL TURN] error:", e);
     return NextResponse.json({ ok: false, error: "Proxy error" }, { status: 200 });
   }
 }
