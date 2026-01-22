@@ -1430,23 +1430,24 @@ const handleSend = async (text: string) => {
 if (finalData?.limitBlocked && finalData?.pricingUrl) {
   const raw = String(finalData.reply || "💜 Daily message limit reached");
 
-  // ✅ вырезаем любые упоминания pricing/ссылок (в любом формате)
-const cleaned = raw
-  // убираем строки/кусочки с 👉 ...
-  .replace(/(^|\n)\s*👉[^\n]*(\n|$)/g, "\n")
-  // убираем "Pricing: ..." / "pricing ..." (с любыми хвостами)
-  .replace(/pricing\s*:?[^\n]*/gi, "")
-  // убираем любые /en/pricing, /es/pricing и т.п. даже если внутри строки
-  .replace(/\/[a-z]{2}\/pricing\b[^\s\n]*/gi, "")
-  // убираем любые URL
-  .replace(/https?:\/\/\S+/gi, "")
-  // чистим лишние пустые строки
-  .replace(/\n{3,}/g, "\n\n")
-  .trim();
+  // ✅ убираем любые строки с "Pricing:" и ссылками на pricing
+  const cleaned = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => {
+      const low = l.toLowerCase();
+      if (!l) return false;
+      if (low.startsWith("👉 pricing")) return false;
+      if (low.includes("/pricing")) return false;
+      if (low.includes("pricing:")) return false;
+      return true;
+    })
+    .join("\n")
+    .trim();
 
   const limitMsg: ChatMessage = {
     role: "assistant",
-    content: cleaned,
+    content: cleaned || "💜 Daily message limit reached\nYou’ve used all your messages for today. Upgrade to keep chatting. 💜",
     ts: Date.now(),
   };
 
