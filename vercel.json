@@ -1,20 +1,6 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/reminders",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/cron/nudges?kind=morning",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/nudges?kind=day",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/nudges?kind=evening",
-      "schedule": "0 20 * * *"
-    }
+    { "path": "/api/cron/reminders", "schedule": "* * * * *" },
+    { "path": "/api/cron/nudges", "schedule": "*/5 * * * *" }
   ]
 }
