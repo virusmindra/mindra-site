@@ -143,45 +143,96 @@ export async function POST(req: Request) {
     );
 
     const text = await upstream.text();
-    const data = (() => {
-      try { return JSON.parse(text); } catch { return { reply: text || "Empty response" }; }
-    })();
+  const data = (() => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { reply: text || "Empty response" };
+  }
+})();
 
-    if (!upstream.ok) {
-      return new Response(JSON.stringify(data), {
-        status: 502,
-        headers: { "Content-Type": "application/json" },
+if (!upstream.ok) {
+  return new Response(JSON.stringify(data), {
+    status: 502,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// after data parsed and upstream.ok
+try {
+  const profile = data?.memoryUpdates?.profile;
+  const items = data?.memoryUpdates?.memories;
+
+  if (authedUserId && (profile || (Array.isArray(items) && items.length))) {
+    // profile upsert
+    if (profile) {
+      await prisma.userProfile.upsert({
+        where: { userId: authedUserId },
+        create: {
+          userId: authedUserId,
+          displayName: profile.name ?? null,
+          about: profile.about ?? null,
+          style: profile.style ?? null,
+        },
+        update: {
+          displayName: profile.name ?? undefined,
+          about: profile.about ?? undefined,
+          style: profile.style ?? undefined,
+        },
       });
     }
 
-    const audioSeconds =
-      (data?.tts?.provider === "elevenlabs" ? Number(data?.tts?.seconds) : NaN) ||
-      Number(data?.audioSeconds);
+    // memories insert (простая версия без дедупа)
+    // важно: модель MemoryItem должна существовать в schema.prisma
+    if (Array.isArray(items) && items.length) {
+      for (const m of items.slice(0, 10)) {
+        const kind = String(m.kind ?? "note");
+        const content = String(m.content ?? "").trim();
+        const salience = Number(m.salience ?? 1) || 1;
+        if (!content) continue;
 
-    if (wantVoice && Number.isFinite(audioSeconds) && audioSeconds > 0) {
-      try {
-        await debitPremiumVoice(prisma as any, {
-          userId,
-          seconds: Math.ceil(audioSeconds),
-          type: "TTS_CHAT",
-          sessionId,
-          meta: { source: "web-chat", feature, lang },
+        await (prisma as any).memoryItem.create({
+          data: { userId: authedUserId, kind, content, salience },
         });
-        data.voiceDebited = true;
-      } catch {
-        data.voiceDebited = false;
-        data.voiceDebitError = "debit_failed";
       }
     }
+  }
+} catch {
+  // не ломаем чат если память не сохранилась
+}
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+const audioSeconds =
+  (data?.tts?.provider === "elevenlabs" ? Number(data?.tts?.seconds) : NaN) ||
+  Number(data?.audioSeconds);
+
+if (wantVoice && Number.isFinite(audioSeconds) && audioSeconds > 0) {
+  try {
+    await debitPremiumVoice(prisma as any, {
+      userId,
+      seconds: Math.ceil(audioSeconds),
+      type: "TTS_CHAT",
+      sessionId,
+      meta: { source: "web-chat", feature, lang },
     });
+    data.voiceDebited = true;
   } catch {
-    return new Response(JSON.stringify({ reply: "Server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    data.voiceDebited = false;
+    data.voiceDebitError = "debit_failed";
+  }
+}
+
+return new Response(JSON.stringify(data), {
+  status: 200,
+  headers: { "Content-Type": "application/json" },
+});
+    } catch (err) {
+    console.error("[WEB-CHAT] fatal error", err);
+    return new Response(
+      JSON.stringify({ reply: "Server error" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
