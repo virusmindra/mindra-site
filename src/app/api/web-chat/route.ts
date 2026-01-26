@@ -1,10 +1,13 @@
 // src/app/api/web-chat/route.ts
 
-import { prisma } from "@/server/db/prisma"; // ✅ важно
+import { prisma } from "@/server/db/prisma";
 import { canUsePremiumVoice, debitPremiumVoice } from "@/lib/voice/debit";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/server/auth-options";
 import { limitReply } from "@/lib/limits/messages";
+import crypto from "crypto";
+
+export const runtime = "nodejs";
 
 let warmed = false;
 
@@ -18,6 +21,13 @@ async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, ms =
   }
 }
 
+function hashContent(kind: string, content: string) {
+  return crypto
+    .createHash("sha256")
+    .update(`${kind}:${content}`.toLowerCase())
+    .digest("hex");
+}
+
 export async function POST(req: Request) {
   try {
     const URL_FULL = process.env.RENDER_BOT_URL;
@@ -28,6 +38,7 @@ export async function POST(req: Request) {
       });
     }
 
+    // warm Render once
     if (!warmed) {
       warmed = true;
       const warmUrl = new URL("/", URL_FULL).toString();
@@ -53,7 +64,7 @@ export async function POST(req: Request) {
     const anonUid = anonUidRaw ? String(anonUidRaw) : null;
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(req.url).origin;
-    const pricingUrl = new URL(`/${locale}/pricing`, baseUrl).toString(); // ✅ кликабельная
+    const pricingUrl = new URL(`/${locale}/pricing`, baseUrl).toString();
 
     const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
@@ -92,7 +103,10 @@ export async function POST(req: Request) {
       (ent as any).textDailyMessagesUsed = 0;
     }
 
-    if ((ent as any).textDailyLimitEnabled && (ent as any).textDailyMessagesUsed >= (ent as any).textDailyLimitMessages) {
+    if (
+      (ent as any).textDailyLimitEnabled &&
+      (ent as any).textDailyMessagesUsed >= (ent as any).textDailyLimitMessages
+    ) {
       const msg = limitReply("daily_text", lang);
       return new Response(
         JSON.stringify({
@@ -131,19 +145,80 @@ export async function POST(req: Request) {
       }
     }
 
-    // upstream
+    // =========================
+    // MEMORY RECALL (before fetch)
+    // =========================
+    let memoryContext: any = null;
+
+    if (authedUserId) {
+      try {
+        const profile = await prisma.userProfile.findUnique({
+          where: { userId: authedUserId },
+        });
+
+        // memoryItem может ещё не существовать в Prisma schema → используем any
+        const memories =
+          (await (prisma as any).memoryItem?.findMany?.({
+            where: { userId: authedUserId },
+            orderBy: [{ salience: "desc" }, { updatedAt: "desc" }],
+            take: 12,
+            select: { kind: true, content: true, salience: true, updatedAt: true },
+          })) ?? [];
+
+        // лёгкий decay без изменения БД
+        const now = Date.now();
+        const scored = (Array.isArray(memories) ? memories : [])
+          .map((m: any) => {
+            const days =
+              m?.updatedAt ? (now - new Date(m.updatedAt).getTime()) / 86400000 : 0;
+            const sal = Number(m?.salience ?? 1) || 1;
+            const score = sal * 10 - days;
+            return { ...m, score };
+          })
+          .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0))
+          .slice(0, 8)
+          .map((m: any) => ({
+            kind: String(m.kind ?? "note"),
+            content: String(m.content ?? ""),
+            salience: Number(m.salience ?? 1) || 1,
+          }));
+
+        memoryContext = {
+          profile: profile
+            ? { name: profile.displayName ?? null, about: profile.about ?? null, style: profile.style ?? null }
+            : null,
+          memories: scored,
+        };
+      } catch {
+        memoryContext = null;
+      }
+    }
+
+    // =========================
+    // upstream → Render
+    // =========================
     const upstream = await fetchWithTimeout(
       URL_FULL,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, sessionId, input, feature, lang, source: "web", wantVoice }),
+        body: JSON.stringify({
+          userId,
+          sessionId,
+          input,
+          feature,
+          lang,
+          source: "web",
+          wantVoice,
+          memoryContext, // ✅
+        }),
       },
       15000
     );
 
-   const text = await upstream.text();
-    const data = (() => {
+    const text = await upstream.text();
+
+    const data: any = (() => {
       try {
         return JSON.parse(text);
       } catch {
@@ -158,55 +233,76 @@ export async function POST(req: Request) {
       });
     }
 
-    // ================== MEMORY SAVE (НЕ ЛОМАЕТ ЧАТ) ==================
+    // =========================
+    // MEMORY SAVE (safe, no crash)
+    // =========================
     try {
-      const profile = data?.memoryUpdates?.profile;
+      const p = data?.memoryUpdates?.profile;
       const items = data?.memoryUpdates?.memories;
 
-      if (authedUserId && (profile || (Array.isArray(items) && items.length))) {
-        if (profile) {
+      if (authedUserId && (p || (Array.isArray(items) && items.length))) {
+        // profile upsert
+        if (p) {
           await prisma.userProfile.upsert({
             where: { userId: authedUserId },
             create: {
               userId: authedUserId,
-              displayName: profile.name ?? null,
-              about: profile.about ?? null,
-              style: profile.style ?? null,
+              displayName: p.name ?? null,
+              about: p.about ?? null,
+              style: p.style ?? null,
             },
             update: {
-              displayName: profile.name ?? undefined,
-              about: profile.about ?? undefined,
-              style: profile.style ?? undefined,
+              displayName: p.name ?? undefined,
+              about: p.about ?? undefined,
+              style: p.style ?? undefined,
             },
           });
         }
 
+        // memories save with soft dedup (no schema requirements)
         if (Array.isArray(items)) {
           for (const m of items.slice(0, 10)) {
-            const content = String(m.content ?? "").trim();
+            const kind = String(m?.kind ?? "note");
+            const content = String(m?.content ?? "").trim();
+            const salience = Number(m?.salience ?? 1) || 1;
             if (!content) continue;
 
-            await prisma.memoryItem.create({
-              data: {
-                userId: authedUserId,
-                kind: String(m.kind ?? "note"),
-                content,
-                salience: Number(m.salience ?? 1) || 1,
-              },
-            });
+            const contentHash = hashContent(kind, content);
+
+            // find existing (best-effort)
+            const existing =
+              (await (prisma as any).memoryItem?.findFirst?.({
+                where: { userId: authedUserId, contentHash },
+                select: { id: true, salience: true },
+              })) ?? null;
+
+            if (existing?.id) {
+              await (prisma as any).memoryItem.update({
+                where: { id: existing.id },
+                data: {
+                  salience: Math.min(3, Math.max(Number(existing.salience ?? 1), salience)),
+                  content,
+                  kind,
+                },
+              });
+            } else {
+              await (prisma as any).memoryItem?.create?.({
+                data: { userId: authedUserId, kind, content, salience, contentHash },
+              });
+            }
           }
         }
       }
     } catch (e) {
       console.warn("[memory] save skipped", e);
     }
-    // ================================================================
 
-    // ================== VOICE DEBIT ==================
+    // =========================
+    // VOICE DEBIT
+    // =========================
     const audioSeconds =
-      (data?.tts?.provider === "elevenlabs"
-        ? Number(data?.tts?.seconds)
-        : NaN) || Number(data?.audioSeconds);
+      (data?.tts?.provider === "elevenlabs" ? Number(data?.tts?.seconds) : NaN) ||
+      Number(data?.audioSeconds);
 
     if (wantVoice && Number.isFinite(audioSeconds) && audioSeconds > 0) {
       try {
@@ -223,7 +319,6 @@ export async function POST(req: Request) {
         data.voiceDebitError = "debit_failed";
       }
     }
-    // =================================================
 
     return new Response(JSON.stringify(data), {
       status: 200,
