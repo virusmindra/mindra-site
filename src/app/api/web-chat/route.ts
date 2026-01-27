@@ -124,26 +124,78 @@ export async function POST(req: Request) {
       data: { textDailyMessagesUsed: { increment: 1 } } as any,
     });
 
-    // VOICE GATE
-    if (wantVoice) {
-      const gate = await canUsePremiumVoice(prisma as any, userId, 15);
-      if (!gate.ok) {
-        const msg = limitReply("monthly_voice", lang);
-        return new Response(
-          JSON.stringify({
-            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-            voiceBlocked: true,
-            voiceReason: gate.reason,
-            voiceLeftSeconds: "left" in gate ? (gate as any).left : undefined,
-            dailyLeftSeconds: (gate as any).dailyLeft ?? undefined,
-            pricingUrl,
-            cta: msg.cta,
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
-      }
+  type VoiceGate =
+  | { ok: true; left: number }
+  | { ok: false; reason: "tts_disabled" | "monthly_exhausted" | "insufficient_left"; left: number };
+
+// VOICE GATE
+if (wantVoice) {
+  const gate = (await canUsePremiumVoice(prisma as any, userId, 15)) as unknown as VoiceGate;
+
+  if (!gate.ok) {
+    if (gate.reason === "tts_disabled") {
+      return new Response(
+        JSON.stringify({
+          reply:
+            lang === "es"
+              ? "💜 La voz está temporalmente no disponible ahora. Inténtalo de nuevo más tarde. 💜"
+              : "💜 Voice is temporarily unavailable right now. Please try again later. 💜",
+          voiceBlocked: true,
+          voiceReason: "tts_disabled",
+          voiceLeftSeconds: gate.left,
+          pricingUrl,
+          cta: "View plans",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
     }
 
+    if (gate.reason === "monthly_exhausted") {
+      const msg = limitReply("monthly_voice", lang);
+      return new Response(
+        JSON.stringify({
+          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+          voiceBlocked: true,
+          voiceReason: "monthly_exhausted",
+          voiceLeftSeconds: gate.left,
+          pricingUrl,
+          cta: msg.cta,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (gate.reason === "insufficient_left") {
+      return new Response(
+        JSON.stringify({
+          reply:
+            lang === "es"
+              ? `💜 No tienes suficiente tiempo de voz restante (${Math.ceil(gate.left / 60)} min). 💜`
+              : `💜 Not enough voice time left (${Math.ceil(gate.left / 60)} min). 💜`,
+          voiceBlocked: true,
+          voiceReason: "insufficient_left",
+          voiceLeftSeconds: gate.left,
+          pricingUrl,
+          cta: "View plans",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const msg = limitReply("monthly_voice", lang);
+    return new Response(
+      JSON.stringify({
+        reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+        voiceBlocked: true,
+        voiceReason: gate.reason,
+        voiceLeftSeconds: gate.left,
+        pricingUrl,
+        cta: msg.cta,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
     // =========================
     // MEMORY RECALL (before fetch)
     // =========================
