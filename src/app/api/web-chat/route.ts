@@ -1,5 +1,4 @@
 // src/app/api/web-chat/route.ts
-
 import { prisma } from "@/server/db/prisma";
 import { canUsePremiumVoice, debitPremiumVoice } from "@/lib/voice/debit";
 import { getServerSession } from "next-auth/next";
@@ -156,7 +155,6 @@ export async function POST(req: Request) {
           where: { userId: authedUserId },
         });
 
-        // memoryItem может ещё не существовать в Prisma schema → используем any
         const memories =
           (await (prisma as any).memoryItem?.findMany?.({
             where: { userId: authedUserId },
@@ -165,12 +163,10 @@ export async function POST(req: Request) {
             select: { kind: true, content: true, salience: true, updatedAt: true },
           })) ?? [];
 
-        // лёгкий decay без изменения БД
         const now = Date.now();
         const scored = (Array.isArray(memories) ? memories : [])
           .map((m: any) => {
-            const days =
-              m?.updatedAt ? (now - new Date(m.updatedAt).getTime()) / 86400000 : 0;
+            const days = m?.updatedAt ? (now - new Date(m.updatedAt).getTime()) / 86400000 : 0;
             const sal = Number(m?.salience ?? 1) || 1;
             const score = sal * 10 - days;
             return { ...m, score };
@@ -185,13 +181,36 @@ export async function POST(req: Request) {
 
         memoryContext = {
           profile: profile
-            ? { name: profile.displayName ?? null, about: profile.about ?? null, style: profile.style ?? null }
+            ? {
+                name: profile.displayName ?? null,
+                about: profile.about ?? null,
+                style: profile.style ?? null,
+              }
             : null,
           memories: scored,
         };
       } catch {
         memoryContext = null;
       }
+    }
+
+    // =========================
+    // SAVE USER MESSAGE (best-effort)
+    // =========================
+    try {
+      await prisma.chatSession.upsert({
+        where: { id: sessionId },
+        create: { id: sessionId, userId, title: "Chat" } as any,
+        update: { userId } as any,
+      });
+
+      if (input.trim()) {
+        await prisma.message.create({
+          data: { sessionId, role: "user", content: input },
+        });
+      }
+    } catch (e) {
+      console.warn("[web-chat] save user msg skipped", e);
     }
 
     // =========================
@@ -210,7 +229,7 @@ export async function POST(req: Request) {
           lang,
           source: "web",
           wantVoice,
-          memoryContext, // ✅
+          memoryContext,
         }),
       },
       15000
@@ -234,6 +253,25 @@ export async function POST(req: Request) {
     }
 
     // =========================
+    // SAVE ASSISTANT MESSAGE (best-effort)
+    // =========================
+    try {
+      const replyText = String(data?.reply ?? "");
+      if (replyText.trim()) {
+        await prisma.message.create({
+          data: { sessionId, role: "assistant", content: replyText },
+        });
+      }
+
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: { updatedAt: new Date() },
+      });
+    } catch (e) {
+      console.warn("[web-chat] save assistant msg skipped", e);
+    }
+
+    // =========================
     // MEMORY SAVE (safe, no crash)
     // =========================
     try {
@@ -241,7 +279,6 @@ export async function POST(req: Request) {
       const items = data?.memoryUpdates?.memories;
 
       if (authedUserId && (p || (Array.isArray(items) && items.length))) {
-        // profile upsert
         if (p) {
           await prisma.userProfile.upsert({
             where: { userId: authedUserId },
@@ -259,7 +296,6 @@ export async function POST(req: Request) {
           });
         }
 
-        // memories save with soft dedup (no schema requirements)
         if (Array.isArray(items)) {
           for (const m of items.slice(0, 10)) {
             const kind = String(m?.kind ?? "note");
@@ -269,7 +305,6 @@ export async function POST(req: Request) {
 
             const contentHash = hashContent(kind, content);
 
-            // find existing (best-effort)
             const existing =
               (await (prisma as any).memoryItem?.findFirst?.({
                 where: { userId: authedUserId, contentHash },

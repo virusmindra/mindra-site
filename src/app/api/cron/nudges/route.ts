@@ -442,45 +442,79 @@ export async function GET(req: Request) {
       continue;
     }
 
-    // ✅ 1) ЖЁСТКИЙ КАП: максимум 1 nudge в сутки (по local day)
-    const todayKey = dayKeyInTZ(now, tz);
+   // ✅ КАП: не больше 2 nudge в сутки (по local day)
+const todayKey = dayKeyInTZ(now, tz);
 
-    const alreadySentToday = [lastMorning, lastDay, lastEvening]
-      .filter(Boolean)
-      .some((d: any) => dayKeyInTZ(new Date(d), tz) === todayKey);
+const sentTodayCount = [lastMorning, lastDay, lastEvening]
+  .filter(Boolean)
+  .filter((d: any) => dayKeyInTZ(new Date(d), tz) === todayKey)
+  .length;
 
-    if (!force && alreadySentToday) {
-      skipped++;
-      continue;
-    }
+if (!force && sentTodayCount >= 2) {
+  skipped++;
+  continue;
+}
 
-    // ✅ 2) Антиспам "не возвращался после nudge" — но НЕ навсегда
-    // Если юзер не был активен после последнего nudge — ждём 24 часа, потом можно снова (и всё равно 1/день)
-    const nudges = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
-    const lastNudge = nudges.length
-      ? nudges.sort((a, b) => b.getTime() - a.getTime())[0]
-      : null;
+// ✅ НЕ ЧАЩЕ 6 ЧАСОВ
+const nudges = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
+const lastNudge = nudges.length
+  ? nudges.sort((a, b) => b.getTime() - a.getTime())[0]
+  : null;
 
-    if (!force && lastNudge) {
-      const activeMs = lastActive ? lastActive.getTime() : 0;
-      const nudgeMs = lastNudge.getTime();
+if (!force && lastNudge) {
+  const hoursSince = (now.getTime() - lastNudge.getTime()) / 3600000;
+  if (hoursSince < 6) {
+    skipped++;
+    continue;
+  }
+}
 
-      const userDidNotReturn = !lastActive || activeMs <= nudgeMs;
-      if (userDidNotReturn) {
-        const hoursSince = (now.getTime() - nudgeMs) / 3600000;
-        // ждем сутки — потом можно еще раз попробовать
-        if (hoursSince < 24) {
-          skipped++;
-          continue;
-        }
-      }
-    }
+const activeMs = lastActive ? lastActive.getTime() : 0;
+
+const didReturnAfter = (d?: Date | null) => {
+  if (!d) return true; // если нуджа не было — "вернулся" условно
+  return activeMs > d.getTime();
+};
+
+const hoursSince = (d: Date) => (now.getTime() - d.getTime()) / 3600000;
+
+// Если не вернулся после утреннего — можем двигаться дальше, но только по таймеру
+const waitingAfterMorning = lastMorning && !didReturnAfter(lastMorning);
+const waitingAfterDay = lastDay && !didReturnAfter(lastDay);
+const waitingAfterEvening = lastEvening && !didReturnAfter(lastEvening);
+
+// ГЕЙТЫ ПО ТАЙМЕРАМ:
+// после утреннего -> дневной не раньше чем через 36 часов
+if (!force && waitingAfterMorning && !lastDay) {
+  if (hoursSince(lastMorning!) < 36) {
+    skipped++;
+    continue;
+  }
+}
+
+// после дневного -> вечерний не раньше чем через 48 часов
+if (!force && waitingAfterDay && !lastEvening) {
+  if (hoursSince(lastDay!) < 48) {
+    skipped++;
+    continue;
+  }
+}
+
+// после вечернего -> можно вообще стопнуть (или сделать отдельную логику)
+if (!force && waitingAfterEvening) {
+  // стоп: не спамим дальше
+  skipped++;
+  continue;
+}
 
     // ---- окна времени ----
     const { hh, mm } = getPartsInTz(now, tz);
 
     const isMorningWindow = hh === 9 && mm <= 15;
     const isEveningWindow = hh === 20 && mm <= 15;
+
+    const isDayWindow = hh >= 15 && hh <= 17;
+    if (!isDayWindow) { skipped++; continue; }
 
     const diffMin = lastActive
       ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000)
@@ -534,18 +568,22 @@ export async function GET(req: Request) {
         : pickRandom(EVENING_EN);
 
     // ---- пишем нудж в последний чат ----
-    const lastSession = await prisma.chatSession.findFirst({
+    const preferredSessionId = (us as any).lastChatSessionId as string | null;
+
+const lastSession = preferredSessionId
+  ? await prisma.chatSession.findUnique({ where: { id: preferredSessionId } })
+  : await prisma.chatSession.findFirst({
       where: { userId: us.userId },
       orderBy: { updatedAt: "desc" },
     });
 
-    const sessionId =
-      lastSession?.id ??
-      (
-        await prisma.chatSession.create({
-          data: { userId: us.userId, title: "Chat" },
-        })
-      ).id;
+const sessionId =
+  lastSession?.id ??
+  (
+    await prisma.chatSession.create({
+      data: { userId: us.userId, title: "Chat" },
+    })
+  ).id;
 
     await prisma.message.create({
       data: {

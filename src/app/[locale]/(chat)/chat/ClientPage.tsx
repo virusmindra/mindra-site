@@ -1290,7 +1290,12 @@ const handleSend = async (text: string) => {
 
   setSending(true);
 
-  fetch("/api/activity/ping", { method: "POST" }).catch(() => {});
+  fetch("/api/activity/ping", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ sessionId: current?.id }),
+}).catch(() => {});
+
 
 
   // ---------- helper: localized reminder preview text ----------
