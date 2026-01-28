@@ -28,6 +28,10 @@ function hashContent(kind: string, content: string) {
 }
 
 export async function POST(req: Request) {
+  type VoiceGate =
+    | { ok: true; left: number }
+    | { ok: false; reason: "tts_disabled" | "monthly_exhausted" | "insufficient_left"; left: number };
+
   try {
     const URL_FULL = process.env.RENDER_BOT_URL;
     if (!URL_FULL) {
@@ -124,78 +128,76 @@ export async function POST(req: Request) {
       data: { textDailyMessagesUsed: { increment: 1 } } as any,
     });
 
-  type VoiceGate =
-  | { ok: true; left: number }
-  | { ok: false; reason: "tts_disabled" | "monthly_exhausted" | "insufficient_left"; left: number };
+    // VOICE GATE
+    if (wantVoice) {
+      const gate = (await canUsePremiumVoice(prisma as any, userId, 15)) as unknown as VoiceGate;
 
-// VOICE GATE
-if (wantVoice) {
-  const gate = (await canUsePremiumVoice(prisma as any, userId, 15)) as unknown as VoiceGate;
+      if (!gate.ok) {
+        if (gate.reason === "tts_disabled") {
+          return new Response(
+            JSON.stringify({
+              reply:
+                lang === "es"
+                  ? "💜 La voz está temporalmente no disponible ahora. Inténtalo de nuevo más tarde. 💜"
+                  : "💜 Voice is temporarily unavailable right now. Please try again later. 💜",
+              voiceBlocked: true,
+              voiceReason: "tts_disabled",
+              voiceLeftSeconds: gate.left,
+              pricingUrl,
+              cta: "View plans",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
 
-  if (!gate.ok) {
-    if (gate.reason === "tts_disabled") {
-      return new Response(
-        JSON.stringify({
-          reply:
-            lang === "es"
-              ? "💜 La voz está temporalmente no disponible ahora. Inténtalo de nuevo más tarde. 💜"
-              : "💜 Voice is temporarily unavailable right now. Please try again later. 💜",
-          voiceBlocked: true,
-          voiceReason: "tts_disabled",
-          voiceLeftSeconds: gate.left,
-          pricingUrl,
-          cta: "View plans",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+        if (gate.reason === "monthly_exhausted") {
+          const msg = limitReply("monthly_voice", lang);
+          return new Response(
+            JSON.stringify({
+              reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+              voiceBlocked: true,
+              voiceReason: "monthly_exhausted",
+              voiceLeftSeconds: gate.left,
+              pricingUrl,
+              cta: msg.cta,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        if (gate.reason === "insufficient_left") {
+          return new Response(
+            JSON.stringify({
+              reply:
+                lang === "es"
+                  ? `💜 No tienes suficiente tiempo de voz restante (${Math.ceil(gate.left / 60)} min). 💜`
+                  : `💜 Not enough voice time left (${Math.ceil(gate.left / 60)} min). 💜`,
+              voiceBlocked: true,
+              voiceReason: "insufficient_left",
+              voiceLeftSeconds: gate.left,
+              pricingUrl,
+              cta: "View plans",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // fallback
+        const msg = limitReply("monthly_voice", lang);
+        return new Response(
+          JSON.stringify({
+            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+            voiceBlocked: true,
+            voiceReason: gate.reason,
+            voiceLeftSeconds: gate.left,
+            pricingUrl,
+            cta: msg.cta,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    if (gate.reason === "monthly_exhausted") {
-      const msg = limitReply("monthly_voice", lang);
-      return new Response(
-        JSON.stringify({
-          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-          voiceBlocked: true,
-          voiceReason: "monthly_exhausted",
-          voiceLeftSeconds: gate.left,
-          pricingUrl,
-          cta: msg.cta,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    if (gate.reason === "insufficient_left") {
-      return new Response(
-        JSON.stringify({
-          reply:
-            lang === "es"
-              ? `💜 No tienes suficiente tiempo de voz restante (${Math.ceil(gate.left / 60)} min). 💜`
-              : `💜 Not enough voice time left (${Math.ceil(gate.left / 60)} min). 💜`,
-          voiceBlocked: true,
-          voiceReason: "insufficient_left",
-          voiceLeftSeconds: gate.left,
-          pricingUrl,
-          cta: "View plans",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const msg = limitReply("monthly_voice", lang);
-    return new Response(
-      JSON.stringify({
-        reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-        voiceBlocked: true,
-        voiceReason: gate.reason,
-        voiceLeftSeconds: gate.left,
-        pricingUrl,
-        cta: msg.cta,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
     // =========================
     // MEMORY RECALL (before fetch)
     // =========================
@@ -215,10 +217,10 @@ if (wantVoice) {
             select: { kind: true, content: true, salience: true, updatedAt: true },
           })) ?? [];
 
-        const now = Date.now();
+        const nowTs = Date.now();
         const scored = (Array.isArray(memories) ? memories : [])
           .map((m: any) => {
-            const days = m?.updatedAt ? (now - new Date(m.updatedAt).getTime()) / 86400000 : 0;
+            const days = m?.updatedAt ? (nowTs - new Date(m.updatedAt).getTime()) / 86400000 : 0;
             const sal = Number(m?.salience ?? 1) || 1;
             const score = sal * 10 - days;
             return { ...m, score };
@@ -258,7 +260,7 @@ if (wantVoice) {
 
       if (input.trim()) {
         await prisma.message.create({
-          data: { sessionId, role: "user", content: input },
+          data: { sessionId, role: "user", content: input } as any,
         });
       }
     } catch (e) {
@@ -302,25 +304,6 @@ if (wantVoice) {
         status: 502,
         headers: { "Content-Type": "application/json" },
       });
-    }
-
-    // =========================
-    // SAVE ASSISTANT MESSAGE (best-effort)
-    // =========================
-    try {
-      const replyText = String(data?.reply ?? "");
-      if (replyText.trim()) {
-        await prisma.message.create({
-          data: { sessionId, role: "assistant", content: replyText },
-        });
-      }
-
-      await prisma.chatSession.update({
-        where: { id: sessionId },
-        data: { updatedAt: new Date() },
-      });
-    } catch (e) {
-      console.warn("[web-chat] save assistant msg skipped", e);
     }
 
     // =========================
@@ -405,6 +388,25 @@ if (wantVoice) {
         data.voiceDebited = false;
         data.voiceDebitError = "debit_failed";
       }
+    }
+
+    // =========================
+    // SAVE ASSISTANT MESSAGE (best-effort) ✅ ПОСЛЕ memory+debit
+    // =========================
+    try {
+      const replyText = String(data?.reply ?? "");
+      if (replyText.trim()) {
+        await prisma.message.create({
+          data: { sessionId, role: "assistant", content: replyText } as any,
+        });
+      }
+
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: { updatedAt: new Date() } as any,
+      });
+    } catch (e) {
+      console.warn("[web-chat] save assistant msg skipped", e);
     }
 
     return new Response(JSON.stringify(data), {

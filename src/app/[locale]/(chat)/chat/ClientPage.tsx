@@ -1232,9 +1232,38 @@ const markGoalDone = async (goalId: string) => {
       setLastGoalSuggestion(null);
     }
   };
-
-
 const audioRef = useRef<HTMLAudioElement | null>(null);
+const [playingTtsTs, setPlayingTtsTs] = useState<number | null>(null);
+
+const playTts = (ts: number, url: string) => {
+  try {
+    // stop previous
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    const a = new Audio(url);
+    audioRef.current = a;
+    setPlayingTtsTs(ts);
+
+    a.play().catch(() => setPlayingTtsTs(null));
+    a.onended = () => setPlayingTtsTs(null);
+  } catch {
+    setPlayingTtsTs(null);
+  }
+};
+
+const toggleTts = (ts: number, url: string) => {
+  // если играет это же сообщение — пауза
+  if (playingTtsTs === ts && audioRef.current) {
+    audioRef.current.pause();
+    setPlayingTtsTs(null);
+    return;
+  }
+  // иначе — проиграть заново
+  playTts(ts, url);
+};
 
 useEffect(() => {
   if (typeof window === "undefined") return;
@@ -1471,46 +1500,55 @@ if (finalData?.limitBlocked && finalData?.pricingUrl) {
   return;
 }
 
-    // 2) audio autoplay (если пришёл tts)
-    const ttsUrl = finalData?.tts?.audioUrl;
-    if (ttsUrl && typeof ttsUrl === "string") {
-      try {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        const a = new Audio(ttsUrl);
-        audioRef.current = a;
-        a.play().catch(() => {});
-      } catch {}
-    }
+   // 2) tts url
+const ttsUrl = finalData?.tts?.audioUrl;
 
-    // 3) reply
-    if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
-      replyText = finalData.reply.trim();
-    }
+// 3) reply
+if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
+  replyText = finalData.reply.trim();
+}
 
-    // 4) suggestions
-    const intent = isIntentText(trimmed);
+// 4) suggestions
+const intent = isIntentText(trimmed);
 
-    if (!isGoalDiary && activeFeature === "goals" && intent) {
-      const s = finalData?.goal_suggestion?.text;
-      goalSuggestion = s ? { text: String(s) } : { text: trimmed };
-    } else {
-      goalSuggestion = null;
-    }
+if (!isGoalDiary && activeFeature === "goals" && intent) {
+  const s = finalData?.goal_suggestion?.text;
+  goalSuggestion = s ? { text: String(s) } : { text: trimmed };
+} else {
+  goalSuggestion = null;
+}
 
-    if (!isHabitDiary && activeFeature === "habits" && intent) {
-      const s = finalData?.habit_suggestion?.text;
-      habitSuggestion = s ? { text: String(s) } : { text: trimmed };
-    } else {
-      habitSuggestion = null;
-    }
+if (!isHabitDiary && activeFeature === "habits" && intent) {
+  const s = finalData?.habit_suggestion?.text;
+  habitSuggestion = s ? { text: String(s) } : { text: trimmed };
+} else {
+  habitSuggestion = null;
+}
 
-    setLastGoalSuggestion(goalSuggestion);
-    setLastHabitSuggestion(habitSuggestion);
+setLastGoalSuggestion(goalSuggestion);
+setLastHabitSuggestion(habitSuggestion);
 
-    const botMsg: ChatMessage = { role: "assistant", content: replyText, ts: Date.now() };
+// ✅ bot message (with ttsAudioUrl)
+const botTs = Date.now();
+
+const botMsg: ChatMessage = {
+  role: "assistant",
+  content: replyText,
+  ts: botTs,
+  ttsAudioUrl: typeof ttsUrl === "string" ? ttsUrl : null,
+};
+
+updateCurrentSession((prev) => ({
+  ...prev,
+  feature: prev.feature ?? activeFeature,
+  messages: [...prev.messages, botMsg],
+  updatedAt: Date.now(),
+}));
+
+// ✅ autoplay через общий плеер (чтобы кнопка ⏸ работала с тем же звуком)
+if (typeof ttsUrl === "string" && ttsUrl) {
+  playTts(botTs, ttsUrl);
+}
 
     updateCurrentSession((prev) => ({
       ...prev,
@@ -1724,6 +1762,8 @@ return (
     locale={locale}
     goalDone={Boolean((current as any)?.goalDone)}
     habitDone={Boolean((current as any)?.habitDone)}
+    playingTtsTs={playingTtsTs}
+  onToggleTts={toggleTts}
   />
 
   {voiceNotice ? (

@@ -7,6 +7,7 @@ export type ChatMessage = {
   ts: number;
   imageUrl?: string;
   images?: string[];
+  ttsAudioUrl?: string | null;
 };
 
 export type ChatFeature =

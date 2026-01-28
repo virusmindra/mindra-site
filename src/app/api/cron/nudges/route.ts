@@ -442,7 +442,7 @@ export async function GET(req: Request) {
       continue;
     }
 
-   // ✅ КАП: не больше 2 nudge в сутки (по local day)
+// ✅ КАП: не больше 2 nudge в сутки (по local day)
 const todayKey = dayKeyInTZ(now, tz);
 
 const sentTodayCount = [lastMorning, lastDay, lastEvening]
@@ -456,34 +456,31 @@ if (!force && sentTodayCount >= 2) {
 }
 
 // ✅ НЕ ЧАЩЕ 6 ЧАСОВ
-const nudges = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
-const lastNudge = nudges.length
-  ? nudges.sort((a, b) => b.getTime() - a.getTime())[0]
+const nudgesAll = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
+const lastNudge = nudgesAll.length
+  ? nudgesAll.sort((a, b) => b.getTime() - a.getTime())[0]
   : null;
 
 if (!force && lastNudge) {
-  const hoursSince = (now.getTime() - lastNudge.getTime()) / 3600000;
-  if (hoursSince < 6) {
+  const hrs = (now.getTime() - lastNudge.getTime()) / 3600000;
+  if (hrs < 6) {
     skipped++;
     continue;
   }
 }
 
-const activeMs = lastActive ? lastActive.getTime() : 0;
-
+const activeMs = lastActive ? new Date(lastActive).getTime() : 0;
 const didReturnAfter = (d?: Date | null) => {
-  if (!d) return true; // если нуджа не было — "вернулся" условно
+  if (!d) return true; // если нуджа не было — ок
   return activeMs > d.getTime();
 };
-
 const hoursSince = (d: Date) => (now.getTime() - d.getTime()) / 3600000;
 
-// Если не вернулся после утреннего — можем двигаться дальше, но только по таймеру
+// ---- лестница "не вернулся" ----
 const waitingAfterMorning = lastMorning && !didReturnAfter(lastMorning);
 const waitingAfterDay = lastDay && !didReturnAfter(lastDay);
 const waitingAfterEvening = lastEvening && !didReturnAfter(lastEvening);
 
-// ГЕЙТЫ ПО ТАЙМЕРАМ:
 // после утреннего -> дневной не раньше чем через 36 часов
 if (!force && waitingAfterMorning && !lastDay) {
   if (hoursSince(lastMorning!) < 36) {
@@ -492,67 +489,71 @@ if (!force && waitingAfterMorning && !lastDay) {
   }
 }
 
-// после дневного -> вечерний не раньше чем через 48 часов
+// после дневного -> вечерний не раньше чем через 36 часов
 if (!force && waitingAfterDay && !lastEvening) {
-  if (hoursSince(lastDay!) < 48) {
+  if (hoursSince(lastDay!) < 36) {
     skipped++;
     continue;
   }
 }
 
-// после вечернего -> можно вообще стопнуть (или сделать отдельную логику)
+// после вечернего -> стоп
 if (!force && waitingAfterEvening) {
-  // стоп: не спамим дальше
   skipped++;
   continue;
 }
 
-    // ---- окна времени ----
-    const { hh, mm } = getPartsInTz(now, tz);
+// ---- окна времени ----
+const { hh, mm } = getPartsInTz(now, tz);
 
-    const isMorningWindow = hh === 9 && mm <= 15;
-    const isEveningWindow = hh === 20 && mm <= 15;
+const isMorningWindow = hh === 9 && mm <= 15;
+const isEveningWindow = hh === 20 && mm <= 15;
+const isDayWindow = hh >= 15 && hh <= 17;
 
-    const isDayWindow = hh >= 15 && hh <= 17;
-    if (!isDayWindow) { skipped++; continue; }
+// ---- расчёты для day ----
+const diffMin = lastActive
+  ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000)
+  : null;
 
-    const diffMin = lastActive
-      ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000)
-      : null;
+// day: через 360 минут после lastActive, только если morning уже был сегодня и day ещё не был сегодня
+const hadMorningToday = lastMorning ? sameLocalDay(lastMorning, now, tz) : false;
+const hadDayToday = lastDay ? sameLocalDay(lastDay, now, tz) : false;
 
-    // day: через 360 минут после lastActive, только если morning уже был сегодня и day ещё не был сегодня
-    const hadMorningToday = lastMorning ? sameLocalDay(lastMorning, now, tz) : false;
-    const hadDayToday = lastDay ? sameLocalDay(lastDay, now, tz) : false;
-    const canDay = hadMorningToday && !hadDayToday && diffMin !== null && diffMin >= 360;
+const canDay =
+  isDayWindow &&
+  hadMorningToday &&
+  !hadDayToday &&
+  diffMin !== null &&
+  diffMin >= 360;
 
-    // ---- выбираем kind ----
-    let kind: Kind | null = null;
+// ---- выбираем kind (ОДИН РАЗ, без дублей) ----
+let kind: Kind | null = null;
 
-    if (force && allowedKinds.has(requestedKind)) {
-      kind = requestedKind as Kind;
-    } else {
-      if (!tzLooksBroken && isMorningWindow) kind = "morning";
-      else if (canDay) kind = "day";
-      else if (!tzLooksBroken && isEveningWindow) kind = "evening";
-    }
+if (force && allowedKinds.has(requestedKind)) {
+  kind = requestedKind as Kind;
+} else {
+  if (!tzLooksBroken && isMorningWindow) kind = "morning";
+  else if (canDay) kind = "day";
+  else if (!tzLooksBroken && isEveningWindow) kind = "evening";
+}
 
-    if (!kind) {
-      skipped++;
-      continue;
-    }
+if (!kind) {
+  skipped++;
+  continue;
+}
 
-    // если tz не задан — пропускаем morning (как у тебя было)
-    if (!us.tz && kind === "morning") {
-      skipped++;
-      continue;
-    }
+// если tz не задан — пропускаем morning (как у тебя было)
+if (!us.tz && kind === "morning") {
+  skipped++;
+  continue;
+}
 
-    // доп. защита: не отправлять тот же kind второй раз в этот же local day
-    const lastAt = kind === "morning" ? lastMorning : kind === "day" ? lastDay : lastEvening;
-    if (!force && lastAt && sameLocalDay(lastAt, now, tz)) {
-      skipped++;
-      continue;
-    }
+// доп. защита: не отправлять тот же kind второй раз в этот же local day
+const lastAt = kind === "morning" ? lastMorning : kind === "day" ? lastDay : lastEvening;
+if (!force && lastAt && sameLocalDay(lastAt, now, tz)) {
+  skipped++;
+  continue;
+}
 
     const body =
       lang === "es"
