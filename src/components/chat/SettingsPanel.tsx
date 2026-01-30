@@ -3,7 +3,6 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import QuietHoursCard from '@/app/[locale]/(chat)/chat/_components/QuietHoursCard';
-import PointsPanel from '@/components/chat/PointsPanel';
 import { useEffect, useState } from "react";
 import AddToHomeHint from "@/components/pwa/AddToHomeHint";
 import Link from "next/link";
