@@ -471,11 +471,6 @@ return (
     loading: T.loading,
   }}
 />
-      {/* POINTS INSIDE SETTINGS */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="text-sm font-medium text-[var(--text)] mb-2">{T.points}</div>
-        <PointsPanel uid={uid} locale={locale} />
-      </div>
 
       {/* FEEDBACK */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
