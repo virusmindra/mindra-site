@@ -1320,12 +1320,10 @@ const handleSend = async (text: string) => {
   setSending(true);
 
   fetch("/api/activity/ping", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ sessionId: current?.id }),
-}).catch(() => {});
-
-
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId: current?.id }),
+  }).catch(() => {});
 
   // ---------- helper: localized reminder preview text ----------
   const buildReminderPreview = (loc: string, reminderText: string) => {
@@ -1428,7 +1426,9 @@ const handleSend = async (text: string) => {
     // 0) voiceBlocked -> выключаем тумблер + показываем notice
     if (data?.voiceBlocked) {
       setPremiumVoiceEnabled(false);
-      try { localStorage.setItem(VOICE_KEY, "0"); } catch {}
+      try {
+        localStorage.setItem(VOICE_KEY, "0");
+      } catch {}
 
       if (data?.voiceReason === "login_required") {
         setVoiceNotice("Please sign in to use premium voice.");
@@ -1461,101 +1461,96 @@ const handleSend = async (text: string) => {
       if (data2) finalData = data2;
     }
 
-if (finalData?.limitBlocked && finalData?.pricingUrl) {
-  const raw = String(finalData.reply || "💜 Daily message limit reached");
+    // limit -> push to pricing
+    if (finalData?.limitBlocked && finalData?.pricingUrl) {
+      const raw = String(finalData.reply || "💜 Daily message limit reached");
 
-  // ✅ убираем любые строки с "Pricing:" и ссылками на pricing
-  const cleaned = raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => {
-      const low = l.toLowerCase();
-      if (!l) return false;
-      if (low.startsWith("👉 pricing")) return false;
-      if (low.includes("/pricing")) return false;
-      if (low.includes("pricing:")) return false;
-      return true;
-    })
-    .join("\n")
-    .trim();
+      const cleaned = raw
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => {
+          const low = l.toLowerCase();
+          if (!l) return false;
+          if (low.startsWith("👉 pricing")) return false;
+          if (low.includes("/pricing")) return false;
+          if (low.includes("pricing:")) return false;
+          return true;
+        })
+        .join("\n")
+        .trim();
 
-  const limitMsg: ChatMessage = {
-    role: "assistant",
-    content: cleaned || "💜 Daily message limit reached\nYou’ve used all your messages for today. Upgrade to keep chatting. 💜",
-    ts: Date.now(),
-  };
+      const limitMsg: ChatMessage = {
+        role: "assistant",
+        content:
+          cleaned ||
+          "💜 Daily message limit reached\nYou’ve used all your messages for today. Upgrade to keep chatting. 💜",
+        ts: Date.now(),
+      };
 
-  updateCurrentSession((prev) => ({
-    ...prev,
-    feature: prev.feature ?? activeFeature,
-    messages: [...prev.messages, limitMsg],
-    updatedAt: Date.now(),
-  }));
+      updateCurrentSession((prev) => ({
+        ...prev,
+        feature: prev.feature ?? activeFeature,
+        messages: [...prev.messages, limitMsg],
+        updatedAt: Date.now(),
+      }));
 
-  setTimeout(() => {
-    window.location.href = String(finalData.pricingUrl);
-  }, 600);
+      setTimeout(() => {
+        window.location.href = String(finalData.pricingUrl);
+      }, 600);
 
-  setSending(false);
-  return;
-}
+      setSending(false);
+      return;
+    }
 
-   // 2) tts url
-const ttsUrl = finalData?.tts?.audioUrl;
+    // 2) tts url
+    const ttsUrl = finalData?.tts?.audioUrl;
 
-// 3) reply
-if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
-  replyText = finalData.reply.trim();
-}
+    // 3) reply
+    if (finalData?.reply && typeof finalData.reply === "string" && finalData.reply.trim()) {
+      replyText = finalData.reply.trim();
+    }
 
-// 4) suggestions
-const intent = isIntentText(trimmed);
+    // 4) suggestions
+    const intent = isIntentText(trimmed);
 
-if (!isGoalDiary && activeFeature === "goals" && intent) {
-  const s = finalData?.goal_suggestion?.text;
-  goalSuggestion = s ? { text: String(s) } : { text: trimmed };
-} else {
-  goalSuggestion = null;
-}
+    if (!isGoalDiary && activeFeature === "goals" && intent) {
+      const s = finalData?.goal_suggestion?.text;
+      goalSuggestion = s ? { text: String(s) } : { text: trimmed };
+    } else {
+      goalSuggestion = null;
+    }
 
-if (!isHabitDiary && activeFeature === "habits" && intent) {
-  const s = finalData?.habit_suggestion?.text;
-  habitSuggestion = s ? { text: String(s) } : { text: trimmed };
-} else {
-  habitSuggestion = null;
-}
+    if (!isHabitDiary && activeFeature === "habits" && intent) {
+      const s = finalData?.habit_suggestion?.text;
+      habitSuggestion = s ? { text: String(s) } : { text: trimmed };
+    } else {
+      habitSuggestion = null;
+    }
 
-setLastGoalSuggestion(goalSuggestion);
-setLastHabitSuggestion(habitSuggestion);
+    setLastGoalSuggestion(goalSuggestion);
+    setLastHabitSuggestion(habitSuggestion);
 
-// ✅ bot message (with ttsAudioUrl)
-const botTs = Date.now();
+    // ✅ bot message (with ttsAudioUrl)
+    const botTs = Date.now();
+    const botMsg: ChatMessage = {
+      role: "assistant",
+      content: replyText,
+      ts: botTs,
+      ttsAudioUrl: typeof ttsUrl === "string" ? ttsUrl : null,
+    };
 
-const botMsg: ChatMessage = {
-  role: "assistant",
-  content: replyText,
-  ts: botTs,
-  ttsAudioUrl: typeof ttsUrl === "string" ? ttsUrl : null,
-};
-
-updateCurrentSession((prev) => ({
-  ...prev,
-  feature: prev.feature ?? activeFeature,
-  messages: [...prev.messages, botMsg],
-  updatedAt: Date.now(),
-}));
-
-// ✅ autoplay через общий плеер (чтобы кнопка ⏸ работала с тем же звуком)
-if (typeof ttsUrl === "string" && ttsUrl) {
-  playTts(botTs, ttsUrl);
-}
-
+    // ✅ ВАЖНО: добавляем ОДИН раз (раньше тут было 2 раза)
     updateCurrentSession((prev) => ({
       ...prev,
       feature: prev.feature ?? activeFeature,
       messages: [...prev.messages, botMsg],
       updatedAt: Date.now(),
     }));
+
+    // ✅ autoplay через общий плеер
+    if (typeof ttsUrl === "string" && ttsUrl) {
+      playTts(botTs, ttsUrl);
+    }
   } catch (e) {
     console.log("handleSend error:", e);
 
@@ -1575,6 +1570,7 @@ if (typeof ttsUrl === "string" && ttsUrl) {
     setSending(false);
   }
 };
+
 
 const handleSendImage = async (file: File) => {
   if (!current) return;
