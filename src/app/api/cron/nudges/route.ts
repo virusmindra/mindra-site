@@ -455,52 +455,62 @@ if (!force && sentTodayCount >= 2) {
   continue;
 }
 
-// ✅ НЕ ЧАЩЕ 6 ЧАСОВ
-const nudgesAll = [lastMorning, lastDay, lastEvening].filter(Boolean) as Date[];
-const lastNudge = nudgesAll.length
-  ? nudgesAll.sort((a, b) => b.getTime() - a.getTime())[0]
-  : null;
+// =========================
+// 🧘 HARD COOLDOWN (BUG #2)
+// Правило #1/#2/#3
+// =========================
+const nudgesAll = [
+  lastMorning ? new Date(lastMorning) : null,
+  lastDay ? new Date(lastDay) : null,
+  lastEvening ? new Date(lastEvening) : null,
+].filter(Boolean) as Date[];
 
+nudgesAll.sort((a, b) => b.getTime() - a.getTime());
+
+const lastNudge = nudgesAll[0] ?? null;
+const prevNudge = nudgesAll[1] ?? null;
+
+const activeMs = lastActive ? new Date(lastActive).getTime() : 0;
+
+const didReturnAfter = (d?: Date | null) => {
+  if (!d) return true; // если нуджа не было — считаем что "вернулся"
+  return activeMs > d.getTime();
+};
+
+const hoursSince = (d: Date) => (now.getTime() - d.getTime()) / 3600000;
+
+const ignoredLast = lastNudge ? !didReturnAfter(lastNudge) : false;
+const ignoredPrev = prevNudge ? !didReturnAfter(prevNudge) : false;
+
+// Rule #1 + #2:
+// - проигнорировал последний → минимум 36ч
+// - проигнорировал 2 подряд → минимум 72ч (3 дня)
+if (!force && lastNudge && ignoredLast) {
+  const minHours = ignoredPrev ? 72 : 36;
+  if (hoursSince(lastNudge) < minHours) {
+    skipped++;
+    continue;
+  }
+}
+
+// Rule #3 (no morning+day+evening without reply):
+// Если последний nudge проигнорирован, то НЕ шлём follow-up в тот же день вообще.
+// (после 36/72ч можно один новый nudge, но без цепочки)
+if (!force && lastNudge && ignoredLast) {
+  const lastNudgeDay = dayKeyInTZ(lastNudge, tz);
+  if (lastNudgeDay === todayKey) {
+    skipped++;
+    continue;
+  }
+}
+
+// ✅ НЕ ЧАЩЕ 6 ЧАСОВ (можно оставить как soft-guard)
 if (!force && lastNudge) {
-  const hrs = (now.getTime() - lastNudge.getTime()) / 3600000;
+  const hrs = hoursSince(lastNudge);
   if (hrs < 6) {
     skipped++;
     continue;
   }
-}
-
-const activeMs = lastActive ? new Date(lastActive).getTime() : 0;
-const didReturnAfter = (d?: Date | null) => {
-  if (!d) return true; // если нуджа не было — ок
-  return activeMs > d.getTime();
-};
-const hoursSince = (d: Date) => (now.getTime() - d.getTime()) / 3600000;
-
-// ---- лестница "не вернулся" ----
-const waitingAfterMorning = lastMorning && !didReturnAfter(lastMorning);
-const waitingAfterDay = lastDay && !didReturnAfter(lastDay);
-const waitingAfterEvening = lastEvening && !didReturnAfter(lastEvening);
-
-// после утреннего -> дневной не раньше чем через 36 часов
-if (!force && waitingAfterMorning && !lastDay) {
-  if (hoursSince(lastMorning!) < 36) {
-    skipped++;
-    continue;
-  }
-}
-
-// после дневного -> вечерний не раньше чем через 36 часов
-if (!force && waitingAfterDay && !lastEvening) {
-  if (hoursSince(lastDay!) < 36) {
-    skipped++;
-    continue;
-  }
-}
-
-// после вечернего -> стоп
-if (!force && waitingAfterEvening) {
-  skipped++;
-  continue;
 }
 
 // ---- окна времени ----
@@ -510,23 +520,51 @@ const isMorningWindow = hh === 9 && mm <= 15;
 const isEveningWindow = hh === 20 && mm <= 15;
 const isDayWindow = hh >= 15 && hh <= 17;
 
-// ---- расчёты для day ----
+// ---- расчёты активности ----
 const diffMin = lastActive
   ? Math.floor((now.getTime() - new Date(lastActive).getTime()) / 60000)
   : null;
 
-// day: через 360 минут после lastActive, только если morning уже был сегодня и day ещё не был сегодня
-const hadMorningToday = lastMorning ? sameLocalDay(lastMorning, now, tz) : false;
-const hadDayToday = lastDay ? sameLocalDay(lastDay, now, tz) : false;
+// local-day flags
+const hadMorningToday = lastMorning ? sameLocalDay(new Date(lastMorning), now, tz) : false;
+const hadDayToday = lastDay ? sameLocalDay(new Date(lastDay), now, tz) : false;
+const hadEveningToday = lastEvening ? sameLocalDay(new Date(lastEvening), now, tz) : false;
 
+// ответил ли после конкретного nudge
+const returnedAfterMorning = lastMorning ? didReturnAfter(new Date(lastMorning)) : false;
+const returnedAfterDay = lastDay ? didReturnAfter(new Date(lastDay)) : false;
+
+// canDay:
+// ✅ только в day window
+// ✅ только если morning был сегодня
+// ✅ только если юзер вернулся/ответил после morning
+// ✅ и day ещё не был сегодня
+// ✅ и прошло >= 360 минут с lastActive (как у тебя)
 const canDay =
   isDayWindow &&
   hadMorningToday &&
   !hadDayToday &&
+  returnedAfterMorning &&
   diffMin !== null &&
   diffMin >= 360;
 
-// ---- выбираем kind (ОДИН РАЗ, без дублей) ----
+// canEvening:
+// ✅ вечером можно только если:
+//  - был day сегодня и юзер вернулся после day
+//  ИЛИ
+//  - day не было, но был morning сегодня и юзер вернулся после morning
+//  ИЛИ
+//  - сегодня не было morning/day (тогда evening может быть первым nudge дня)
+const canEvening =
+  isEveningWindow &&
+  !hadEveningToday &&
+  (
+    (hadDayToday && returnedAfterDay) ||
+    (!hadDayToday && hadMorningToday && returnedAfterMorning) ||
+    (!hadMorningToday && !hadDayToday)
+  );
+
+// ---- выбираем kind ----
 let kind: Kind | null = null;
 
 if (force && allowedKinds.has(requestedKind)) {
@@ -534,7 +572,7 @@ if (force && allowedKinds.has(requestedKind)) {
 } else {
   if (!tzLooksBroken && isMorningWindow) kind = "morning";
   else if (canDay) kind = "day";
-  else if (!tzLooksBroken && isEveningWindow) kind = "evening";
+  else if (!tzLooksBroken && canEvening) kind = "evening";
 }
 
 if (!kind) {
