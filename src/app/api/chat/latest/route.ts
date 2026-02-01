@@ -14,9 +14,9 @@ export async function GET() {
       include: { messages: { orderBy: { createdAt: "asc" }, take: 200 } },
     });
 
-    return NextResponse.json({ ok: true, session: s }, { status: 200 });
+    return NextResponse.json({ ok: true, session: s });
   } catch (e: any) {
-    // гость / нет сессии / DB перегруз — НЕ валим UI
-    return NextResponse.json({ ok: true, session: null }, { status: 200 });
+    console.error("[CHAT_LATEST] error:", e?.message ?? e);
+    return NextResponse.json({ ok: true, session: null, degraded: true }, { status: 200 });
   }
 }

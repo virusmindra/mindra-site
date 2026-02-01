@@ -280,6 +280,7 @@ model UserSettings {
   
   lastDayNudgeAtUtc DateTime? @map("last_day_nudge_at_utc")
 
+  lastChatSessionId String? @map("last_chat_session_id")
 
   lastActiveAtUtc DateTime? @map("last_active_at_utc")
 

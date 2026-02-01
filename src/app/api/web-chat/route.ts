@@ -27,10 +27,12 @@ function hashContent(kind: string, content: string) {
     .digest("hex");
 }
 
+type VoiceGate =
+  | { ok: true; left: number }
+  | { ok: false; reason: "tts_disabled" | "monthly_exhausted" | "insufficient_left"; left: number };
+
 export async function POST(req: Request) {
-  type VoiceGate =
-    | { ok: true; left: number }
-    | { ok: false; reason: "tts_disabled" | "monthly_exhausted" | "insufficient_left"; left: number };
+  let dbOk = true;
 
   try {
     const URL_FULL = process.env.RENDER_BOT_URL;
@@ -71,11 +73,12 @@ export async function POST(req: Request) {
 
     const userId = authedUserId ?? (anonUid ? `web:${anonUid}` : "web-anon");
 
-    // voice требует login (даже FREE 3 min)
+    // ✅ voice требует login
     if (wantVoice && !authedUserId) {
       const msg = limitReply("monthly_voice", lang);
       return new Response(
         JSON.stringify({
+          ok: true,
           reply:
             lang === "es"
               ? `💜 Inicia sesión para usar voz.\n\n${msg.message} 💜`
@@ -89,53 +92,100 @@ export async function POST(req: Request) {
       );
     }
 
-    // DAILY TEXT LIMIT (общий)
-    const ent = await prisma.entitlement.upsert({
-      where: { userId },
-      create: { userId } as any,
-      update: {},
-    });
-
-    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-
-    if ((ent as any).textDailyUsedAtDate !== today) {
-      await prisma.entitlement.update({
+    // =========================
+    // ENTITLEMENT (best-effort)
+    // =========================
+    let ent: any = null;
+    try {
+      ent = await prisma.entitlement.upsert({
         where: { userId },
-        data: { textDailyUsedAtDate: today, textDailyMessagesUsed: 0 } as any,
+        update: {},
+        create: { userId } as any,
       });
-      (ent as any).textDailyMessagesUsed = 0;
+    } catch (e: any) {
+      dbOk = false;
+      console.error("[WEB_CHAT] entitlement db error:", e?.message ?? e);
     }
 
-    if (
-      (ent as any).textDailyLimitEnabled &&
-      (ent as any).textDailyMessagesUsed >= (ent as any).textDailyLimitMessages
-    ) {
-      const msg = limitReply("daily_text", lang);
-      return new Response(
-        JSON.stringify({
-          reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-          limitBlocked: true,
-          limitType: msg.kind,
-          pricingUrl,
-          cta: msg.cta,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+    // =========================
+    // DAILY TEXT LIMIT (only if dbOk)
+    // =========================
+    if (dbOk && ent) {
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+
+      if ((ent as any).textDailyUsedAtDate !== today) {
+        try {
+          await prisma.entitlement.update({
+            where: { userId },
+            data: { textDailyUsedAtDate: today, textDailyMessagesUsed: 0 } as any,
+          });
+          (ent as any).textDailyMessagesUsed = 0;
+        } catch (e: any) {
+          dbOk = false;
+          console.error("[WEB_CHAT] daily reset db error:", e?.message ?? e);
+        }
+      }
+
+      if (
+        dbOk &&
+        (ent as any).textDailyLimitEnabled &&
+        (ent as any).textDailyMessagesUsed >= (ent as any).textDailyLimitMessages
+      ) {
+        const msg = limitReply("daily_text", lang);
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
+            limitBlocked: true,
+            limitType: msg.kind,
+            pricingUrl,
+            cta: msg.cta,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (dbOk) {
+        try {
+          await prisma.entitlement.update({
+            where: { userId },
+            data: { textDailyMessagesUsed: { increment: 1 } } as any,
+          });
+        } catch (e: any) {
+          dbOk = false;
+          console.error("[WEB_CHAT] increment db error:", e?.message ?? e);
+        }
+      }
     }
 
-    await prisma.entitlement.update({
-      where: { userId },
-      data: { textDailyMessagesUsed: { increment: 1 } } as any,
-    });
-
-    // VOICE GATE
+    // =========================
+    // VOICE GATE (correct!)
+    // =========================
     if (wantVoice) {
+      if (!dbOk) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            reply:
+              lang === "es"
+                ? "💜 La voz está temporalmente no disponible ahora. Inténtalo de nuevo más tarde. 💜"
+                : "💜 Voice is temporarily unavailable right now. Please try again later. 💜",
+            voiceBlocked: true,
+            voiceReason: "temporarily_unavailable",
+            degraded: true,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
       const gate = (await canUsePremiumVoice(prisma as any, userId, 15)) as unknown as VoiceGate;
 
+      // ✅ ВОТ ЭТОГО У ТЕБЯ НЕ ХВАТАЛО
       if (!gate.ok) {
         if (gate.reason === "tts_disabled") {
           return new Response(
             JSON.stringify({
+              ok: true,
               reply:
                 lang === "es"
                   ? "💜 La voz está temporalmente no disponible ahora. Inténtalo de nuevo más tarde. 💜"
@@ -154,6 +204,7 @@ export async function POST(req: Request) {
           const msg = limitReply("monthly_voice", lang);
           return new Response(
             JSON.stringify({
+              ok: true,
               reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
               voiceBlocked: true,
               voiceReason: "monthly_exhausted",
@@ -168,6 +219,7 @@ export async function POST(req: Request) {
         if (gate.reason === "insufficient_left") {
           return new Response(
             JSON.stringify({
+              ok: true,
               reply:
                 lang === "es"
                   ? `💜 No tienes suficiente tiempo de voz restante (${Math.ceil(gate.left / 60)} min). 💜`
@@ -181,33 +233,16 @@ export async function POST(req: Request) {
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-
-        // fallback
-        const msg = limitReply("monthly_voice", lang);
-        return new Response(
-          JSON.stringify({
-            reply: `💜 ${msg.title}\n\n${msg.message} 💜`,
-            voiceBlocked: true,
-            voiceReason: gate.reason,
-            voiceLeftSeconds: gate.left,
-            pricingUrl,
-            cta: msg.cta,
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
       }
     }
 
     // =========================
-    // MEMORY RECALL (before fetch)
+    // MEMORY RECALL (best-effort)
     // =========================
     let memoryContext: any = null;
-
     if (authedUserId) {
       try {
-        const profile = await prisma.userProfile.findUnique({
-          where: { userId: authedUserId },
-        });
+        const profile = await prisma.userProfile.findUnique({ where: { userId: authedUserId } });
 
         const memories =
           (await (prisma as any).memoryItem?.findMany?.({
@@ -249,22 +284,25 @@ export async function POST(req: Request) {
     }
 
     // =========================
-    // SAVE USER MESSAGE (best-effort)
+    // SAVE USER MESSAGE (only if dbOk)
     // =========================
-    try {
-      await prisma.chatSession.upsert({
-        where: { id: sessionId },
-        create: { id: sessionId, userId, title: "Chat" } as any,
-        update: { userId } as any,
-      });
-
-      if (input.trim()) {
-        await prisma.message.create({
-          data: { sessionId, role: "user", content: input } as any,
+    if (dbOk) {
+      try {
+        await prisma.chatSession.upsert({
+          where: { id: sessionId },
+          create: { id: sessionId, userId, title: "Chat" } as any,
+          update: { userId } as any,
         });
+
+        if (input.trim()) {
+          await prisma.message.create({
+            data: { sessionId, role: "user", content: input } as any,
+          });
+        }
+      } catch (e: any) {
+        dbOk = false;
+        console.warn("[web-chat] save user msg failed → degraded", e?.message ?? e);
       }
-    } catch (e) {
-      console.warn("[web-chat] save user msg skipped", e);
     }
 
     // =========================
@@ -290,7 +328,6 @@ export async function POST(req: Request) {
     );
 
     const text = await upstream.text();
-
     const data: any = (() => {
       try {
         return JSON.parse(text);
@@ -307,115 +344,116 @@ export async function POST(req: Request) {
     }
 
     // =========================
-    // MEMORY SAVE (safe, no crash)
+    // MEMORY SAVE + VOICE DEBIT + SAVE ASSISTANT (only if dbOk)
     // =========================
-    try {
-      const p = data?.memoryUpdates?.profile;
-      const items = data?.memoryUpdates?.memories;
+    if (dbOk) {
+      // MEMORY SAVE
+      try {
+        const p = data?.memoryUpdates?.profile;
+        const items = data?.memoryUpdates?.memories;
 
-      if (authedUserId && (p || (Array.isArray(items) && items.length))) {
-        if (p) {
-          await prisma.userProfile.upsert({
-            where: { userId: authedUserId },
-            create: {
-              userId: authedUserId,
-              displayName: p.name ?? null,
-              about: p.about ?? null,
-              style: p.style ?? null,
-            },
-            update: {
-              displayName: p.name ?? undefined,
-              about: p.about ?? undefined,
-              style: p.style ?? undefined,
-            },
-          });
-        }
+        if (authedUserId && (p || (Array.isArray(items) && items.length))) {
+          if (p) {
+            await prisma.userProfile.upsert({
+              where: { userId: authedUserId },
+              create: {
+                userId: authedUserId,
+                displayName: p.name ?? null,
+                about: p.about ?? null,
+                style: p.style ?? null,
+              },
+              update: {
+                displayName: p.name ?? undefined,
+                about: p.about ?? undefined,
+                style: p.style ?? undefined,
+              },
+            });
+          }
 
-        if (Array.isArray(items)) {
-          for (const m of items.slice(0, 10)) {
-            const kind = String(m?.kind ?? "note");
-            const content = String(m?.content ?? "").trim();
-            const salience = Number(m?.salience ?? 1) || 1;
-            if (!content) continue;
+          if (Array.isArray(items)) {
+            for (const m of items.slice(0, 10)) {
+              const kind = String(m?.kind ?? "note");
+              const content = String(m?.content ?? "").trim();
+              const salience = Number(m?.salience ?? 1) || 1;
+              if (!content) continue;
 
-            const contentHash = hashContent(kind, content);
+              const contentHash = hashContent(kind, content);
 
-            const existing =
-              (await (prisma as any).memoryItem?.findFirst?.({
-                where: { userId: authedUserId, contentHash },
-                select: { id: true, salience: true },
-              })) ?? null;
+              const existing =
+                (await (prisma as any).memoryItem?.findFirst?.({
+                  where: { userId: authedUserId, contentHash },
+                  select: { id: true, salience: true },
+                })) ?? null;
 
-            if (existing?.id) {
-              await (prisma as any).memoryItem.update({
-                where: { id: existing.id },
-                data: {
-                  salience: Math.min(3, Math.max(Number(existing.salience ?? 1), salience)),
-                  content,
-                  kind,
-                },
-              });
-            } else {
-              await (prisma as any).memoryItem?.create?.({
-                data: { userId: authedUserId, kind, content, salience, contentHash },
-              });
+              if (existing?.id) {
+                await (prisma as any).memoryItem.update({
+                  where: { id: existing.id },
+                  data: {
+                    salience: Math.min(3, Math.max(Number(existing.salience ?? 1), salience)),
+                    content,
+                    kind,
+                  },
+                });
+              } else {
+                await (prisma as any).memoryItem?.create?.({
+                  data: { userId: authedUserId, kind, content, salience, contentHash },
+                });
+              }
             }
           }
         }
+      } catch (e: any) {
+        console.warn("[memory] save skipped", e?.message ?? e);
       }
-    } catch (e) {
-      console.warn("[memory] save skipped", e);
-    }
 
-    // =========================
-    // VOICE DEBIT
-    // =========================
-    const audioSeconds =
-      (data?.tts?.provider === "elevenlabs" ? Number(data?.tts?.seconds) : NaN) ||
-      Number(data?.audioSeconds);
+      // VOICE DEBIT
+      const audioSeconds =
+        (data?.tts?.provider === "elevenlabs" ? Number(data?.tts?.seconds) : NaN) ||
+        Number(data?.audioSeconds);
 
-    if (wantVoice && Number.isFinite(audioSeconds) && audioSeconds > 0) {
+      if (wantVoice && Number.isFinite(audioSeconds) && audioSeconds > 0) {
+        try {
+          await debitPremiumVoice(prisma as any, {
+            userId,
+            seconds: Math.ceil(audioSeconds),
+            type: "TTS_CHAT",
+            sessionId,
+            meta: { source: "web-chat", feature, lang },
+          });
+          data.voiceDebited = true;
+        } catch {
+          data.voiceDebited = false;
+          data.voiceDebitError = "debit_failed";
+        }
+      }
+
+      // SAVE ASSISTANT MESSAGE
       try {
-        await debitPremiumVoice(prisma as any, {
-          userId,
-          seconds: Math.ceil(audioSeconds),
-          type: "TTS_CHAT",
-          sessionId,
-          meta: { source: "web-chat", feature, lang },
+        const replyText = String(data?.reply ?? "");
+        if (replyText.trim()) {
+          await prisma.message.create({
+            data: { sessionId, role: "assistant", content: replyText } as any,
+          });
+        }
+
+        await prisma.chatSession.update({
+          where: { id: sessionId },
+          data: { updatedAt: new Date() } as any,
         });
-        data.voiceDebited = true;
-      } catch {
-        data.voiceDebited = false;
-        data.voiceDebitError = "debit_failed";
+      } catch (e: any) {
+        console.warn("[web-chat] save assistant msg skipped", e?.message ?? e);
       }
     }
 
-    // =========================
-    // SAVE ASSISTANT MESSAGE (best-effort) ✅ ПОСЛЕ memory+debit
-    // =========================
-    try {
-      const replyText = String(data?.reply ?? "");
-      if (replyText.trim()) {
-        await prisma.message.create({
-          data: { sessionId, role: "assistant", content: replyText } as any,
-        });
-      }
-
-      await prisma.chatSession.update({
-        where: { id: sessionId },
-        data: { updatedAt: new Date() } as any,
-      });
-    } catch (e) {
-      console.warn("[web-chat] save assistant msg skipped", e);
-    }
+    data.degraded = !dbOk;
 
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (e) {
-    console.error("WEB_CHAT_FATAL", e);
-    return new Response(JSON.stringify({ reply: "Server error" }), {
+  } catch (e: any) {
+    console.error("WEB_CHAT_FATAL", e?.message ?? e);
+    return new Response(JSON.stringify({ ok: false, reply: "Server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
