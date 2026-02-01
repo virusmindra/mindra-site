@@ -19,13 +19,6 @@ export async function POST(req: Request) {
   try {
     const now = new Date();
 
-    // ✅ если поля lastChatSessionId НЕТ в схеме — НЕ трогаем его
-    await prisma.userSettings.upsert({
-      where: { userId },
-      update: { lastActiveAtUtc: now },
-      create: { userId, lastActiveAtUtc: now },
-    });
-
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error("[PING] db error:", e?.message ?? e);
