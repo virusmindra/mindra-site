@@ -133,6 +133,16 @@ export default function ChatWindow({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [stickToBottom, setStickToBottom] = useState(true);
 
+  const labels = useMemo(() => ui(locale), [locale]);
+
+  const isGoalDiary = Boolean(currentSessionId?.startsWith("goal:"));
+  const isHabitDiary = Boolean(currentSessionId?.startsWith("habit:"));
+
+  const scrollToBottom = (smooth = true) => {
+    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+  };
+
+  // 1) track whether user is at bottom
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -149,28 +159,31 @@ export default function ChatWindow({
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  // 2) auto-scroll on new messages ONLY if we are stuck to bottom
   useEffect(() => {
     if (!stickToBottom) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToBottom(false);
   }, [messages.length, stickToBottom]);
 
-  const isGoalDiary = Boolean(currentSessionId?.startsWith("goal:"));
-  const isHabitDiary = Boolean(currentSessionId?.startsWith("habit:"));
-
-  const labels = useMemo(() => ui(locale), [locale]);
+  // 3) listen to Composer focus / keyboard event
+  useEffect(() => {
+    const handler = () => scrollToBottom(true);
+    window.addEventListener("mindra:scroll-bottom", handler);
+    return () => window.removeEventListener("mindra:scroll-bottom", handler);
+  }, []);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <div
-  ref={scrollerRef}
-  className="
-    flex-1 min-h-0 overflow-y-auto overscroll-contain
-    px-3 sm:px-6
-    py-4 sm:py-6
-    pb-28 sm:pb-6
-  "
->
-  <div className="mx-auto w-full max-w-3xl space-y-4">
+        ref={scrollerRef}
+        className="
+          flex-1 min-h-0 overflow-y-auto overscroll-contain
+          px-3 sm:px-6
+          py-4 sm:py-6
+          pb-32 sm:pb-6
+        "
+      >
+        <div className="mx-auto w-full max-w-3xl space-y-4">
           {messages.map((m, idx) => {
             const isUser = m.role === "user";
             const isLast = idx === messages.length - 1;
@@ -213,6 +226,7 @@ export default function ChatWindow({
               );
             }
 
+            // ✅ TTS URL (your existing field)
             const ttsUrl: string | null =
               typeof (m as any)?.ttsAudioUrl === "string" && (m as any).ttsAudioUrl
                 ? (m as any).ttsAudioUrl
@@ -235,7 +249,7 @@ export default function ChatWindow({
                   <div className="flex items-start gap-2">
                     <div className="min-w-0 whitespace-pre-wrap">{m.content}</div>
 
-                    {/* 🔊 / ⏸ (no title) */}
+                    {/* 🔊 / ⏸ */}
                     {!isUser && ttsUrl && onToggleTts ? (
                       <button
                         type="button"
@@ -285,7 +299,7 @@ export default function ChatWindow({
                     </div>
                   ) : null}
 
-                  {/* Reminder confirm (only last assistant message in reminders tab) */}
+                  {/* Reminder confirm */}
                   {!isUser &&
                   isLast &&
                   activeFeature === "reminders" &&

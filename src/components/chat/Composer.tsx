@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
 import { useRef, useState } from "react";
 
 type Props = {
   onSend: (t: string) => void;
-  onSendImages?: (caption: string, files: File[]) => void; // 👈 вместо onSendImage
+  onSendImages?: (caption: string, files: File[]) => Promise<void>;
   onVoiceToText?: (blob: Blob) => Promise<string>;
   disabled?: boolean;
 };
 
 export default function Composer({ onSend, onSendImages, onVoiceToText, disabled }: Props) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   const MAX_PHOTOS = 5;
@@ -25,12 +25,11 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
   const doSend = () => {
     const t = text.trim();
 
-    // 1) если есть фотки — отправляем ОДНИМ запросом
+    // 1) если есть фотки — отправляем одним запросом
     if (pendingImages.length && onSendImages) {
-      onSendImages(t, pendingImages.map(p => p.file));
+      onSendImages(t, pendingImages.map((p) => p.file));
 
-      // cleanup previews
-      pendingImages.forEach(p => URL.revokeObjectURL(p.url));
+      pendingImages.forEach((p) => URL.revokeObjectURL(p.url));
       setPendingImages([]);
       setText("");
       return;
@@ -44,10 +43,6 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
   };
 
   return (
-    // Mobile-first composer:
-    // - avoid horizontal overflow (smaller padding on mobile)
-    // - avoid iOS input zoom (font-size >= 16px)
-    // - safe-area padding for iPhone bottom bar
     <div
       className="border-t border-[var(--border)] bg-[var(--bg)] px-3 sm:px-6 py-3"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
@@ -121,7 +116,6 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
               return [...prev, ...mapped];
             });
 
-            // важно: чтобы выбор того же файла снова сработал
             e.currentTarget.value = "";
           }}
         />
@@ -134,19 +128,27 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                // ✅ отправка ТОЛЬКО по Enter, и учитывает pendingImage
                 doSend();
               }
             }}
+            onFocus={() => {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  window.dispatchEvent(new Event("mindra:scroll-bottom"));
+                  setTimeout(
+                    () => window.dispatchEvent(new Event("mindra:scroll-bottom")),
+                    120
+                  );
+                });
+              });
+            }}
             placeholder="Type a message…"
-            // ✅ text-base => iOS не зумит при фокусе
-            // ✅ min-w-0 => input НЕ раздувает строку, не выталкивает Send
             className="flex-1 min-w-0 h-12 rounded-2xl bg-[var(--card)] border border-[var(--border)]
                        px-4 text-base outline-none focus:border-[var(--accent-2)]"
             disabled={disabled}
           />
 
-          {/* ✅ Voice button: record -> transcribe -> put text into input (no auto send) */}
+          {/* ✅ Voice button */}
           <button
             type="button"
             disabled={disabled || !onVoiceToText}
@@ -189,7 +191,7 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
             {recording ? "⏹️" : "🎤"}
           </button>
 
-          {/* ✅ Attach photo (no auto send) */}
+          {/* ✅ Attach photo */}
           <button
             type="button"
             disabled={disabled || pendingImages.length >= MAX_PHOTOS}
@@ -200,7 +202,7 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
             📷
           </button>
 
-          {/* ✅ Send button: sends text OR (text+image) */}
+          {/* ✅ Send */}
           <button
             type="button"
             onClick={doSend}
@@ -210,7 +212,6 @@ export default function Composer({ onSend, onSendImages, onVoiceToText, disabled
                        disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={disabled || (!text.trim() && pendingImages.length === 0)}
           >
-            {/* на телефоне — компактно, чтобы не обрезалось */}
             <span className="sm:hidden">➤</span>
             <span className="hidden sm:inline">Send</span>
           </button>

@@ -1662,12 +1662,13 @@ const showVoiceToggle =
   activeFeature === "default" || activeFeature === "goals" || activeFeature === "habits";
 
 return (
-  <div className="h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
+  <div className="h-[100dvh] flex flex-col overflow-hidden bg-[var(--bg)] text-[var(--text)]">
     {showA2HS ? (
       <AddToHomeHint locale={locale} variant="fullscreen" onClose={closeA2HS} />
     ) : null}
 
-    <div className="flex h-full">
+    {/* ✅ ВЕСЬ КОНТЕНТ ВНУТРИ flex-1 min-h-0 */}
+    <div className="flex-1 min-h-0 flex">
       {/* ✅ Mobile overlay */}
       {sidebarOpen ? (
         <div
@@ -1696,7 +1697,6 @@ return (
         }}
         onDelete={(id) => {
           handleDeleteSession(id);
-          // не обязательно закрывать, но удобно
         }}
       />
 
@@ -1715,17 +1715,24 @@ return (
           <div className="font-semibold">Mindra</div>
 
           <div className="ml-auto text-xs text-[var(--muted)]">
-            {activeFeature === "default" ? "Chat" :
-             activeFeature === "goals" ? "Goals" :
-             activeFeature === "habits" ? "Habits" :
-             activeFeature === "reminders" ? "Reminders" :
-             activeFeature === "settings" ? "Settings" :
-             activeFeature === "call" ? "Call" : ""}
+            {activeFeature === "default"
+              ? "Chat"
+              : activeFeature === "goals"
+              ? "Goals"
+              : activeFeature === "habits"
+              ? "Habits"
+              : activeFeature === "reminders"
+              ? "Reminders"
+              : activeFeature === "settings"
+              ? "Settings"
+              : activeFeature === "call"
+              ? "Call"
+              : ""}
           </div>
         </div>
 
         {activeFeature === "settings" ? (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <SettingsPanel
               premiumVoiceEnabled={premiumVoiceEnabled}
               onTogglePremiumVoice={(v) => {
@@ -1741,107 +1748,105 @@ return (
           </div>
         ) : (
           <>
-  <ChatWindow
-    messages={current ? current.messages : []}
-    activeFeature={activeFeature}
-    goalSuggestion={lastGoalSuggestion}
-    habitSuggestion={lastHabitSuggestion}
-    onSaveGoal={saveAsGoal}
-    onSaveHabit={saveAsHabit}
-    onMarkGoalDone={markGoalDone}
-    onMarkHabitDone={markHabitDone}
-    pendingReminder={pendingReminder}
-    onConfirmReminder={createPendingReminder}
-    onCancelReminder={() => setPendingReminder(null)}
-    reminderBusy={reminderBusy}
-    currentSessionId={current?.id}
-    locale={locale}
-    goalDone={Boolean((current as any)?.goalDone)}
-    habitDone={Boolean((current as any)?.habitDone)}
-    playingTtsTs={playingTtsTs}
-  onToggleTts={toggleTts}
-  />
+            {/* ✅ ChatWindow должен быть flex-1/min-h-0 внутри себя, мы его ниже тоже поправим */}
+            <ChatWindow
+              messages={current ? current.messages : []}
+              activeFeature={activeFeature}
+              goalSuggestion={lastGoalSuggestion}
+              habitSuggestion={lastHabitSuggestion}
+              onSaveGoal={saveAsGoal}
+              onSaveHabit={saveAsHabit}
+              onMarkGoalDone={markGoalDone}
+              onMarkHabitDone={markHabitDone}
+              pendingReminder={pendingReminder}
+              onConfirmReminder={createPendingReminder}
+              onCancelReminder={() => setPendingReminder(null)}
+              reminderBusy={reminderBusy}
+              currentSessionId={current?.id}
+              locale={locale}
+              goalDone={Boolean((current as any)?.goalDone)}
+              habitDone={Boolean((current as any)?.habitDone)}
+              playingTtsTs={playingTtsTs}
+              onToggleTts={toggleTts}
+            />
 
-  {voiceNotice ? (
-    <div className="mx-auto max-w-3xl px-6 pb-2 text-xs text-[var(--muted)] text-right">
-      {voiceNotice}
-    </div>
-  ) : null}
+            {voiceNotice ? (
+              <div className="mx-auto max-w-3xl px-3 sm:px-6 pb-2 text-xs text-[var(--muted)] text-right">
+                {voiceNotice}
+              </div>
+            ) : null}
 
-    <Composer
-      onSend={handleSend}
-      disabled={sending}
-      onVoiceToText={async (blob) => {
-        const fd = new FormData();
-        fd.append("audio", blob, "voice.webm");
+            <Composer
+              onSend={handleSend}
+              disabled={sending}
+              onVoiceToText={async (blob) => {
+                const fd = new FormData();
+                fd.append("audio", blob, "voice.webm");
 
-        const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
-        const j = await r.json().catch(() => null);
-        if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
-        return String(j.text || "").trim();
-      }}
-      onSendImages={async (caption, files) => {
-        const ts = Date.now();
-        const previews = files.map((f) => URL.createObjectURL(f));
+                const r = await fetch("/api/voice-to-text", { method: "POST", body: fd });
+                const j = await r.json().catch(() => null);
+                if (!r.ok || !j?.ok) throw new Error(j?.error || "voice_to_text_failed");
+                return String(j.text || "").trim();
+              }}
+              onSendImages={async (caption, files) => {
+                const ts = Date.now();
+                const previews = files.map((f) => URL.createObjectURL(f));
 
-        updateCurrentSession((prev: any) => ({
-          ...prev,
-          messages: [
-            ...(prev.messages || []),
-            { role: "user", content: caption || "", ts, images: previews },
-          ],
-          updatedAt: Date.now(),
-        }));
+                updateCurrentSession((prev: any) => ({
+                  ...prev,
+                  messages: [
+                    ...(prev.messages || []),
+                    { role: "user", content: caption || "", ts, images: previews },
+                  ],
+                  updatedAt: Date.now(),
+                }));
 
-        const fd = new FormData();
-        files.forEach((f) => fd.append("images", f));
-        fd.append("input", caption || "");
-        fd.append("sessionId", current?.id || "");
-        fd.append("feature", activeFeature);
-        fd.append("user_id", uid);
-        fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
+                const fd = new FormData();
+                files.forEach((f) => fd.append("images", f));
+                fd.append("input", caption || "");
+                fd.append("sessionId", current?.id || "");
+                fd.append("feature", activeFeature);
+                fd.append("user_id", uid);
+                fd.append("lang", locale.toLowerCase().startsWith("es") ? "es" : "en");
 
-        setSending(true);
-try {
-  const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
-  const j = await r.json().catch(() => null);
+                setSending(true);
+                try {
+                  const r = await fetch("/api/web-chat-images", { method: "POST", body: fd });
+                  const j = await r.json().catch(() => null);
 
-  if (!r.ok || !j?.ok || !j?.reply) {
-    throw new Error(j?.error || `images_chat_failed (${r.status})`);
-  }
+                  if (!r.ok || !j?.ok || !j?.reply) {
+                    throw new Error(j?.error || `images_chat_failed (${r.status})`);
+                  }
 
-  updateCurrentSession((prev: any) => ({
-    ...prev,
-    messages: [
-      ...(prev.messages || []),
-      { role: "assistant", content: String(j.reply), ts: Date.now() },
-    ],
-    updatedAt: Date.now(),
-  }));
-} catch (e: any) {
-  // 👇 покажи ошибку в чат, чтобы ты сразу понял, что сломалось
-  updateCurrentSession((prev: any) => ({
-    ...prev,
-    messages: [
-      ...(prev.messages || []),
-      {
-        role: "assistant",
-        content: `⚠️ Image failed: ${String(e?.message ?? e)}`,
-        ts: Date.now(),
-      },
-    ],
-    updatedAt: Date.now(),
-  }));
-} finally {
-  setSending(false);
-  setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
-}
-
-      }}
-    />
-  </>
-)}
-
+                  updateCurrentSession((prev: any) => ({
+                    ...prev,
+                    messages: [
+                      ...(prev.messages || []),
+                      { role: "assistant", content: String(j.reply), ts: Date.now() },
+                    ],
+                    updatedAt: Date.now(),
+                  }));
+                } catch (e: any) {
+                  updateCurrentSession((prev: any) => ({
+                    ...prev,
+                    messages: [
+                      ...(prev.messages || []),
+                      {
+                        role: "assistant",
+                        content: `⚠️ Image failed: ${String(e?.message ?? e)}`,
+                        ts: Date.now(),
+                      },
+                    ],
+                    updatedAt: Date.now(),
+                  }));
+                } finally {
+                  setSending(false);
+                  setTimeout(() => previews.forEach((u) => URL.revokeObjectURL(u)), 3000);
+                }
+              }}
+            />
+          </>
+        )}
 
         {/* ✅ Fullscreen Call Overlay */}
         {callOpen && (
@@ -1851,7 +1856,7 @@ try {
             wantVoice={premiumVoiceEnabled}
             onClose={() => {
               setCallOpen(false);
-              setActiveFeature("default"); // чтобы Call не был подсвечен
+              setActiveFeature("default");
             }}
           />
         )}
