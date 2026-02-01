@@ -162,10 +162,15 @@ export default function ChatWindow({
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div
-        ref={scrollerRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-6"
-      >
-        <div className="mx-auto w-full max-w-4xl space-y-4">
+  ref={scrollerRef}
+  className="
+    flex-1 min-h-0 overflow-y-auto overscroll-contain
+    px-3 sm:px-6
+    py-4 sm:py-6
+    pb-28 sm:pb-6
+  "
+>
+  <div className="mx-auto w-full max-w-3xl space-y-4">
           {messages.map((m, idx) => {
             const isUser = m.role === "user";
             const isLast = idx === messages.length - 1;
@@ -220,7 +225,7 @@ export default function ChatWindow({
               >
                 <div
                   className={[
-                    "px-4 py-2 rounded-2xl text-sm md:text-base leading-relaxed max-w-[80%]",
+                    "px-4 py-2 rounded-2xl text-[15px] sm:text-base leading-relaxed max-w-[92%] sm:max-w-[80%]",
                     "whitespace-pre-wrap",
                     isUser
                       ? "bg-white text-zinc-900 rounded-br-sm"
